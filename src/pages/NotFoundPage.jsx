@@ -1,10 +1,9 @@
-import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import '@/styles/not-found.css'; // 기존 CSS 연결
 
 function NotFoundPage() {
-  const NotFound = () => {
+  {
     const navigate = useNavigate();
 
     const handleGoBack = () => {
@@ -68,7 +67,7 @@ function NotFoundPage() {
         </div>
       </div>
     );
-  };
+  }
 }
 
 export default NotFoundPage;
