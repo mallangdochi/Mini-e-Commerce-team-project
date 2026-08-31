@@ -6,7 +6,7 @@ import HomePage from '@/pages/HomePage';
 import LoginPage from '@/pages/LoginPage';
 import NotFoundPage from '@/pages/NotFoundPage';
 import ProductDetailPage from '@/pages/ProductDetailPage';
-import ProductListPage from '@/pages/ProductListPage';
+import ProductPage from '@/pages/ProductPage';
 import SignupPage from '@/pages/SignupPage';
 
 function AppRouter() {
@@ -14,8 +14,13 @@ function AppRouter() {
     <Routes>
       <Route element={<Layout />}>
         <Route path="/" element={<HomePage />} />
-        <Route path="/products" element={<ProductListPage />} />
+
+        {/* 상품 판매 페이지 */}
+        <Route path="/products" element={<ProductPage />} />
+
+        {/* 상품 상세 페이지 */}
         <Route path="/products/:productId" element={<ProductDetailPage />} />
+
         <Route path="/cart" element={<CartPage />} />
       </Route>
 
