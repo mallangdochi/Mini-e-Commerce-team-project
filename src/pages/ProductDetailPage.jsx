@@ -167,6 +167,80 @@ function ProductDetailPage() {
           </div>
         </div>
       </section>
+      <section className="product-detail-content">
+        <nav className="detail-tabs" aria-label="상품 상세 메뉴">
+          <button type="button" className="detail-tab is-active">
+            <span className="detail-tab-icon">◉</span>
+            제품 정보
+          </button>
+
+          <button type="button" className="detail-tab">
+            <span className="detail-tab-icon">☆</span>
+            리뷰
+          </button>
+
+          <button type="button" className="detail-tab">
+            <span className="detail-tab-icon">✎</span>
+            사이즈 가이드
+          </button>
+        </nav>
+
+        <section className="detail-info-section">
+          <h2 className="detail-section-title">특징</h2>
+
+          <div className="detail-info-grid">
+            <div className="detail-text-area">
+              <h3>활용도: 러닝</h3>
+
+              <p>
+                빈틈이 브라탑 더한 러닝 탱크탑이에요. 작은 소지품을 간편하게 보관할 수 있는 4개의
+                포켓을 디자인했어요. Incognito™ 브라탑은 통기성이 탁월하고 쿠션감이 느껴지는 일체형
+                브라캡으로 가슴을 아름답게 잡아주며, 몸을 이리저리 움직여도 늘 제자리를 지켜요.
+              </p>
+            </div>
+
+            <div className="detail-image-pair">
+              <div className="detail-image">
+                <img src="/images/products/detail01.jpg" alt="상품 착용 이미지" />
+              </div>
+
+              <div className="detail-image">
+                <img src="/images/products/detail02.jpg" alt="러닝 착용 이미지" />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 핏 & 소재 */}
+        <section className="detail-info-section">
+          <h2 className="detail-section-title">핏 &amp; 소재</h2>
+
+          <div className="detail-info-grid">
+            <div className="detail-text-area">
+              <div className="detail-text-block">
+                <h3>미디엄 서포트, B/C컵</h3>
+
+                <p>
+                  미디엄 서포트를 선호하는 B/C컵 여성에게 적합. 바디라인이 드러나는 타이트 핏이에요.
+                </p>
+              </div>
+
+              <div className="detail-text-block">
+                <h3>매끄러운 초경량 Nulux™ 원단</h3>
+
+                <p>
+                  매끄럽고 시원한 감촉. 포기해야 할 원사가 더해져 탁월한 신축성과 복원력을
+                  제공합니다.
+                </p>
+              </div>
+            </div>
+
+            <div className="detail-wide-image">
+              <img src="/images/products/detail03.jpg" alt="제품 소재와 핏 착용 이미지" />
+            </div>
+          </div>
+        </section>
+      </section>
     </main>
   );
 }
