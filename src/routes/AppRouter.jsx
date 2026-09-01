@@ -20,7 +20,6 @@ function AppRouter() {
         {/* 상품 판매 페이지 */}
         <Route path="/products" element={<ProductPage />} />
 
-
         <Route path="/products/:productId" element={<ProductDetailPage />} />
 
         <Route path="/cart" element={<CartPage />} />
