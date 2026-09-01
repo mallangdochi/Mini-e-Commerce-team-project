@@ -4,6 +4,7 @@ import Layout from '@/components/layout/Layout';
 import CartPage from '@/pages/CartPage';
 import CheckoutPage from '@/pages/CheckoutPage';
 import CheckoutPage2 from '@/pages/CheckoutPage2';
+import CheckoutComplete from '@/pages/CheckoutComplete';
 import HomePage from '@/pages/HomePage';
 import LoginPage from '@/pages/LoginPage';
 import NotFoundPage from '@/pages/NotFoundPage';
@@ -17,7 +18,6 @@ function AppRouter() {
       <Route element={<Layout />}>
         <Route path="/" element={<HomePage />} />
 
-        {/* 상품 판매 페이지 */}
         <Route path="/products" element={<ProductPage />} />
 
         <Route path="/products/:productId" element={<ProductDetailPage />} />
@@ -27,6 +27,8 @@ function AppRouter() {
         <Route path="/checkout" element={<CheckoutPage />} />
 
         <Route path="/checkout2" element={<CheckoutPage2 />} />
+
+        <Route path="/checkout/complete" element={<CheckoutComplete />} />
       </Route>
 
       <Route path="/login" element={<LoginPage />} />
