@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import '@/styles/checkout.css';
 
@@ -27,6 +28,8 @@ const initialOrderItems = [
 ];
 
 function CheckoutPage() {
+  const navigate = useNavigate();
+
   const [paymentMethod, setPaymentMethod] = useState('card');
   const [couponCode, setCouponCode] = useState('');
   const [selectedCoupon, setSelectedCoupon] = useState('');
@@ -50,6 +53,10 @@ function CheckoutPage() {
     if (couponCode.trim()) {
       setSelectedCoupon('open-20000');
     }
+  };
+
+  const handleNextStep = () => {
+    navigate('/checkout2');
   };
 
   return (
@@ -238,7 +245,7 @@ function CheckoutPage() {
                 </div>
               </div>
 
-              <button type="button" className="checkout-btn-action">
+              <button type="button" className="checkout-btn-action" onClick={handleNextStep}>
                 결제하기
               </button>
             </section>
