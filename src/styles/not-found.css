@@ -1,0 +1,129 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: #0d0d0d;
+  color: #ffffff;
+}
+
+.not-found-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow: hidden;
+}
+
+/* 원형 발광 박스 */
+.glow-circle {
+  width: 600px;
+  height: 600px;
+  border-radius: 50%;
+  background: radial-gradient(circle at center, #1a1a1a 0%, #080808 100%);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  /* 외부 White Glow 효과 */
+  box-shadow:
+    0 0 50px rgba(255, 255, 255, 0.15),
+    inset 0 0 30px rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 60px 40px;
+  text-align: center;
+}
+
+/* 404 텍스트 */
+.error-code {
+  font-size: 88px;
+  font-weight: 300;
+  letter-spacing: -2px;
+  line-height: 1;
+  margin-top: 20px;
+}
+
+.error-sub {
+  font-size: 11px;
+  letter-spacing: 4px;
+  color: #888888;
+  margin-top: 8px;
+}
+
+/* 메시지 영역 */
+.message-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: #ffffff;
+}
+
+.message-desc {
+  font-size: 12px;
+  color: #999999;
+  line-height: 1.6;
+  font-weight: 300;
+}
+
+/* 버튼 영역 */
+.button-group {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  max-width: 260px;
+}
+
+.btn {
+  flex: 1;
+  padding: 10px 0;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 4px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-primary {
+  background-color: #ffffff;
+  color: #000000;
+  border: 1px solid #ffffff;
+}
+
+.btn-primary:hover {
+  background-color: #e6e6e6;
+}
+
+.btn-secondary {
+  background-color: transparent;
+  color: #ffffff;
+  border: 1px solid #444444;
+}
+
+.btn-secondary:hover {
+  background-color: #1a1a1a;
+  border-color: #666666;
+}
+
+/* 로고 영역 */
+.logo-wrapper {
+  display: inline-block;
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+}
+
+.logo-wrapper:hover {
+  opacity: 1;
+}
+
+.app-logo {
+  height: 24px;
+  color: #ffffff;
+}
