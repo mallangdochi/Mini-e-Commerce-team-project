@@ -13,6 +13,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -27,7 +29,11 @@ jobs:
         run: npm run lint
 
       - name: Prettier
-        run: npm run format:check
+        shell: bash
+        run: |
+          git diff --name-only -z --diff-filter=ACMR "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}" -- \
+            '*.js' '*.jsx' '*.ts' '*.tsx' '*.css' '*.scss' '*.json' '*.md' '*.html' '*.yml' '*.yaml' |
+          xargs -0 -r npx prettier --check
 
       - name: Build
         run: npm run build

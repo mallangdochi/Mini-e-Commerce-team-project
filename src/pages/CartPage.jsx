@@ -10,6 +10,7 @@ const initialCartItems = [
     option: 'BLACK / L',
     price: 49000,
     quantity: 1,
+    imageUrl: '',
   },
   {
     id: 2,
@@ -17,6 +18,7 @@ const initialCartItems = [
     option: 'BLACK / L',
     price: 49000,
     quantity: 1,
+    imageUrl: '',
   },
   {
     id: 3,
@@ -24,6 +26,7 @@ const initialCartItems = [
     option: 'BLACK / L',
     price: 49000,
     quantity: 1,
+    imageUrl: '',
   },
 ];
 
@@ -32,26 +35,13 @@ function CartPage() {
 
   const [cartItems, setCartItems] = useState(initialCartItems);
 
-  const handleIncreaseQuantity = (itemId) => {
+  const handleUpdateQuantity = (itemId, delta) => {
     setCartItems((currentItems) =>
       currentItems.map((item) =>
         item.id === itemId
           ? {
               ...item,
-              quantity: item.quantity + 1,
-            }
-          : item
-      )
-    );
-  };
-
-  const handleDecreaseQuantity = (itemId) => {
-    setCartItems((currentItems) =>
-      currentItems.map((item) =>
-        item.id === itemId
-          ? {
-              ...item,
-              quantity: Math.max(1, item.quantity - 1),
+              quantity: Math.max(1, item.quantity + delta),
             }
           : item
       )
@@ -89,36 +79,25 @@ function CartPage() {
           {cartItems.length > 0 ? (
             cartItems.map((item) => (
               <div className="cart-item-row" key={item.id}>
-                {/* 상품 정보 */}
                 <div className="cart-product-cell">
-                  {/*
-                    실제 이미지 연결 시 아래 placeholder를 img로 교체
-
-                    예:
-                    <img
-                      className="cart-item-img"
-                      src={item.imageUrl}
-                      alt={item.name}
-                    />
-                  */}
-
-                  <div className="cart-item-img-placeholder">IMAGE</div>
+                  {item.imageUrl ? (
+                    <img className="cart-item-img" src={item.imageUrl} alt={item.name} />
+                  ) : (
+                    <div className="cart-item-img-placeholder">IMAGE</div>
+                  )}
 
                   <div className="cart-item-info">
                     <div className="cart-item-name">{item.name}</div>
-
                     <div className="cart-item-sub">{item.option}</div>
                   </div>
                 </div>
 
-                {/* 가격 */}
                 <div className="cart-item-price">₩ {item.price.toLocaleString()}</div>
 
-                {/* 수량 */}
                 <div className="cart-quantity-box">
                   <button
                     type="button"
-                    onClick={() => handleDecreaseQuantity(item.id)}
+                    onClick={() => handleUpdateQuantity(item.id, -1)}
                     aria-label={`${item.name} 수량 감소`}
                   >
                     −
@@ -128,19 +107,17 @@ function CartPage() {
 
                   <button
                     type="button"
-                    onClick={() => handleIncreaseQuantity(item.id)}
+                    onClick={() => handleUpdateQuantity(item.id, 1)}
                     aria-label={`${item.name} 수량 증가`}
                   >
                     +
                   </button>
                 </div>
 
-                {/* 합계 */}
                 <div className="cart-item-total">
                   ₩ {(item.price * item.quantity).toLocaleString()}
                 </div>
 
-                {/* 삭제 */}
                 <button
                   type="button"
                   className="cart-remove-btn"
@@ -164,7 +141,6 @@ function CartPage() {
           <div className="cart-summary-box">
             <div className="cart-summary-row">
               <span>상품금액</span>
-
               <span>₩ {totalPrice.toLocaleString()}</span>
             </div>
 
@@ -175,7 +151,6 @@ function CartPage() {
 
             <div className="cart-summary-row cart-summary-total">
               <span>총 결제금액</span>
-
               <span>₩ {totalPrice.toLocaleString()}</span>
             </div>
 
