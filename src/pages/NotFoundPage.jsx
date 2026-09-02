@@ -41,7 +41,7 @@ function NotFoundPage() {
           </button>
         </div>
 
-        <Link to="/" className="not-found-logo-wrapper">
+        <Link to="/" className="NotFound-logo-wrapper" aria-label="ARC 홈으로 이동">
           <svg
             className="not-found-app-logo"
             id="_레이어_1"

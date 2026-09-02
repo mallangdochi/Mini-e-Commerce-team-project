@@ -20,8 +20,28 @@ function CheckoutPage2() {
     memo: '',
   });
 
+  const formatPhoneNumber = (value) => {
+    const numbers = value.replace(/[^\d]/g, '');
+    if (numbers.length <= 3) {
+      return numbers;
+    } else if (numbers.length <= 7) {
+      return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
+    } else if (numbers.length <= 11) {
+      return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
+    } else {
+      return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
+    }
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
+
+    if (name === 'phone') {
+      const formatted = formatPhoneNumber(value);
+      setShippingInfo((prev) => ({ ...prev, [name]: formatted }));
+      return;
+    }
+
     setShippingInfo((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -39,7 +59,6 @@ function CheckoutPage2() {
   return (
     <section className="checkout-page">
       <div className="checkout-container">
-        {/* 상단 스텝 인디케이터 */}
         <div className="checkout-step-indicator">
           <div className="checkout-step">
             <span className="checkout-step-num">1</span>
@@ -58,7 +77,6 @@ function CheckoutPage2() {
         </div>
 
         <div className="checkout-grid">
-          {/* 좌측: 배송지 정보 입력 폼 */}
           <div className="checkout-left">
             <section className="checkout-box-section">
               <div className="checkout-box-title">배송지 정보</div>
@@ -83,6 +101,7 @@ function CheckoutPage2() {
                     id="phone"
                     name="phone"
                     type="text"
+                    maxLength={13}
                     className="checkout-form-control"
                     placeholder="010-1234-5678"
                     value={shippingInfo.phone}
@@ -153,7 +172,6 @@ function CheckoutPage2() {
             </section>
           </div>
 
-          {/* 우측: 주문 상품 요약 및 결제 금액 */}
           <div className="checkout-right">
             <section className="checkout-summary-box">
               <div className="checkout-summary-title">
