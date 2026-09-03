@@ -10,9 +10,14 @@ const NAV_ITEMS = [
   { label: '신제품', to: '/products' },
 ];
 
+// 스크롤이 이 값을 넘어간 뒤부터 스크롤 다운 시 헤더 숨김
+const HEADER_HIDE_THRESHOLD = 80;
+
 // TODO: 인증 store(zustand) 연결되면 교체. 지금은 localStorage 플래그로 임시 처리.
-// 로그인/로그아웃 코드는 accessToken 설정 후 window.dispatchEvent(new Event('auth-change')) 호출할 것.
-const readLoggedIn = () => !!localStorage.getItem('accessToken');
+// 로그인/로그아웃 코드는 AUTH_TOKEN_KEY 설정/삭제 후 window.dispatchEvent(new Event(AUTH_CHANGE_EVENT)) 호출할 것.
+const AUTH_TOKEN_KEY = 'accessToken';
+const AUTH_CHANGE_EVENT = 'auth-change';
+const readLoggedIn = () => !!localStorage.getItem(AUTH_TOKEN_KEY);
 
 function Header() {
   const navigate = useNavigate();
@@ -28,10 +33,10 @@ function Header() {
   useEffect(() => {
     const sync = () => setLoggedIn(readLoggedIn());
     window.addEventListener('storage', sync);
-    window.addEventListener('auth-change', sync);
+    window.addEventListener(AUTH_CHANGE_EVENT, sync);
     return () => {
       window.removeEventListener('storage', sync);
-      window.removeEventListener('auth-change', sync);
+      window.removeEventListener(AUTH_CHANGE_EVENT, sync);
     };
   }, []);
 
@@ -49,7 +54,7 @@ function Header() {
     let ticking = false;
     const update = () => {
       const y = window.scrollY;
-      setHidden(y >= 80 && y > lastY.current);
+      setHidden(y >= HEADER_HIDE_THRESHOLD && y > lastY.current);
       lastY.current = y;
       ticking = false;
     };
