@@ -324,9 +324,7 @@ export default function CustomCarousel() {
       </div>
 
       {/* toast */}
-      <div
-        className={`custom-carousel__toast ${toast ? 'custom-carousel__toast--visible' : ''}`}
-      >
+      <div className={`custom-carousel__toast ${toast ? 'custom-carousel__toast--visible' : ''}`}>
         {toast}
       </div>
     </div>
