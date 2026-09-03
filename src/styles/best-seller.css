@@ -14,9 +14,8 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) 280px;
   gap: 34px;
-  width: calc(100% - 72px);
-  max-width: 1500px;
-  margin: 0 auto;
+  width: 100%;
+  margin: 0;
 }
 
 .best-seller__products {
@@ -24,6 +23,8 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
   min-width: 0;
+  padding-left: 0;
+  margin-left: 0;
 }
 
 .best-seller-card {
@@ -43,6 +44,7 @@
 }
 
 .best-seller-card__image {
+  display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -71,10 +73,12 @@
 .best-seller-card__content {
   position: relative;
   z-index: 2;
-  padding: 8px 0 0;
+  min-height: 74px;
+  padding: 8px 10px 0 0;
 }
 
 .best-seller-card__name {
+  min-height: 17px;
   margin: 0;
   font-size: 13px;
   font-weight: 700;
@@ -111,17 +115,19 @@
   font-weight: 400;
   line-height: 1.5;
   letter-spacing: -0.02em;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
 
 .best-seller__statement {
+  position: relative;
   display: flex;
   min-width: 0;
   min-height: 100%;
   flex-direction: column;
   align-items: flex-start;
-  padding: 28px 8px 0 0;
+  padding: 28px 18px 0 0;
 }
 
 .best-seller__eyebrow {
@@ -142,10 +148,13 @@
 }
 
 .best-seller__controls {
+  position: absolute;
+  left: 0;
+  bottom: 8px;
   display: flex;
   gap: 8px;
-  margin-top: auto;
-  padding-bottom: 8px;
+  margin: 0;
+  padding: 0;
 }
 
 .best-seller__controls button {
@@ -212,7 +221,6 @@
   .best-seller__inner {
     grid-template-columns: minmax(0, 1fr) 220px;
     gap: 24px;
-    width: calc(100% - 40px);
   }
 
   .best-seller-card__image-wrap {
@@ -232,13 +240,14 @@
 
   .best-seller__inner {
     display: flex;
-    width: calc(100% - 24px);
+    width: 100%;
     flex-direction: column-reverse;
     gap: 28px;
   }
 
   .best-seller__statement {
-    padding: 0;
+    min-height: 150px;
+    padding: 0 20px;
   }
 
   .best-seller__title {
@@ -246,8 +255,8 @@
   }
 
   .best-seller__controls {
-    margin-top: 24px;
-    padding-bottom: 0;
+    left: 20px;
+    bottom: 0;
   }
 
   .best-seller__products {
