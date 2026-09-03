@@ -1,5 +1,11 @@
+import FeaturedLookSection from '@/components/home/FeaturedLookSection';
+
 function HomePage() {
-  return <div>HOME</div>;
+  return (
+    <main>
+      <FeaturedLookSection />
+    </main>
+  );
 }
 
 export default HomePage;

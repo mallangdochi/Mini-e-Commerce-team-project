@@ -3,11 +3,11 @@ import { Link } from 'react-router-dom';
 
 import '@/styles/product-detail.css';
 
+const THUMBNAIL_SLOTS = [1, 2, 3, 4];
+const SIZES = ['S', 'M', 'L', 'XL', 'XXL'];
+
 function ProductDetailPage() {
   const [quantity, setQuantity] = useState(1);
-
-  const thumbnailSlots = [1, 2, 3, 4];
-  const sizes = ['S', 'M', 'L', 'XL', 'XXL'];
 
   const handleDecreaseQuantity = () => {
     setQuantity((currentQuantity) => Math.max(1, currentQuantity - 1));
