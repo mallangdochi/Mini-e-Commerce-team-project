@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 
 import kakiTop from '@/assets/home/kaki_top.webp';
 
-// ---- inline chevron icons (replaces lucide-react) ------------------
 function ChevronLeft({ size = 18, className }) {
   return (
     <svg

@@ -1,13 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 
-// 홈 영상 배너 캐러셀 (풀블리드, 2:1 비율)
-// - 슬라이드 클릭 → to(제품 페이지)로 이동
-// - 화살표 / 하단 점으로 수동 이동
-// - AUTO_INTERVAL 마다 자동 전환, 무한 순환. 위치가 바뀌면 카운트다운 재시작
-// - prefers-reduced-motion 이면 자동 전환·트랜지션 없음
-//
-// TODO: SLIDES.video 를 실제 영상으로 교체 (public/ 또는 외부 호스팅), to 도 실제 경로로.
+// TODO: SLIDES.video 를 실제 영상으로 교체 (현재 3슬라이드 모두 임시 공용 파일).
 const SLIDES = [
   {
     id: 'wind-shell',
@@ -49,7 +43,6 @@ const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 const DOT_R = 5;
 const DOT_CIRC = 2 * Math.PI * DOT_R;
 
-// 브라우저 미디어쿼리 구독 — 세션 중 OS 설정 변경도 반영, 리스너는 클린업에서 회수
 function usePrefersReducedMotion() {
   const [reduced, setReduced] = useState(() => window.matchMedia(REDUCED_MOTION_QUERY).matches);
 
@@ -79,7 +72,6 @@ export default function BannerCarousel() {
     return () => clearInterval(id);
   }, [current, reduced]);
 
-  // 활성 슬라이드 영상만 재생, 나머지는 정지
   useEffect(() => {
     videoRefs.current.forEach((video, i) => {
       if (!video) return;

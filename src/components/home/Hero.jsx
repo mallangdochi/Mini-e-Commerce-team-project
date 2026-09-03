@@ -3,18 +3,12 @@ import { Link } from 'react-router-dom';
 
 import mainBanner2 from '@/assets/home/main_banner_2.webp';
 
-// Figma 히어로 이식 (1440 기준):
-// https://www.figma.com/design/071QCfqkBJszxsrIJuKBrs/mcp?node-id=0-1
-//
-// TODO: 아래 이미지/SVG 는 Figma 임시 CDN(약 7일 만료) 더미다.
-// 실제 에셋으로 export 해서 src/assets/home/ 에 넣고 import 로 교체할 것.
+// TODO: imgMain1 / imgArrow 는 Figma 임시 CDN(약 7일 만료) 더미. 실제 에셋으로 교체할 것.
 const imgMain1 = 'https://www.figma.com/api/mcp/asset/6d276a60-ba49-47b0-9343-1d0e462fc0ff.png';
 const imgArrow = 'https://www.figma.com/api/mcp/asset/dd69c1a6-f95b-413d-b447-0506f8f80c86.svg';
 
 const BASE_WIDTH = 1440;
 
-// 1440x781 로 그려진 레이아웃을 래퍼 실제 폭에 맞춰 uniform scale.
-// 1440 에서는 scale=1 이라 Figma 시안 그대로.
 function useFitScale(baseWidth) {
   const ref = useRef(null);
   const [scale, setScale] = useState(1);
