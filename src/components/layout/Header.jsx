@@ -45,11 +45,34 @@ function Header() {
 
         {/* HEADER ACTIONS */}
         <div className="site-header-actions">
-          <button type="button" className="site-header-action" aria-label="검색" />
+          <Link to="/login" className="site-header-action header-login-btn">
+            로그인
+          </Link>
 
-          <button type="button" className="site-header-action" aria-label="계정" />
+          <Link to="/mypage" className="site-header-action" aria-label="마이페이지">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              fill="currentColor"
+              className="bi bi-person"
+              viewBox="0 0 16 16"
+            >
+              <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6m2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0m4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4m-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10s-3.516.68-4.168 1.332c-.678.678-.83 1.418-.832 1.664z" />
+            </svg>
+          </Link>
 
-          <Link to="/cart" className="site-header-action" aria-label="장바구니" />
+          <Link to="/cart" className="site-header-action" aria-label="장바구니">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              fill="currentColor"
+              viewBox="0 0 256 256"
+            >
+              <path d="M216,42H40A14,14,0,0,0,26,56V200a14,14,0,0,0,14,14H216a14,14,0,0,0,14-14V56A14,14,0,0,0,216,42Zm2,158a2,2,0,0,1-2,2H40a2,2,0,0,1-2-2V56a2,2,0,0,1,2-2H216a2,2,0,0,1,2,2ZM174,88a46,46,0,0,1-92,0,6,6,0,0,1,12,0,34,34,0,0,0,68,0,6,6,0,0,1,12,0Z" />
+            </svg>
+          </Link>
         </div>
       </div>
     </header>
