@@ -178,11 +178,12 @@ function SignupPage() {
               <input
                 id="signupBirthDate"
                 type="date"
+                min="1900-01-01"
+                max="2099-12-31"
                 value={birthDate}
                 onChange={(event) => setBirthDate(event.target.value)}
               />
             </div>
-
             <div className="signup-form-group">
               <label htmlFor="signupPostcode">주소</label>
 
