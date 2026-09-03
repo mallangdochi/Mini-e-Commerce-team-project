@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 
+import '@/styles/banner-carousel.css';
+
 // TODO: SLIDES.video 를 실제 영상으로 교체 (현재 3슬라이드 모두 임시 공용 파일).
 const SLIDES = [
   {
@@ -96,7 +98,7 @@ export default function BannerCarousel() {
 
   return (
     <div
-      className="relative aspect-[2/1] w-full overflow-hidden bg-black"
+      className="banner-carousel"
       role="region"
       aria-roledescription="carousel"
       aria-label="추천 배너"
@@ -109,18 +111,18 @@ export default function BannerCarousel() {
         <div
           key={slide.id}
           inert={i !== current}
-          className={`absolute inset-0 ${i === current ? 'opacity-100' : 'opacity-0'}`}
+          className={`banner-carousel__slide ${i === current ? 'banner-carousel__slide--active' : ''}`}
         >
           <Link
             to={slide.to}
-            className="absolute inset-0 block"
+            className="banner-carousel__link"
             aria-label={`${slide.title} 제품 페이지로 이동`}
           >
             <video
               ref={(el) => {
                 videoRefs.current[i] = el;
               }}
-              className="absolute inset-0 h-full w-full object-cover"
+              className="banner-carousel__video"
               muted
               loop
               playsInline
@@ -130,22 +132,16 @@ export default function BannerCarousel() {
             </video>
           </Link>
 
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.35)_0%,rgba(0,0,0,0)_30%,rgba(0,0,0,0)_60%,rgba(0,0,0,0.55)_100%)]" />
+          <div className="banner-carousel__scrim" />
 
-          <div className="pointer-events-none absolute inset-0 z-[2] text-white">
-            <div className="absolute left-8 top-7 text-[13px] uppercase tracking-[2px] opacity-90">
-              {slide.topLeft}
-            </div>
-            <div className="absolute right-8 top-7 text-[12px] italic tracking-[0.5px] opacity-85">
-              {slide.topRight}
-            </div>
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap text-center text-[64px] font-extrabold tracking-[6px] [text-shadow:0_2px_12px_rgba(0,0,0,0.35)]">
-              {slide.title}
-            </div>
-            <div className="absolute bottom-[30px] left-8 text-[15px] leading-[1.6]">
+          <div className="banner-carousel__text">
+            <div className="banner-carousel__eyebrow">{slide.topLeft}</div>
+            <div className="banner-carousel__caption">{slide.topRight}</div>
+            <div className="banner-carousel__title">{slide.title}</div>
+            <div className="banner-carousel__bottom">
               {slide.bottomMain}
               <br />
-              <span className="text-[13px] opacity-85">{slide.bottomSub}</span>
+              <span className="banner-carousel__bottom-sub">{slide.bottomSub}</span>
             </div>
           </div>
         </div>
@@ -155,7 +151,7 @@ export default function BannerCarousel() {
         type="button"
         onClick={() => step(-1)}
         aria-label="이전 슬라이드"
-        className="absolute left-5 top-1/2 z-[5] flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/35 text-xl text-white transition-colors hover:bg-black/60"
+        className="banner-carousel__arrow banner-carousel__arrow--prev"
       >
         &#10094;
       </button>
@@ -163,12 +159,12 @@ export default function BannerCarousel() {
         type="button"
         onClick={() => step(1)}
         aria-label="다음 슬라이드"
-        className="absolute right-5 top-1/2 z-[5] flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/35 text-xl text-white transition-colors hover:bg-black/60"
+        className="banner-carousel__arrow banner-carousel__arrow--next"
       >
         &#10095;
       </button>
 
-      <div className="absolute bottom-7 right-8 z-[5] flex items-center gap-3">
+      <div className="banner-carousel__dots">
         {SLIDES.map((slide, i) => (
           <button
             key={slide.id}
@@ -176,10 +172,10 @@ export default function BannerCarousel() {
             onClick={() => setCurrent(i)}
             aria-label={`${i + 1}번 슬라이드로 이동`}
             aria-current={i === current || undefined}
-            className="flex h-6 w-6 items-center justify-center"
+            className="banner-carousel__dot"
           >
             {i === current ? (
-              <svg viewBox="0 0 12 12" className="h-3 w-3 -rotate-90">
+              <svg viewBox="0 0 12 12" className="banner-carousel__ring">
                 <circle cx="6" cy="6" r={DOT_R} fill="none" strokeWidth="" />
                 {!reduced && (
                   <circle
@@ -198,7 +194,7 @@ export default function BannerCarousel() {
                 )}
               </svg>
             ) : (
-              <span className="h-3 w-3 rounded-full bg-white/85" />
+              <span className="banner-carousel__dot-idle" />
             )}
           </button>
         ))}
