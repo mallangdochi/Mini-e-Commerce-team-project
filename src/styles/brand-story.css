@@ -1,0 +1,241 @@
+.brand-story {
+  width: 100%;
+  overflow: hidden;
+  background: #f6f6f4;
+  color: #111;
+}
+
+.brand-story__inner {
+  display: grid;
+  grid-template-columns: 150px minmax(430px, 500px) minmax(0, 1fr);
+  width: 100%;
+  min-height: 640px;
+}
+
+.brand-story__rail {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 54px 20px 44px 28px;
+}
+
+.brand-story__mark {
+  width: 48px;
+  height: auto;
+  fill: currentColor;
+}
+
+.brand-story__rail-line {
+  width: 1px;
+  height: 58px;
+  margin: 24px 0 28px 18px;
+  background: #111;
+}
+
+.brand-story__rail-item {
+  width: 100%;
+}
+
+.brand-story__rail-number {
+  display: block;
+  margin-bottom: 7px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.brand-story__rail-item p {
+  margin: 0;
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1.45;
+  letter-spacing: 0.03em;
+}
+
+.brand-story__rail-divider {
+  display: block;
+  width: 100%;
+  height: 1px;
+  margin: 21px 0;
+  background: rgba(17, 17, 17, 0.14);
+}
+
+.brand-story__copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+  padding: 56px 38px 56px 42px;
+}
+
+.brand-story__title {
+  margin: 0;
+  font-size: clamp(42px, 3.25vw, 56px);
+  font-weight: 650;
+  line-height: 1.12;
+  letter-spacing: -0.055em;
+}
+
+.brand-story__title span {
+  display: block;
+  white-space: nowrap;
+}
+
+.brand-story__description {
+  margin: 38px 0 0;
+  color: #555;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.85;
+  letter-spacing: -0.02em;
+  word-break: keep-all;
+}
+
+.brand-story__link {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 12px;
+  margin-top: 34px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #111;
+  color: #111;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.brand-story__link span {
+  font-size: 13px;
+}
+
+.brand-story__visual {
+  --brand-story-slant: 72px;
+  display: flex;
+  min-width: 0;
+  overflow: visible;
+  padding: 10px 0;
+  background: transparent;
+}
+
+.brand-story__panel {
+  position: relative;
+  min-width: 0;
+  flex: 1 1 0;
+  height: 100%;
+  overflow: hidden;
+  background: #e5e5e1;
+  clip-path: polygon(
+    var(--brand-story-slant) 0,
+    100% 0,
+    calc(100% - var(--brand-story-slant)) 100%,
+    0 100%
+  );
+}
+
+.brand-story__panel + .brand-story__panel {
+  margin-left: calc(var(--brand-story-slant) * -1 + 8px);
+}
+
+.brand-story__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.brand-story__placeholder {
+  width: 100%;
+  height: 100%;
+  background:
+    linear-gradient(
+      110deg,
+      rgba(255, 255, 255, 0) 20%,
+      rgba(255, 255, 255, 0.7) 45%,
+      rgba(255, 255, 255, 0) 70%
+    ),
+    #e1e1dd;
+  background-size: 220% 100%;
+  animation: brand-story-loading 1.5s linear infinite;
+}
+
+@keyframes brand-story-loading {
+  from {
+    background-position: 100% 0;
+  }
+
+  to {
+    background-position: -100% 0;
+  }
+}
+
+@media (max-width: 1180px) {
+  .brand-story__inner {
+    grid-template-columns: 126px minmax(380px, 430px) minmax(0, 1fr);
+    min-height: 590px;
+  }
+
+  .brand-story__rail {
+    padding-left: 22px;
+    padding-right: 16px;
+  }
+
+  .brand-story__copy {
+    padding-left: 34px;
+    padding-right: 28px;
+  }
+
+  .brand-story__title {
+    font-size: clamp(38px, 3.8vw, 50px);
+  }
+
+  .brand-story__visual {
+    --brand-story-slant: 66px;
+  }
+}
+
+@media (max-width: 900px) {
+  .brand-story__inner {
+    grid-template-columns: 110px minmax(0, 1fr);
+  }
+
+  .brand-story__copy {
+    padding: 52px 32px;
+  }
+
+  .brand-story__visual {
+    --brand-story-slant: 58px;
+    grid-column: 1 / -1;
+    min-height: 430px;
+    padding: 8px 0;
+  }
+}
+
+@media (max-width: 620px) {
+  .brand-story__inner {
+    display: block;
+    min-height: 0;
+  }
+
+  .brand-story__rail {
+    display: none;
+  }
+
+  .brand-story__copy {
+    padding: 50px 22px 42px;
+  }
+
+  .brand-story__title {
+    font-size: clamp(34px, 10.5vw, 48px);
+  }
+
+  .brand-story__description {
+    font-size: 12px;
+  }
+
+  .brand-story__visual {
+    --brand-story-slant: 46px;
+    min-height: 390px;
+  }
+}
