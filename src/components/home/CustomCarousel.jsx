@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 
 import kakiTop from '@/assets/home/kaki_top.webp';
+import '@/styles/custom-carousel.css';
 
 function ChevronLeft({ size = 18, className }) {
   return (
@@ -40,7 +41,6 @@ function ChevronRight({ size = 18, className }) {
   );
 }
 
-// ---- design tokens -------------------------------------------------
 const CATEGORY_META = {
   tops: { label: '상의' },
   bottoms: { label: '하의' },
@@ -52,7 +52,6 @@ const CATEGORY_ORDER = ['tops', 'bottoms', 'sunglasses', 'hats'];
 
 const DEFAULT_CATEGORY = CATEGORY_ORDER[0];
 
-// 트랙에서 타일이 놓인 위치. 문자열을 여러 곳에 흩뿌리지 않도록 상수화.
 const POS = {
   CENTER: 'center',
   LEFT: 'left',
@@ -96,16 +95,12 @@ const CATALOGUE = {
   ],
 };
 
-// 상품 이미지 (추후 상품별로 다른 파일을 product.image 에 매핑 예정)
 const FALLBACK_IMAGE = kakiTop;
 
-// 슬라이드 트랜지션 길이 (트랙 이동 / 타일 확대를 동일하게 맞춘다)
 const SLIDE_MS = 420;
 
-// 타일 하나가 차지하는 폭(px). 래퍼 width 와 트랙 translateX 계산의 단일 소스.
 const TILE_WIDTH = 440;
 
-// ---- single product tile --------------------------------------------
 function ProductTile({ product, position, onSelect, animate }) {
   const isCenter = position === POS.CENTER;
   const isNear = position === POS.LEFT || position === POS.RIGHT;
@@ -122,12 +117,12 @@ function ProductTile({ product, position, onSelect, animate }) {
   };
 
   return (
-    <div style={wrapStyle} className="flex-shrink-0 flex items-center justify-center">
+    <div style={wrapStyle} className="custom-carousel__tile">
       <button
         type="button"
         onClick={isCenter ? () => onSelect(product) : undefined}
-        className={`group relative flex items-center justify-center w-[680px] h-[460px] rounded-none bg-transparent ${
-          isCenter ? 'cursor-pointer' : 'cursor-default'
+        className={`custom-carousel__tile-button ${
+          isCenter ? 'custom-carousel__tile-button--center' : ''
         }`}
         aria-label={isCenter ? `${product.name} 상세보기` : undefined}
         tabIndex={isCenter ? 0 : -1}
@@ -135,7 +130,7 @@ function ProductTile({ product, position, onSelect, animate }) {
         <img
           src={product.image ?? FALLBACK_IMAGE}
           alt={`${product.name} 상품 이미지`}
-          className="w-full h-full object-contain drop-shadow-[0_18px_18px_rgba(0,0,0,0.12)]"
+          className="custom-carousel__tile-image"
         />
       </button>
     </div>
@@ -147,7 +142,6 @@ export default function CustomCarousel() {
   const items = CATALOGUE[category] ?? [];
   const len = items.length;
 
-  // 상품 배열을 COPIES 벌 이어붙인 트랙. 가운데 벌을 기준으로 슬라이드한다.
   const COPIES = 3;
   const slides = Array(COPIES).fill(items).flat();
 
@@ -162,7 +156,6 @@ export default function CustomCarousel() {
     return () => clearTimeout(toastTimer.current);
   }, []);
 
-  // 전체 카탈로그 이미지 프리로드 — 카테고리 전환/슬라이드 시 빈칸·이전 이미지 잔상 방지
   useEffect(() => {
     Object.values(CATALOGUE)
       .flat()
@@ -172,7 +165,6 @@ export default function CustomCarousel() {
       });
   }, []);
 
-  // 스냅 직후 다음 프레임에 애니메이션 재활성화
   useEffect(() => {
     if (animate) return;
     const id = requestAnimationFrame(() => requestAnimationFrame(() => setAnimate(true)));
@@ -220,7 +212,7 @@ export default function CustomCarousel() {
   };
 
   const tabs = (
-    <nav className="mt-6 flex items-center gap-10" role="tablist" aria-label="상품 카테고리">
+    <nav className="custom-carousel__tabs" role="tablist" aria-label="상품 카테고리">
       {CATEGORY_ORDER.map((key) => {
         const active = key === category;
         return (
@@ -229,15 +221,11 @@ export default function CustomCarousel() {
             role="tab"
             aria-selected={active}
             onClick={() => changeCategory(key)}
-            className={`relative pb-2 text-[15px] transition-colors duration-200 ${
-              active
-                ? 'text-neutral-900 font-semibold'
-                : 'text-neutral-400 hover:text-neutral-600 font-normal'
-            }`}
+            className={`custom-carousel__tab ${active ? 'custom-carousel__tab--active' : ''}`}
           >
             {CATEGORY_META[key].label}
             <span
-              className="absolute left-0 right-0 -bottom-[1px] h-[2px] rounded-full transition-all duration-300"
+              className="custom-carousel__tab-underline"
               style={{
                 backgroundColor: active ? '#111111' : 'transparent',
                 transform: active ? 'scaleX(1)' : 'scaleX(0.4)',
@@ -249,43 +237,37 @@ export default function CustomCarousel() {
     </nav>
   );
 
-  const shellClass =
-    'w-full min-h-[760px] bg-white mx-auto flex flex-col items-center py-16 select-none';
-
-  // 빈 카테고리 가드 — len 을 쓰는 계산(realIndex, translateX 등)이 NaN 나기 전에 차단
   if (len === 0) {
     return (
-      <div className={shellClass}>
-        <h1 className="text-[26px] font-extrabold tracking-tight text-neutral-900">
-          NEW & TRENDING
-        </h1>
+      <div className="custom-carousel">
+        <h1 className="custom-carousel__title">NEW & TRENDING</h1>
         {tabs}
-        <p className="mt-20 text-[15px] text-neutral-500">이 카테고리에 표시할 상품이 없습니다.</p>
+        <p className="custom-carousel__empty">이 카테고리에 표시할 상품이 없습니다.</p>
       </div>
     );
   }
 
   return (
-    <div className={shellClass}>
+    <div className="custom-carousel">
       {/* header */}
-      <h1 className="text-[26px] font-extrabold tracking-tight text-neutral-900">NEW & TRENDING</h1>
+      <h1 className="custom-carousel__title">NEW & TRENDING</h1>
 
       {/* category tabs */}
       {tabs}
 
       {/* carousel */}
-      <div className="relative w-full max-w-none h-[460px] mt-0 flex items-center justify-center overflow-hidden">
+      <div className="custom-carousel__viewport">
         <button
           type="button"
           onClick={() => go(-1)}
           aria-label="이전 상품"
-          className="absolute left-4 z-10 w-12 h-12 flex items-center justify-center rounded-full border border-neutral-200 bg-white/90 hover:bg-neutral-100 transition-colors"
+          className="custom-carousel__arrow custom-carousel__arrow--prev"
         >
-          <ChevronLeft size={22} className="text-neutral-700" />
+          <ChevronLeft size={22} />
         </button>
 
         <div
-          className="absolute top-1/2 left-1/2 flex items-center"
+          className="custom-carousel__track"
           onTransitionEnd={handleTransitionEnd}
           style={{
             transform: `translate(calc(-50% - ${(pos - (slides.length - 1) / 2) * TILE_WIDTH}px), -50%)`,
@@ -293,8 +275,6 @@ export default function CustomCarousel() {
           }}
         >
           {slides.map((product, slot) => (
-            // key 에 category 와 복제 벌 번호(Math.floor(slot / len))를 포함 — 카테고리 전환 시
-            // 타일을 새로 마운트해 이전 상품 <img> 재사용 잔상 방지. 한 카테고리 안에서는 slot 별로 고정.
             <ProductTile
               key={`${category}-${product.id}-${Math.floor(slot / len)}`}
               product={product}
@@ -309,9 +289,9 @@ export default function CustomCarousel() {
           type="button"
           onClick={() => go(1)}
           aria-label="다음 상품"
-          className="absolute right-4 z-10 w-12 h-12 flex items-center justify-center rounded-full border border-neutral-200 bg-white/90 hover:bg-neutral-100 transition-colors"
+          className="custom-carousel__arrow custom-carousel__arrow--next"
         >
-          <ChevronRight size={22} className="text-neutral-700" />
+          <ChevronRight size={22} />
         </button>
       </div>
 
@@ -319,24 +299,22 @@ export default function CustomCarousel() {
       <button
         type="button"
         onClick={() => handleSelect(items[realIndex])}
-        className="group mt-2 flex flex-col items-center gap-2"
+        className="custom-carousel__meta"
       >
-        <span className="text-[24px] text-neutral-900 group-hover:underline underline-offset-4 decoration-neutral-300">
-          {items[realIndex].name}
-        </span>
-        <span className="text-[15px] tracking-wide text-neutral-500">
+        <span className="custom-carousel__meta-name">{items[realIndex].name}</span>
+        <span className="custom-carousel__meta-price">
           ₩ {items[realIndex].price.toLocaleString()}
         </span>
       </button>
 
       {/* indicators */}
-      <div className="mt-8 flex items-center gap-2" role="tablist" aria-label="슬라이드 위치">
+      <div className="custom-carousel__dots" role="tablist" aria-label="슬라이드 위치">
         {items.map((it, i) => (
           <button
             key={it.id}
             aria-label={`${i + 1}번째 상품로 이동`}
             onClick={() => goToIndex(i)}
-            className="h-[4px] rounded-full transition-all duration-300"
+            className="custom-carousel__dot"
             style={{
               width: i === realIndex ? 28 : 16,
               backgroundColor: i === realIndex ? '#111111' : '#DADADA',
@@ -347,9 +325,7 @@ export default function CustomCarousel() {
 
       {/* toast */}
       <div
-        className={`fixed bottom-8 left-1/2 -translate-x-1/2 px-5 py-3 rounded-full bg-neutral-900 text-white text-[13px] shadow-lg transition-all duration-300 ${
-          toast ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'
-        }`}
+        className={`custom-carousel__toast ${toast ? 'custom-carousel__toast--visible' : ''}`}
       >
         {toast}
       </div>
