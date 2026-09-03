@@ -211,7 +211,6 @@ function ProductDetailPage() {
           </div>
         </section>
 
-        {/* 핏 & 소재 */}
         <section className="detail-info-section">
           <h2 className="detail-section-title">핏 &amp; 소재</h2>
 
@@ -220,26 +219,248 @@ function ProductDetailPage() {
               <div className="detail-text-block">
                 <h3>미디엄 서포트, B/C컵</h3>
 
-                <p>
-                  미디엄 서포트를 선호하는 B/C컵 여성에게 적합. 바디라인이 드러나는 타이트 핏이에요.
-                </p>
+                <p>으에에에</p>
               </div>
 
               <div className="detail-text-block">
                 <h3>매끄러운 초경량 Nulux™ 원단</h3>
 
-                <p>
-                  매끄럽고 시원한 감촉. 포기해야 할 원사가 더해져 탁월한 신축성과 복원력을
-                  제공합니다.
-                </p>
+                <p>이스트소프트</p>
               </div>
             </div>
-
             <div className="detail-wide-image">
               <img src="/images/products/detail03.jpg" alt="제품 소재와 핏 착용 이미지" />
             </div>
           </div>
         </section>
+
+        <section className="detail-info-section">
+          <h2 className="detail-section-title">기능</h2>
+
+          <div className="detail-info-grid">
+            <div className="detail-text-area">
+              <div className="detail-text-block">
+                <h3>제품 디테일</h3>
+
+                <p>응에엥엥아에엥ㅇ</p>
+              </div>
+
+              <div className="detail-text-block">
+                <h3>엔지니어드 4방 스트레치</h3>
+
+                <p>레이서백 디자인이라 움직임이 자유로워요.</p>
+              </div>
+            </div>
+
+            <div className="detail-image-pair">
+              <div className="detail-image">
+                <img src="/images/products/detail04.jpg" alt="기능 설명 이미지 1" />
+              </div>
+
+              <div className="detail-image">
+                <img src="/images/products/detail05.jpg" alt="기능 설명 이미지 2" />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="detail-info-section">
+          <h2 className="detail-section-title">소재 &amp; 관리 방법</h2>
+
+          <div className="detail-info-grid detail-info-grid--text-only">
+            <div className="detail-text-area">
+              <div className="detail-text-block">
+                <h3>소재</h3>
+
+                <ul className="detail-info-list">
+                  <li>브라 안감: 83% 폴리에스터, 17% 폴리우레탄</li>
+                  <li>컵 안감: 71% 폴리에스터, 29% 폴리우레탄</li>
+                  <li>콘트라스트: 82% 나일론, 18% 폴리우레탄</li>
+                  <li>바디: 84% 나일론, 16% 폴리우레탄</li>
+                </ul>
+              </div>
+
+              <div className="detail-text-block">
+                <h3>관리 방법</h3>
+
+                <ul className="detail-info-list">
+                  <li>세탁기에서 찬물로 세탁</li>
+                  <li>표백제 사용 금지</li>
+                  <li>저온 건조</li>
+                  <li>다림질 금지</li>
+                  <li>드라이클리닝 금지</li>
+                  <li>유사 색상끼리 세탁</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <section className="product-review-section">
+        <div className="review-section-header">
+          <h2 className="review-section-title">리뷰</h2>
+
+          <button type="button" className="write-review-button">
+            리뷰 작성
+          </button>
+        </div>
+
+        <div className="review-summary">
+          <div className="review-score">
+            <strong>0.0</strong>
+
+            <div>
+              <div className="review-stars">☆☆☆☆☆</div>
+              <span>0개의 리뷰</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="review-list">{/* 추후 리뷰 데이터가 들어갈 영역 */}</div>
+      </section>
+
+      <section id="size-guide" className="product-size-guide-section">
+        <div className="size-guide-heading">
+          <span>사이즈 가이드</span>
+
+          <h2>여성 상의 사이즈 가이드</h2>
+
+          <p>사이즈 변환을 위해 위치를 선택해 주세요.</p>
+        </div>
+
+        {/* 지역 선택 */}
+        <div className="size-guide-country">
+          <select defaultValue="international">
+            <option value="international">국제</option>
+            <option value="korea">한국</option>
+          </select>
+        </div>
+
+        <p className="size-guide-description">
+          US 사이즈 탭을 선택하여 차트에서 해당 사이즈를 확인해 보세요.
+        </p>
+
+        {/* 사이즈 종류 탭 */}
+        <div className="size-guide-tabs">
+          <button type="button" className="size-guide-tab is-active">
+            US 사이즈 0 - 20
+          </button>
+
+          <button type="button" className="size-guide-tab">
+            US 사이즈 XXXS - 2X
+          </button>
+
+          <button type="button" className="size-guide-tab">
+            US 사이즈 XS/S - XL/XXL
+          </button>
+        </div>
+
+        <div className="size-guide-content">
+          <h3>US 사이즈 0 - 20</h3>
+
+          <p>
+            US 사이즈 기준으로 디자인했어요. 아래 차트를 참고해 사이즈를 선택하시거나, 바디 치수를
+            측정해 정확한 사이즈를 찾아보세요.
+          </p>
+
+          {/* 단위 */}
+          <div className="size-unit">
+            <span className="is-active">CM</span>
+
+            <span className="size-unit-toggle">
+              <span />
+            </span>
+
+            <span>IN</span>
+          </div>
+
+          {/* 사이즈 표 */}
+          <div className="size-table-scroll">
+            <table className="size-guide-table">
+              <tbody>
+                <tr>
+                  <th>국제 사이즈</th>
+                  <td>XXS</td>
+                  <td>XS</td>
+                  <td>S</td>
+                  <td>M</td>
+                  <td>L</td>
+                  <td>XL</td>
+                  <td>XXL</td>
+                  <td>XXL</td>
+                  <td>3XL</td>
+                  <td>4XL</td>
+                </tr>
+
+                <tr>
+                  <th>US 사이즈</th>
+                  <td>0</td>
+                  <td>2</td>
+                  <td>4</td>
+                  <td>6</td>
+                  <td>8</td>
+                  <td>10</td>
+                  <td>12</td>
+                  <td>14</td>
+                  <td>16</td>
+                  <td>18</td>
+                </tr>
+
+                <tr>
+                  <th>가슴둘레</th>
+                  <td>72.4cm</td>
+                  <td>76.2cm</td>
+                  <td>78.7-81.3cm</td>
+                  <td>83.8-86.4cm</td>
+                  <td>88.9-91.4cm</td>
+                  <td>94-97.8cm</td>
+                  <td>101.6cm</td>
+                  <td>106.7cm</td>
+                  <td>114.3cm</td>
+                  <td>119.4cm</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* 측정 방법 */}
+          <div className="measurement-guide">
+            <div className="measurement-text">
+              <h3>측정 방법</h3>
+
+              <p>
+                편안한 자세로 허리를 곧게 펴고 발끝이 나란하게 서 주세요. 줄자를 사용해 정확한
+                치수를 측정해 보세요.
+              </p>
+
+              <div className="measurement-item">
+                <strong>1. 가슴둘레</strong>
+
+                <p>
+                  양팔을 내린 상태로 가슴의 가장 넓은 부분을 측정하세요. 줄자를 등 뒤로 두른 때 너무
+                  조이거나 느슨하지 않도록 유지하세요.
+                </p>
+              </div>
+
+              <div className="measurement-item">
+                <strong>2. 허리둘레</strong>
+
+                <p>허리의 가장 가는 부분의 둘레를 측정하세요.</p>
+              </div>
+
+              <div className="measurement-item">
+                <strong>3. 엉덩이둘레</strong>
+
+                <p>양발을 골반 너비로 벌려 선 후, 엉덩이의 가장 볼록한 부분의 둘레를 측정하세요.</p>
+              </div>
+            </div>
+
+            <div className="measurement-image">
+              <img src="/images/products/size-guide.jpg" alt="상의 사이즈 측정 방법" />
+            </div>
+          </div>
+        </div>
       </section>
     </main>
   );
