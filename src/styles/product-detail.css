@@ -742,7 +742,7 @@
 .product-detail-page .detail-text-area p {
   margin: 0;
 
-  color: #222;
+  color: #3d3838;
 
   font-size: 21px;
 
@@ -780,4 +780,468 @@
   height: 100%;
 
   object-fit: cover;
+}
+.product-detail-page .product-review-section {
+  width: 100%;
+
+  padding: 50px 0 70px;
+
+  border-bottom: 1px solid #e1e1e1;
+}
+
+.product-detail-page .review-section-header {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  margin-bottom: 30px;
+}
+
+.product-detail-page .review-section-title {
+  margin: 0;
+
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.product-detail-page .write-review-button {
+  height: 36px;
+
+  padding: 0 20px;
+
+  border: 1px solid #111;
+
+  background: #111;
+
+  color: #fff;
+
+  font-size: 9px;
+
+  cursor: pointer;
+}
+
+.product-detail-page .review-summary {
+  padding: 30px 0;
+
+  border-top: 1px solid #ddd;
+  border-bottom: 1px solid #ddd;
+}
+
+.product-detail-page .review-score {
+  display: flex;
+
+  align-items: center;
+
+  gap: 22px;
+}
+
+.product-detail-page .review-score strong {
+  font-size: 48px;
+  font-weight: 400;
+}
+
+.product-detail-page .review-score > div {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 6px;
+
+  color: #777;
+
+  font-size: 9px;
+}
+
+.product-detail-page .review-stars {
+  color: #111;
+
+  font-size: 13px;
+
+  letter-spacing: 2px;
+}
+
+.product-detail-page .review-list {
+  min-height: 100px;
+}
+
+/* TABLET */
+@media (min-width: 768px) and (max-width: 1199px) {
+  .product-detail-page .product-review-section {
+    padding: 45px 0 60px;
+  }
+}
+
+/* MOBILE */
+@media (max-width: 767px) {
+  .product-detail-page .product-review-section {
+    padding: 35px 0 50px;
+  }
+
+  .product-detail-page .review-score strong {
+    font-size: 40px;
+  }
+
+  .product-detail-page .write-review-button {
+    height: 32px;
+
+    padding: 0 14px;
+  }
+}
+
+/* ========================================
+   SIZE GUIDE
+======================================== */
+
+.product-detail-page .product-size-guide-section {
+  width: 100%;
+
+  padding: 55px 0 80px;
+
+  border-bottom: 1px solid #e1e1e1;
+}
+
+.product-detail-page .size-guide-heading {
+  margin-bottom: 18px;
+}
+
+.product-detail-page .size-guide-heading > span {
+  display: block;
+
+  margin-bottom: 35px;
+
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.product-detail-page .size-guide-heading h2 {
+  margin: 0 0 22px;
+
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.product-detail-page .size-guide-heading p,
+.product-detail-page .size-guide-description {
+  margin: 0;
+
+  font-size: 11px;
+
+  line-height: 1.6;
+}
+
+/* 지역 선택 */
+
+.product-detail-page .size-guide-country {
+  width: 255px;
+
+  margin: 7px 0 12px;
+}
+
+.product-detail-page .size-guide-country select {
+  width: 100%;
+  height: 40px;
+
+  padding: 0 12px;
+
+  border: 1px solid #111;
+
+  background: #fff;
+
+  color: #111;
+
+  font-size: 11px;
+}
+
+/* 사이즈 탭 */
+
+.product-detail-page .size-guide-tabs {
+  display: flex;
+
+  gap: 25px;
+
+  margin-top: 16px;
+
+  border-bottom: 1px solid #ddd;
+}
+
+.product-detail-page .size-guide-tab {
+  position: relative;
+
+  padding: 0 0 10px;
+
+  border: 0;
+
+  background: none;
+
+  color: #111;
+
+  font-size: 11px;
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+.product-detail-page .size-guide-tab.is-active::after {
+  position: absolute;
+
+  right: 0;
+  bottom: -1px;
+  left: 0;
+
+  height: 1px;
+
+  background: #e21a22;
+
+  content: '';
+}
+
+/* 내용 */
+
+.product-detail-page .size-guide-content {
+  padding-top: 28px;
+}
+
+.product-detail-page .size-guide-content > h3 {
+  margin: 0 0 5px;
+
+  font-size: 18px;
+}
+
+.product-detail-page .size-guide-content > p {
+  margin: 0;
+
+  font-size: 10px;
+
+  line-height: 1.7;
+}
+
+/* CM / IN */
+
+.product-detail-page .size-unit {
+  display: flex;
+
+  align-items: center;
+
+  gap: 8px;
+
+  margin: 17px 0;
+
+  color: #999;
+
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.product-detail-page .size-unit .is-active {
+  color: #111;
+}
+
+.product-detail-page .size-unit-toggle {
+  position: relative;
+
+  display: block;
+
+  width: 25px;
+  height: 14px;
+
+  border-radius: 20px;
+
+  background: #111;
+}
+
+.product-detail-page .size-unit-toggle span {
+  position: absolute;
+
+  top: 2px;
+  left: 2px;
+
+  width: 10px;
+  height: 10px;
+
+  border-radius: 50%;
+
+  background: #fff;
+}
+
+/* ========================================
+   SIZE TABLE
+======================================== */
+
+.product-detail-page .size-table-scroll {
+  width: 100%;
+
+  overflow-x: auto;
+}
+
+.product-detail-page .size-guide-table {
+  width: 100%;
+  min-width: 900px;
+
+  border-collapse: collapse;
+}
+
+.product-detail-page .size-guide-table th,
+.product-detail-page .size-guide-table td {
+  height: 42px;
+
+  padding: 8px 12px;
+
+  border-right: 1px solid #ddd;
+  border-bottom: 1px solid #ddd;
+
+  background: #f6f6f6;
+
+  font-size: 10px;
+
+  text-align: center;
+
+  white-space: nowrap;
+}
+
+.product-detail-page .size-guide-table th {
+  background: #efefef;
+
+  font-weight: 700;
+}
+
+/* ========================================
+   MEASUREMENT
+======================================== */
+
+.product-detail-page .measurement-guide {
+  display: grid;
+
+  grid-template-columns:
+    minmax(0, 1fr)
+    240px;
+
+  gap: 60px;
+
+  align-items: end;
+
+  margin-top: 65px;
+}
+
+.product-detail-page .measurement-text h3 {
+  margin: 0 0 8px;
+
+  font-size: 18px;
+}
+
+.product-detail-page .measurement-text > p {
+  margin: 0 0 20px;
+
+  font-size: 10px;
+
+  line-height: 1.7;
+}
+
+.product-detail-page .measurement-item {
+  margin-top: 15px;
+}
+
+.product-detail-page .measurement-item strong {
+  display: block;
+
+  margin-bottom: 3px;
+
+  font-size: 10px;
+}
+
+.product-detail-page .measurement-item p {
+  margin: 0;
+
+  font-size: 10px;
+
+  line-height: 1.65;
+}
+
+.product-detail-page .measurement-image {
+  width: 100%;
+
+  background: #eee;
+}
+
+.product-detail-page .measurement-image img {
+  display: block;
+
+  width: 100%;
+  height: auto;
+
+  object-fit: cover;
+}
+
+/* ========================================
+   TABLET
+======================================== */
+
+@media (min-width: 768px) and (max-width: 1199px) {
+  .product-detail-page .measurement-guide {
+    grid-template-columns:
+      minmax(0, 1fr)
+      210px;
+
+    gap: 35px;
+  }
+
+  .product-detail-page .size-guide-tabs {
+    gap: 18px;
+  }
+}
+
+/* ========================================
+   MOBILE
+======================================== */
+
+@media (max-width: 767px) {
+  .product-detail-page .product-size-guide-section {
+    padding: 40px 0 55px;
+  }
+
+  .product-detail-page .size-guide-heading > span {
+    margin-bottom: 25px;
+  }
+
+  .product-detail-page .size-guide-heading h2 {
+    font-size: 21px;
+  }
+
+  .product-detail-page .size-guide-country {
+    width: 100%;
+  }
+
+  .product-detail-page .size-guide-tabs {
+    gap: 18px;
+
+    overflow-x: auto;
+  }
+
+  .product-detail-page .size-guide-tab {
+    flex: 0 0 auto;
+
+    white-space: nowrap;
+  }
+
+  .product-detail-page .size-guide-table {
+    min-width: 850px;
+  }
+
+  .product-detail-page .measurement-guide {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: stretch;
+
+    gap: 30px;
+
+    margin-top: 45px;
+  }
+
+  .product-detail-page .measurement-image {
+    width: min(100%, 280px);
+
+    margin: 0 auto;
+  }
 }
