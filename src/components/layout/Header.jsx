@@ -1,10 +1,98 @@
-import { Link } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 
 import '@/styles/header.css';
 
+const NAV_ITEMS = [
+  { label: '소개', to: '/' },
+  { label: '여성', to: '/products' },
+  { label: '남성', to: '/products' },
+  { label: '신제품', to: '/products' },
+];
+
+// TODO: 인증 store(zustand) 연결되면 교체. 지금은 localStorage 플래그로 임시 처리.
+// 로그인/로그아웃 코드는 accessToken 설정 후 window.dispatchEvent(new Event('auth-change')) 호출할 것.
+const readLoggedIn = () => !!localStorage.getItem('accessToken');
+
 function Header() {
+  const navigate = useNavigate();
+  const [hidden, setHidden] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const [loggedIn, setLoggedIn] = useState(readLoggedIn);
+  const lastY = useRef(0);
+  const searchInputRef = useRef(null);
+
+  // 로그인 상태 동기화 (다른 탭 storage 이벤트 + 같은 탭 커스텀 이벤트)
+  useEffect(() => {
+    const sync = () => setLoggedIn(readLoggedIn());
+    window.addEventListener('storage', sync);
+    window.addEventListener('auth-change', sync);
+    return () => {
+      window.removeEventListener('storage', sync);
+      window.removeEventListener('auth-change', sync);
+    };
+  }, []);
+
+  const submitSearch = (e) => {
+    e.preventDefault();
+    const q = query.trim();
+    if (!q) return;
+    navigate(`/products?q=${encodeURIComponent(q)}`);
+    setSearchOpen(false);
+    setQuery('');
+  };
+
+  // 스크롤 내리면 헤더 숨김, 올리면 표시. 최상단 근처(80px)에선 항상 표시.
+  useEffect(() => {
+    let ticking = false;
+    const update = () => {
+      const y = window.scrollY;
+      setHidden(y >= 80 && y > lastY.current);
+      lastY.current = y;
+      ticking = false;
+    };
+    const onScroll = () => {
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(update);
+      }
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // 모바일 메뉴 열림 동안: 배경 스크롤 잠금, 리사이즈 / Esc 시 닫기
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    const close = () => setMenuOpen(false);
+    const onKey = (e) => {
+      if (e.key === 'Escape') close();
+    };
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('resize', close);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('resize', close);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [menuOpen]);
+
+  // 검색바: 열리면 입력창 포커스, Esc 시 닫기
+  useEffect(() => {
+    if (!searchOpen) return undefined;
+    searchInputRef.current?.focus();
+    const onKey = (e) => {
+      if (e.key === 'Escape') setSearchOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [searchOpen]);
+
   return (
-    <header className="site-header">
+    <header className={`site-header${hidden ? ' site-header--hidden' : ''}`}>
       <div className="site-header-inner">
         {/* ARC LOGO */}
         <Link to="/" className="site-logo" aria-label="홈으로 이동">
@@ -30,37 +118,53 @@ function Header() {
           </svg>
         </Link>
 
-        {/* NAVIGATION */}
+        {/* NAVIGATION (데스크톱) */}
         <nav className="site-nav">
-          <Link to="/">홈</Link>
-
-          <Link to="/">소개</Link>
-
-          <Link to="/products">여성</Link>
-
-          <Link to="/products">남성</Link>
-
-          <Link to="/products">new</Link>
+          {NAV_ITEMS.map((item) => (
+            <Link key={item.label} to={item.to}>
+              {item.label}
+            </Link>
+          ))}
         </nav>
 
         {/* HEADER ACTIONS */}
         <div className="site-header-actions">
-          <Link to="/login" className="site-header-action header-login-btn">
-            로그인
-          </Link>
-
-          <Link to="/mypage" className="site-header-action" aria-label="마이페이지">
+          <button
+            type="button"
+            className="site-header-action"
+            aria-label={searchOpen ? '검색 닫기' : '검색 열기'}
+            aria-expanded={searchOpen}
+            onClick={() => setSearchOpen((v) => !v)}
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="16"
               height="16"
               fill="currentColor"
-              className="bi bi-person"
-              viewBox="0 0 16 16"
+              viewBox="0 0 256 256"
+              aria-hidden="true"
             >
-              <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6m2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0m4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4m-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10s-3.516.68-4.168 1.332c-.678.678-.83 1.418-.832 1.664z" />
+              <path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z" />
             </svg>
-          </Link>
+          </button>
+
+          {loggedIn ? (
+            <Link to="/mypage" className="site-header-action" aria-label="마이페이지">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                fill="currentColor"
+                viewBox="0 0 16 16"
+              >
+                <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6m2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0m4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4m-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10s-3.516.68-4.168 1.332c-.678.678-.83 1.418-.832 1.664z" />
+              </svg>
+            </Link>
+          ) : (
+            <Link to="/login" className="site-header-action header-login-btn">
+              로그인
+            </Link>
+          )}
 
           <Link to="/cart" className="site-header-action" aria-label="장바구니">
             <svg
@@ -74,7 +178,110 @@ function Header() {
             </svg>
           </Link>
         </div>
+
+        {/* 모바일 햄버거 (데스크톱 숨김) */}
+        <button
+          type="button"
+          className="site-nav-toggle"
+          aria-label={menuOpen ? '메뉴 닫기' : '메뉴 열기'}
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((v) => !v)}
+        >
+          <svg
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            aria-hidden="true"
+          >
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <line x1="3" y1="12" x2="21" y2="12" />
+            <line x1="3" y1="18" x2="21" y2="18" />
+          </svg>
+        </button>
       </div>
+
+      {/* 검색바 */}
+      {searchOpen && (
+        <form className="site-search" role="search" onSubmit={submitSearch}>
+          <div className="site-search-inner">
+            <input
+              ref={searchInputRef}
+              className="site-search-input"
+              type="search"
+              placeholder="검색어를 입력하세요"
+              aria-label="상품 검색"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+            <button type="submit" className="site-search-submit" aria-label="검색">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                fill="currentColor"
+                viewBox="0 0 256 256"
+                aria-hidden="true"
+              >
+                <path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z" />
+              </svg>
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* 모바일 메뉴 — 풀스크린 오버레이 */}
+      {menuOpen && (
+        <div className="site-mobile-menu">
+          <div className="site-mobile-menu-top">
+            <button
+              type="button"
+              className="site-mobile-menu-close"
+              aria-label="메뉴 닫기"
+              onClick={() => setMenuOpen(false)}
+            >
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                aria-hidden="true"
+              >
+                <path d="M6 6l12 12M18 6L6 18" />
+              </svg>
+            </button>
+          </div>
+
+          <nav className="site-mobile-menu-primary">
+            {NAV_ITEMS.map((item) => (
+              <Link key={item.label} to={item.to} onClick={() => setMenuOpen(false)}>
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+
+          <div className="site-mobile-menu-secondary">
+            {loggedIn ? (
+              <Link to="/mypage" onClick={() => setMenuOpen(false)}>
+                마이페이지
+              </Link>
+            ) : (
+              <Link to="/login" onClick={() => setMenuOpen(false)}>
+                로그인
+              </Link>
+            )}
+            <Link to="/cart" onClick={() => setMenuOpen(false)}>
+              장바구니
+            </Link>
+          </div>
+        </div>
+      )}
     </header>
   );
 }

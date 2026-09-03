@@ -1,12 +1,29 @@
 .site-header {
   width: 100%;
-  height: 58px;
+  height: 64px;
   background: #050505;
   color: #fff;
+
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  transition: transform 0.3s ease;
+}
+
+.site-header--hidden {
+  transform: translateY(-100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-header {
+    transition: none;
+  }
 }
 
 .site-header-inner {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
 
   width: 100%;
@@ -42,21 +59,22 @@
 .site-nav {
   display: flex;
   align-items: center;
-
+  height: 100%;
   gap: 38px;
 
-  margin-left: 22px;
+  justify-self: center;
 }
 
 .site-nav a {
   position: relative;
-
-  padding: 21px 0;
+  display: flex;
+  align-items: center;
+  height: 100%;
 
   color: #fff;
 
-  font-size: 15px;
-  font-weight: 500;
+  font-size: 16px;
+  font-weight: 400;
 
   letter-spacing: 0.06em;
 
@@ -70,7 +88,7 @@
   position: absolute;
 
   right: 0;
-  bottom: 14px;
+  bottom: 18px;
   left: 0;
 
   height: 1px;
@@ -91,15 +109,101 @@
   display: flex;
   align-items: center;
   gap: 18px;
-  margin-left: auto;
+  justify-self: end;
+}
+
+/* 모바일 햄버거 / 오버레이 메뉴 — 데스크톱에서는 숨김 */
+.site-nav-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+
+  width: 32px;
+  height: 32px;
+  padding: 0;
+
+  border: 0;
+  background: none;
+  color: #fff;
+  cursor: pointer;
+}
+
+.site-mobile-menu {
+  display: none;
+}
+
+/* 검색바 */
+.site-search {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 20;
+
+  background: #050505;
+  border-top: 1px solid #262626;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+.site-search-inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 14px 28px;
+}
+
+.site-search-input {
+  flex: 1;
+
+  height: 40px;
+  padding: 0 14px;
+
+  background: #141414;
+  border: 1px solid #333;
+  border-radius: 8px;
+
+  color: #fff;
+  font-size: 15px;
+}
+
+.site-search-input::placeholder {
+  color: #777;
+}
+
+.site-search-input:focus-visible {
+  outline: 2px solid #6b4f3a;
+  outline-offset: 2px;
+}
+
+.site-search-submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 40px;
+  height: 40px;
+  padding: 0;
+
+  border: 0;
+  background: none;
+  color: #fff;
+  cursor: pointer;
 }
 
 .site-header-action {
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 0;
+  border: 0;
+  background: none;
   color: #ffffff;
   text-decoration: none;
+  cursor: pointer;
 }
 
 .site-header-action svg {
@@ -116,50 +220,144 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 8px 18px;
+  height: auto;
+  padding: 6px 16px;
   background-color: #ffffff;
   color: #000000;
   font-size: 14px;
   font-weight: 600;
-  border-radius: 8px; /* 둥근 모서리 효과 */
+  border-radius: 100px; /* 둥근 모서리 효과 */
   text-decoration: none;
   transition: opacity 0.2s ease;
   width: auto; /* 기존 width: 18px 스타일을 덮어쓰기 위함 */
-  height: auto; /* 기존 height: 18px 스타일을 덮어쓰기 위함 */
 }
 
 .header-login-btn:hover {
-  opacity: 0.85; /* 마우스 호버 시 살짝 투명해지는 효과 */
+  opacity: 0.75; /* 마우스 호버 시 살짝 투명해지는 효과 */
 }
 
 .site-logo:focus-visible,
 .site-nav a:focus-visible,
-.site-header-action:focus-visible {
+.site-header-action:focus-visible,
+.site-nav-toggle:focus-visible,
+.site-search-submit:focus-visible,
+.site-mobile-menu-close:focus-visible,
+.site-mobile-menu a:focus-visible {
   outline: 2px solid #6b4f3a;
   outline-offset: 3px;
 }
 
+/* 태블릿 — 네비 간격 축소 */
 @media (min-width: 768px) and (max-width: 1199px) {
   .site-nav {
-    gap: 20px;
-  }
-}
-
-@media (max-width: 767px) {
-  .site-header {
-    height: 52px;
+    gap: 22px;
   }
 
   .site-header-inner {
+    padding: 0 20px;
+  }
+}
+
+/* 모바일 — 네비 → 로고 좌 / 햄버거 우 + 풀스크린 오버레이 메뉴 */
+@media (max-width: 767px) {
+  .site-header {
+    height: 56px;
+  }
+
+  .site-header-inner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
     padding: 0 16px;
   }
 
   .site-logo {
     width: 80px;
     height: 36px;
+    margin-right: auto; /* 로고 좌측, 나머지(아이콘+햄버거) 우측 그룹 */
   }
 
   .site-nav {
     display: none;
+  }
+
+  .site-nav-toggle {
+    display: flex;
+  }
+
+  .site-header-actions {
+    gap: 12px;
+  }
+
+  /* 모바일: 로그인 pill 을 컴팩트하게 */
+  .header-login-btn {
+    padding: 5px 12px;
+    font-size: 13px;
+  }
+
+  .site-search-inner {
+    padding: 12px 16px;
+  }
+
+  /* 풀스크린 오버레이 */
+  .site-mobile-menu {
+    display: flex;
+    flex-direction: column;
+
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+
+    background: #050505;
+    padding: 16px 24px 32px;
+  }
+
+  .site-mobile-menu-top {
+    display: flex;
+    justify-content: flex-end;
+    height: 40px;
+    align-items: center;
+  }
+
+  .site-mobile-menu-close {
+    display: flex;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: #fff;
+    cursor: pointer;
+  }
+
+  .site-mobile-menu-primary {
+    display: flex;
+    flex-direction: column;
+    margin-top: 20px;
+  }
+
+  .site-mobile-menu-primary a {
+    padding: 12px 0;
+    color: #fff;
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-decoration: none;
+  }
+
+  .site-mobile-menu-secondary {
+    display: flex;
+    flex-direction: column;
+    margin-top: auto;
+    padding-top: 24px;
+    border-top: 1px solid #262626;
+  }
+
+  .site-mobile-menu-secondary a {
+    padding: 10px 0;
+    color: #a3a3a3;
+    font-size: 14px;
+    letter-spacing: 0.04em;
+    text-decoration: none;
   }
 }
