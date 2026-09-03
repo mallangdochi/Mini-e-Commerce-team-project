@@ -16,12 +16,6 @@ const VIEW_LABELS = {
   shoes: '신발',
 };
 
-const PART_IMAGES = {
-  top: partTop,
-  bottom: partBottom,
-  shoes: partShoes,
-};
-
 const PRODUCT_INFO = {
   full: {
     eyebrow: 'ARC LOOK 01',
