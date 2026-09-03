@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import '@/styles/checkout2.css';
 
 const initialOrderItems = [
@@ -10,6 +10,10 @@ const initialOrderItems = [
 
 function CheckoutPage2() {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // CheckoutPage에서 전달받은 state 데이터 추출 (사용하지 않는 selectedCoupon 제거)
+  const { discountAmount = 0, finalPrice: passedFinalPrice } = location.state || {};
 
   const [shippingInfo, setShippingInfo] = useState({
     name: '',
@@ -26,10 +30,10 @@ function CheckoutPage2() {
       return numbers;
     } else if (numbers.length <= 7) {
       return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
-    } else if (numbers.length <= 11) {
-      return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
     } else {
-      return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
+      // 11자리를 초과하지 않도록 최대 11자리까지만 잘라서 포맷팅
+      const limitedNumbers = numbers.slice(0, 11);
+      return `${limitedNumbers.slice(0, 3)}-${limitedNumbers.slice(3, 7)}-${limitedNumbers.slice(7)}`;
     }
   };
 
@@ -54,7 +58,10 @@ function CheckoutPage2() {
     0
   );
   const deliveryFee = 0;
-  const finalPrice = productTotal + deliveryFee;
+
+  // 전달받은 최종 결제 금액이 있다면 그것을 사용하고, 없다면 직접 계산
+  const finalPrice =
+    passedFinalPrice !== undefined ? passedFinalPrice : productTotal + deliveryFee - discountAmount;
 
   return (
     <section className="checkout-page">
@@ -88,6 +95,7 @@ function CheckoutPage2() {
                     id="name"
                     name="name"
                     type="text"
+                    maxLength={10}
                     className="checkout-form-control"
                     placeholder="홍길동"
                     value={shippingInfo.name}
@@ -117,6 +125,7 @@ function CheckoutPage2() {
                     id="zonecode"
                     name="zonecode"
                     type="text"
+                    maxLength={5}
                     className="checkout-form-control"
                     placeholder="12345"
                     value={shippingInfo.zonecode}
@@ -134,6 +143,7 @@ function CheckoutPage2() {
                   id="address"
                   name="address"
                   type="text"
+                  maxLength={50}
                   className="checkout-form-control"
                   placeholder="서울특별시 강남구 어느곳 어느날 123"
                   value={shippingInfo.address}
@@ -147,6 +157,7 @@ function CheckoutPage2() {
                   id="detailAddress"
                   name="detailAddress"
                   type="text"
+                  maxLength={50}
                   className="checkout-form-control"
                   placeholder="101동 1004호"
                   value={shippingInfo.detailAddress}
@@ -207,6 +218,12 @@ function CheckoutPage2() {
                   <span>배송비</span>
                   <span>{deliveryFee === 0 ? '무료' : `₩ ${deliveryFee.toLocaleString()}`}</span>
                 </div>
+                {discountAmount > 0 && (
+                  <div className="checkout-summary-row checkout-discount-row">
+                    <span>할인 금액</span>
+                    <span>- ₩ {discountAmount.toLocaleString()}</span>
+                  </div>
+                )}
                 <div className="checkout-summary-row checkout-total-row">
                   <span>총 결제금액</span>
                   <span>₩ {finalPrice.toLocaleString()}</span>

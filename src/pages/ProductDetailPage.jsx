@@ -3,11 +3,11 @@ import { Link } from 'react-router-dom';
 
 import '@/styles/product-detail.css';
 
+const THUMBNAIL_SLOTS = [1, 2, 3, 4];
+const SIZES = ['S', 'M', 'L', 'XL', 'XXL'];
+
 function ProductDetailPage() {
   const [quantity, setQuantity] = useState(1);
-
-  const thumbnailSlots = [1, 2, 3, 4];
-  const sizes = ['S', 'M', 'L', 'XL', 'XXL'];
 
   const handleDecreaseQuantity = () => {
     setQuantity((currentQuantity) => Math.max(1, currentQuantity - 1));
@@ -21,24 +21,18 @@ function ProductDetailPage() {
     <main className="product-detail-page">
       <div className="breadcrumb">
         <Link to="/">HOME</Link>
-
         <span>/</span>
-
         <Link to="/products">MEN</Link>
-
         <span>/</span>
-
         <Link to="/products">SUBCATEGORY</Link>
-
         <span>/</span>
-
         <span>PRODUCT</span>
       </div>
 
       <section className="product-layout">
         <div className="product-gallery">
           <div className="thumbnail-list">
-            {thumbnailSlots.map((slot, index) => (
+            {THUMBNAIL_SLOTS.map((slot, index) => (
               <button
                 key={slot}
                 type="button"
@@ -65,9 +59,7 @@ function ProductDetailPage() {
 
           <div className="price-area">
             <span className="original-price">₩ 59,000</span>
-
             <span className="discount">20%</span>
-
             <span className="sale-price">₩ 47,200</span>
           </div>
 
@@ -77,7 +69,6 @@ function ProductDetailPage() {
             <span>★</span>
             <span>★</span>
             <span>☆</span>
-
             <span className="review-count">(23)</span>
           </div>
 
@@ -94,19 +85,16 @@ function ProductDetailPage() {
             <div className="color-list">
               <label className="color-option">
                 <input type="radio" name="color" value="black" defaultChecked />
-
                 <span className="color-circle color-black" />
               </label>
 
               <label className="color-option">
                 <input type="radio" name="color" value="brown" />
-
                 <span className="color-circle color-brown" />
               </label>
 
               <label className="color-option">
                 <input type="radio" name="color" value="beige" />
-
                 <span className="color-circle color-beige" />
               </label>
             </div>
@@ -120,10 +108,9 @@ function ProductDetailPage() {
             </button>
 
             <div className="size-list">
-              {sizes.map((size) => (
+              {SIZES.map((size) => (
                 <label key={size}>
                   <input type="radio" name="size" value={size} defaultChecked={size === 'M'} />
-
                   <span>{size}</span>
                 </label>
               ))}
@@ -167,6 +154,7 @@ function ProductDetailPage() {
           </div>
         </div>
       </section>
+
       <section className="product-detail-content">
         <nav className="detail-tabs" aria-label="상품 상세 메뉴">
           <button type="button" className="detail-tab is-active">
@@ -218,16 +206,15 @@ function ProductDetailPage() {
             <div className="detail-text-area">
               <div className="detail-text-block">
                 <h3>미디엄 서포트, B/C컵</h3>
-
                 <p>으에에에</p>
               </div>
 
               <div className="detail-text-block">
                 <h3>매끄러운 초경량 Nulux™ 원단</h3>
-
                 <p>이스트소프트</p>
               </div>
             </div>
+
             <div className="detail-wide-image">
               <img src="/images/products/detail03.jpg" alt="제품 소재와 핏 착용 이미지" />
             </div>
@@ -241,13 +228,11 @@ function ProductDetailPage() {
             <div className="detail-text-area">
               <div className="detail-text-block">
                 <h3>제품 디테일</h3>
-
                 <p>응에엥엥아에엥ㅇ</p>
               </div>
 
               <div className="detail-text-block">
                 <h3>엔지니어드 4방 스트레치</h3>
-
                 <p>레이서백 디자인이라 움직임이 자유로워요.</p>
               </div>
             </div>
@@ -317,7 +302,7 @@ function ProductDetailPage() {
           </div>
         </div>
 
-        <div className="review-list">{/* 추후 리뷰 데이터가 들어갈 영역 */}</div>
+        <div className="review-list" />
       </section>
 
       <section id="size-guide" className="product-size-guide-section">
@@ -329,7 +314,6 @@ function ProductDetailPage() {
           <p>사이즈 변환을 위해 위치를 선택해 주세요.</p>
         </div>
 
-        {/* 지역 선택 */}
         <div className="size-guide-country">
           <select defaultValue="international">
             <option value="international">국제</option>
@@ -341,7 +325,6 @@ function ProductDetailPage() {
           US 사이즈 탭을 선택하여 차트에서 해당 사이즈를 확인해 보세요.
         </p>
 
-        {/* 사이즈 종류 탭 */}
         <div className="size-guide-tabs">
           <button type="button" className="size-guide-tab is-active">
             US 사이즈 0 - 20
@@ -364,7 +347,6 @@ function ProductDetailPage() {
             측정해 정확한 사이즈를 찾아보세요.
           </p>
 
-          {/* 단위 */}
           <div className="size-unit">
             <span className="is-active">CM</span>
 
@@ -375,7 +357,6 @@ function ProductDetailPage() {
             <span>IN</span>
           </div>
 
-          {/* 사이즈 표 */}
           <div className="size-table-scroll">
             <table className="size-guide-table">
               <tbody>
@@ -424,7 +405,6 @@ function ProductDetailPage() {
             </table>
           </div>
 
-          {/* 측정 방법 */}
           <div className="measurement-guide">
             <div className="measurement-text">
               <h3>측정 방법</h3>
@@ -445,13 +425,11 @@ function ProductDetailPage() {
 
               <div className="measurement-item">
                 <strong>2. 허리둘레</strong>
-
                 <p>허리의 가장 가는 부분의 둘레를 측정하세요.</p>
               </div>
 
               <div className="measurement-item">
                 <strong>3. 엉덩이둘레</strong>
-
                 <p>양발을 골반 너비로 벌려 선 후, 엉덩이의 가장 볼록한 부분의 둘레를 측정하세요.</p>
               </div>
             </div>
