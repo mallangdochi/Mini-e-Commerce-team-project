@@ -12,12 +12,8 @@ function CheckoutPage2() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // CheckoutPage에서 전달받은 state 데이터 추출 (전달받지 못한 경우 기본값 설정)
-  const {
-    discountAmount = 0,
-    selectedCoupon = '',
-    finalPrice: passedFinalPrice,
-  } = location.state || {};
+  // CheckoutPage에서 전달받은 state 데이터 추출 (사용하지 않는 selectedCoupon 제거)
+  const { discountAmount = 0, finalPrice: passedFinalPrice } = location.state || {};
 
   const [shippingInfo, setShippingInfo] = useState({
     name: '',
