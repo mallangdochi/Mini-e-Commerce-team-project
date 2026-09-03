@@ -8,10 +8,6 @@
   background: #fff;
 }
 
-/* ========================================
-   HERO
-======================================== */
-
 .product-page .product-hero {
   position: relative;
 
@@ -73,10 +69,6 @@
   font-weight: 300;
 }
 
-/* ========================================
-   PRODUCT SECTION
-======================================== */
-
 .product-page .product-section {
   width: 100%;
   max-width: 1440px;
@@ -85,10 +77,6 @@
 
   padding: 70px 45px 110px;
 }
-
-/* ========================================
-   CATEGORY TITLE
-======================================== */
 
 .product-page .category-heading {
   margin-bottom: 65px;
@@ -110,10 +98,6 @@
 
   line-height: 1;
 }
-
-/* ========================================
-   PRODUCT HEADER
-======================================== */
 
 .product-page .product-section-header {
   display: flex;
@@ -155,10 +139,6 @@
   font-size: 14px;
 }
 
-/* ========================================
-   GRID
-======================================== */
-
 .product-page .product-grid {
   display: grid;
 
@@ -167,10 +147,6 @@
   column-gap: 34px;
   row-gap: 60px;
 }
-
-/* ========================================
-   PRODUCT CARD
-======================================== */
 
 .product-page .product-card {
   min-width: 0;
@@ -217,10 +193,6 @@
 
   background: #dedede;
 }
-
-/* ========================================
-   PRODUCT INFO
-======================================== */
 
 .product-page .product-card-info {
   padding-top: 11px;
@@ -300,11 +272,6 @@
   font-weight: 500;
 }
 
-/* ========================================
-   TABLET
-   768px ~ 1199px
-======================================== */
-
 @media (min-width: 768px) and (max-width: 1199px) {
   .product-page .product-hero {
     height: 210px;
@@ -329,11 +296,6 @@
     row-gap: 48px;
   }
 }
-
-/* ========================================
-   MOBILE
-   ~ 767px
-======================================== */
 
 @media (max-width: 767px) {
   .product-page .product-hero {
@@ -414,10 +376,6 @@
     font-size: 8px;
   }
 }
-
-/* ========================================
-   SMALL MOBILE
-======================================== */
 
 @media (max-width: 390px) {
   .product-page .product-grid {
