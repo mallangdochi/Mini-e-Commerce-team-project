@@ -11,8 +11,8 @@ function ArcMark() {
   );
 }
 
-function BrandStorySection({ images = [] }) {
-  const visualImages = images.slice(0, 3);
+function BrandStorySection({ data, isLoading = false, error = null }) {
+  const images = Array.isArray(data?.images) ? data.images.slice(0, 3) : [];
 
   return (
     <section className="brand-story">
@@ -75,19 +75,37 @@ function BrandStorySection({ images = [] }) {
         </div>
 
         <div className="brand-story__visual">
-          {Array.from({ length: 3 }, (_, index) => {
-            const imageUrl = visualImages[index];
-
-            return (
-              <div className="brand-story__panel" key={index}>
-                {imageUrl ? (
-                  <img className="brand-story__image" src={imageUrl} alt="" />
-                ) : (
-                  <div className="brand-story__placeholder" />
-                )}
+          {isLoading &&
+            Array.from({ length: 3 }, (_, index) => (
+              <div className="brand-story__panel" key={`loading-${index}`}>
+                <div className="brand-story__placeholder" />
               </div>
-            );
-          })}
+            ))}
+
+          {!isLoading &&
+            !error &&
+            images.map((image) => (
+              <div className="brand-story__panel" key={image.id}>
+                <img
+                  className="brand-story__image"
+                  src={image.imageUrl}
+                  alt={image.alt ?? 'ARC 브랜드 이미지'}
+                />
+              </div>
+            ))}
+
+          {!isLoading &&
+            !error &&
+            images.length < 3 &&
+            Array.from({ length: 3 - images.length }, (_, index) => (
+              <div className="brand-story__panel" key={`empty-${index}`}>
+                <div className="brand-story__empty">이미지를 준비 중입니다.</div>
+              </div>
+            ))}
+
+          {!isLoading && error && (
+            <div className="brand-story__error">브랜드 이미지를 불러오지 못했습니다.</div>
+          )}
         </div>
       </div>
     </section>
