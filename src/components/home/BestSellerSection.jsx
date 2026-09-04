@@ -1,94 +1,77 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import '@/styles/best-seller.css';
 
-const fallbackProducts = [
-  {
-    id: 'fallback-1',
-    name: 'abc 멜로시티 자켓',
-    rating: 4.8,
-    reviewText:
-      '가볍게 걸치기 좋은 재킷입니다. 움직임이 편하고 일상과 운동 사이에서 자연스럽게 활용할 수 있습니다.',
-  },
-  {
-    id: 'fallback-2',
-    name: 'abc 멜로시티 자켓',
-    rating: 4.8,
-    reviewText:
-      '신축성과 착용감이 좋아 다양한 트레이닝에 어울립니다. 깔끔한 실루엣과 기능적인 디테일을 함께 담았습니다.',
-  },
-  {
-    id: 'fallback-3',
-    name: 'abc 멜로시티 자켓',
-    rating: 4.8,
-    reviewText:
-      '가벼운 러닝부터 데일리 웨어까지 활용할 수 있습니다. 편안한 착용감과 절제된 디자인이 특징입니다.',
-  },
-  {
-    id: 'fallback-4',
-    name: 'ARC 러닝 윈드 자켓',
-    rating: 4.7,
-    reviewText: '가벼운 소재와 안정적인 착용감으로 러닝과 야외 활동에 편안하게 활용할 수 있습니다.',
-  },
-  {
-    id: 'fallback-5',
-    name: 'ARC 트레이닝 셋업',
-    rating: 4.9,
-    reviewText: '움직임을 방해하지 않는 실루엣과 기능적인 소재를 조합한 트레이닝 셋업입니다.',
-  },
-  {
-    id: 'fallback-6',
-    name: 'ARC 데일리 재킷',
-    rating: 4.8,
-    reviewText: '운동 전후와 일상에서 자연스럽게 이어 입을 수 있는 가벼운 데일리 재킷입니다.',
-  },
-];
-
-function StarRating({ rating = 0 }) {
-  const roundedRating = Math.round(Number(rating));
+function StarRating({ rating = 0, reviewCount = 0 }) {
+  const safeRating = Number.isFinite(Number(rating)) ? Number(rating) : 0;
+  const roundedRating = Math.round(safeRating);
 
   return (
     <div className="best-seller-card__rating">
-      <div className="best-seller-card__stars" aria-label={`평점 ${rating}`}>
+      <div className="best-seller-card__stars" aria-label={`평점 ${safeRating}점`}>
         {Array.from({ length: 5 }, (_, index) => (
           <span key={index}>{index < roundedRating ? '★' : '☆'}</span>
         ))}
       </div>
-      <span className="best-seller-card__rating-number">{rating}</span>
+
+      <span className="best-seller-card__rating-number">{safeRating.toFixed(1)}</span>
+
+      {reviewCount > 0 && (
+        <span className="best-seller-card__review-count">리뷰 {reviewCount}</span>
+      )}
     </div>
   );
 }
 
-function BestSellerSection({ products = [] }) {
-  const sourceProducts = products.length > 0 ? products : fallbackProducts;
+function BestSellerSkeleton() {
+  return (
+    <article className="best-seller-card best-seller-card--loading">
+      <div className="best-seller-card__image-wrap">
+        <div className="best-seller-card__placeholder" />
+      </div>
+
+      <div className="best-seller-card__content">
+        <div className="best-seller-card__text-skeleton best-seller-card__text-skeleton--name" />
+        <div className="best-seller-card__text-skeleton best-seller-card__text-skeleton--rating" />
+        <div className="best-seller-card__text-skeleton best-seller-card__text-skeleton--description" />
+      </div>
+    </article>
+  );
+}
+
+function BestSellerSection({ products = [], isLoading = false, error = null }) {
   const [startIndex, setStartIndex] = useState(0);
 
+  useEffect(() => {
+    setStartIndex(0);
+  }, [products]);
+
   const visibleProducts = useMemo(() => {
-    if (sourceProducts.length <= 3) {
-      return sourceProducts;
+    if (products.length <= 3) {
+      return products;
     }
 
     return Array.from({ length: 3 }, (_, offset) => {
-      const index = (startIndex + offset) % sourceProducts.length;
-      return sourceProducts[index];
+      const index = (startIndex + offset) % products.length;
+      return products[index];
     });
-  }, [sourceProducts, startIndex]);
+  }, [products, startIndex]);
 
   const movePrevious = () => {
-    if (sourceProducts.length <= 3) {
+    if (products.length <= 3) {
       return;
     }
 
-    setStartIndex((current) => (current === 0 ? sourceProducts.length - 1 : current - 1));
+    setStartIndex((current) => (current === 0 ? products.length - 1 : current - 1));
   };
 
   const moveNext = () => {
-    if (sourceProducts.length <= 3) {
+    if (products.length <= 3) {
       return;
     }
 
-    setStartIndex((current) => (current + 1) % sourceProducts.length);
+    setStartIndex((current) => (current + 1) % products.length);
   };
 
   return (
@@ -99,11 +82,15 @@ function BestSellerSection({ products = [] }) {
 
       <div className="best-seller__inner">
         <div className="best-seller__products">
-          {visibleProducts.map((product, index) => {
-            const isFallback = String(product.id).startsWith('fallback-');
+          {isLoading &&
+            Array.from({ length: 3 }, (_, index) => (
+              <BestSellerSkeleton key={`loading-${index}`} />
+            ))}
 
-            const content = (
-              <>
+          {!isLoading &&
+            !error &&
+            visibleProducts.map((product) => (
+              <Link className="best-seller-card" to={`/products/${product.id}`} key={product.id}>
                 <div className="best-seller-card__image-wrap">
                   {product.imageUrl ? (
                     <img
@@ -112,38 +99,30 @@ function BestSellerSection({ products = [] }) {
                       alt={product.name}
                     />
                   ) : (
-                    <div className="best-seller-card__placeholder" />
+                    <div className="best-seller-card__image-fallback">이미지가 없습니다.</div>
                   )}
                 </div>
 
                 <div className="best-seller-card__content">
                   <h3 className="best-seller-card__name">{product.name}</h3>
-                  <StarRating rating={product.rating ?? 0} />
-                  <p className="best-seller-card__review">
-                    {product.reviewText ?? product.description ?? ''}
-                  </p>
+
+                  <StarRating rating={product.rating} reviewCount={product.reviewCount} />
+
+                  <p className="best-seller-card__review">{product.description}</p>
                 </div>
-              </>
-            );
-
-            if (isFallback) {
-              return (
-                <article className="best-seller-card" key={`${product.id}-${startIndex}-${index}`}>
-                  {content}
-                </article>
-              );
-            }
-
-            return (
-              <Link
-                className="best-seller-card"
-                to={`/products/${product.id}`}
-                key={`${product.id}-${startIndex}-${index}`}
-              >
-                {content}
               </Link>
-            );
-          })}
+            ))}
+
+          {!isLoading && !error && products.length === 0 && (
+            <div className="best-seller__empty">등록된 베스트 상품이 없습니다.</div>
+          )}
+
+          {!isLoading && error && (
+            <div className="best-seller__error">
+              <p>베스트 상품을 불러오지 못했습니다.</p>
+              <span>잠시 후 다시 시도해주세요.</span>
+            </div>
+          )}
         </div>
 
         <aside className="best-seller__statement">
@@ -161,15 +140,16 @@ function BestSellerSection({ products = [] }) {
             <button
               type="button"
               onClick={movePrevious}
-              disabled={sourceProducts.length <= 3}
+              disabled={isLoading || Boolean(error) || products.length <= 3}
               aria-label="이전 베스트셀러 보기"
             >
               ‹
             </button>
+
             <button
               type="button"
               onClick={moveNext}
-              disabled={sourceProducts.length <= 3}
+              disabled={isLoading || Boolean(error) || products.length <= 3}
               aria-label="다음 베스트셀러 보기"
             >
               ›
