@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 
 import kakiTop from '@/assets/home/kaki_top.webp';
 import '@/styles/custom-carousel.css';
@@ -62,36 +62,156 @@ const POS = {
 // ---- placeholder catalogue ------------------------------------------
 const CATALOGUE = {
   tops: [
-    { id: 't1', name: 'Endure Half-Zip', shade: '#22314A', price: 89000 },
-    { id: 't2', name: 'Foundation Tee', shade: '#33465F', price: 39000 },
-    { id: 't3', name: 'Trail Layer Hoodie', shade: '#1B2A40', price: 119000 },
-    { id: 't4', name: 'Base Performance Tee', shade: '#3D5474', price: 45000 },
-    { id: 't5', name: 'Windshell Jacket', shade: '#26374F', price: 149000 },
-    { id: 't6', name: 'Ridge Quarter-Zip', shade: '#2D4160', price: 79000 },
+    {
+      id: '1',
+      name: 'Endure Half-Zip',
+      price: 89000,
+      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+    },
+    {
+      id: '2',
+      name: 'Foundation Tee',
+      price: 39000,
+      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+    },
+    {
+      id: '3',
+      name: 'Trail Layer Hoodie',
+      price: 119000,
+      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+    },
+    {
+      id: '4',
+      name: 'Base Performance Tee',
+      price: 45000,
+      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+    },
+    {
+      id: '5',
+      name: 'Windshell Jacket',
+      price: 149000,
+      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+    },
+    {
+      id: '6',
+      name: 'Ridge Quarter-Zip',
+      price: 79000,
+      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+    },
   ],
   bottoms: [
-    { id: 'b1', name: 'Trail Jogger', shade: '#4C5A34', price: 69000 },
-    { id: 'b2', name: 'Enhance Short 7"', shade: '#5B6B3F', price: 42000 },
-    { id: 'b3', name: 'All Elements Pant', shade: '#3E4A2A', price: 99000 },
-    { id: 'b4', name: 'Foundation Legging', shade: '#66774A', price: 55000 },
-    { id: 'b5', name: 'Traverse Cargo', shade: '#455328', price: 89000 },
-    { id: 'b6', name: 'Endure Track Pant', shade: '#556238', price: 65000 },
+    {
+      id: '7',
+      name: 'Trail Jogger',
+      price: 69000,
+      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+    },
+    {
+      id: '8',
+      name: 'Enhance Short 7"',
+      price: 42000,
+      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+    },
+    {
+      id: '9',
+      name: 'All Elements Pant',
+      price: 99000,
+      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+    },
+    {
+      id: '10',
+      name: 'Foundation Legging',
+      price: 55000,
+      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+    },
+    {
+      id: '11',
+      name: 'Traverse Cargo',
+      price: 89000,
+      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+    },
+    {
+      id: '12',
+      name: 'Endure Track Pant',
+      price: 65000,
+      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+    },
   ],
   sunglasses: [
-    { id: 's1', name: 'Custom Radar® Ev', shade: '#2E6690', price: 189000 },
-    { id: 's2', name: 'Custom Holbrook', shade: '#3E7CB1', price: 179000 },
-    { id: 's3', name: 'Custom Sutro', shade: '#4A8CC2', price: 169000 },
-    { id: 's4', name: 'Custom EVZero', shade: '#25587E', price: 199000 },
-    { id: 's5', name: 'Custom Jawbreaker', shade: '#5A9AD1', price: 175000 },
-    { id: 's6', name: 'Custom Flak® 2.0', shade: '#347098', price: 159000 },
+    {
+      id: '13',
+      name: 'Custom Radar® Ev',
+      price: 189000,
+      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+    },
+    {
+      id: '14',
+      name: 'Custom Holbrook',
+      price: 179000,
+      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+    },
+    {
+      id: '15',
+      name: 'Custom Sutro',
+      price: 169000,
+      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+    },
+    {
+      id: '16',
+      name: 'Custom EVZero',
+      price: 199000,
+      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+    },
+    {
+      id: '17',
+      name: 'Custom Jawbreaker',
+      price: 175000,
+      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+    },
+    {
+      id: '18',
+      name: 'Custom Flak® 2.0',
+      price: 159000,
+      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+    },
   ],
   hats: [
-    { id: 'h1', name: 'Ellipse Snapback', shade: '#B98424', price: 39000 },
-    { id: 'h2', name: 'Trail Trucker', shade: '#C99A2E', price: 42000 },
-    { id: 'h3', name: 'Performance Visor', shade: '#A5731C', price: 35000 },
-    { id: 'h4', name: 'Six-Panel Cap', shade: '#D4A63C', price: 45000 },
-    { id: 'h5', name: 'Bucket Hat', shade: '#96691A', price: 32000 },
-    { id: 'h6', name: 'Ridge Beanie', shade: '#BE8B26', price: 38000 },
+    {
+      id: '19',
+      name: 'Ellipse Snapback',
+      price: 39000,
+      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+    },
+    {
+      id: '20',
+      name: 'Trail Trucker',
+      price: 42000,
+      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+    },
+    {
+      id: '21',
+      name: 'Performance Visor',
+      price: 35000,
+      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+    },
+    {
+      id: '22',
+      name: 'Six-Panel Cap',
+      price: 45000,
+      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+    },
+    {
+      id: '23',
+      name: 'Bucket Hat',
+      price: 32000,
+      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+    },
+    {
+      id: '24',
+      name: 'Ridge Beanie',
+      price: 38000,
+      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+    },
   ],
 };
 
@@ -107,7 +227,7 @@ function ProductTile({ product, position, onSelect, animate }) {
 
   const wrapStyle = {
     width: TILE_WIDTH,
-    transform: isCenter ? 'scale(1)' : isNear ? 'scale(0.68)' : 'scale(0.46)',
+    transform: isCenter ? 'scale(1.1)' : isNear ? 'scale(0.5)' : 'scale(0.3)',
     opacity: isCenter ? 1 : isNear ? 0.45 : 0.18,
     filter: isCenter ? 'none' : isNear ? 'blur(1.5px)' : 'blur(2.5px)',
     transition: animate
@@ -128,7 +248,7 @@ function ProductTile({ product, position, onSelect, animate }) {
         tabIndex={isCenter ? 0 : -1}
       >
         <img
-          src={product.image ?? FALLBACK_IMAGE}
+          src={product.imageUrl ?? product.image ?? FALLBACK_IMAGE}
           alt={`${product.name} 상품 이미지`}
           className="custom-carousel__tile-image"
         />
@@ -137,9 +257,21 @@ function ProductTile({ product, position, onSelect, animate }) {
   );
 }
 
-export default function CustomCarousel() {
+export default function CustomCarousel({ categories, isLoading = false, error = null }) {
+  const source = useMemo(() => {
+    if (Array.isArray(categories) && categories.length > 0) {
+      return Object.fromEntries(categories.map((entry) => [entry.id, entry.products ?? []]));
+    }
+
+    if (categories && typeof categories === 'object') {
+      return categories;
+    }
+
+    return CATALOGUE;
+  }, [categories]);
+
   const [category, setCategory] = useState(DEFAULT_CATEGORY);
-  const items = CATALOGUE[category] ?? [];
+  const items = source[category] ?? [];
   const len = items.length;
 
   const COPIES = 3;
@@ -157,13 +289,13 @@ export default function CustomCarousel() {
   }, []);
 
   useEffect(() => {
-    Object.values(CATALOGUE)
+    Object.values(source)
       .flat()
       .forEach((p) => {
         const img = new Image();
-        img.src = p.image ?? FALLBACK_IMAGE;
+        img.src = p.imageUrl ?? p.image ?? FALLBACK_IMAGE;
       });
-  }, []);
+  }, [source]);
 
   useEffect(() => {
     if (animate) return;
@@ -174,7 +306,7 @@ export default function CustomCarousel() {
   const changeCategory = (key) => {
     setCategory(key);
     setAnimate(false);
-    setPos(CATALOGUE[key].length);
+    setPos((source[key] ?? []).length);
   };
 
   const go = (delta) => setPos((p) => p + delta);
@@ -237,12 +369,22 @@ export default function CustomCarousel() {
     </nav>
   );
 
-  if (len === 0) {
+  // DEV에서는 에러를 무시하고 fallback 데이터로 렌더링을 계속함 — source가 항상 안전하게
+  // CATALOGUE로 fallback되는 것에 의존(위 소스 정규화 로직). 배포 빌드에서만 에러 UI 노출.
+  const showErrorState = error && !import.meta.env.DEV;
+
+  if (isLoading || showErrorState || len === 0) {
+    const message = isLoading
+      ? '상품을 불러오는 중입니다…'
+      : showErrorState
+        ? '새로운 상품을 불러오지 못했습니다.'
+        : '이 카테고리에 표시할 상품이 없습니다.';
+
     return (
       <div className="custom-carousel">
         <h1 className="custom-carousel__title">NEW & TRENDING</h1>
         {tabs}
-        <p className="custom-carousel__empty">이 카테고리에 표시할 상품이 없습니다.</p>
+        <p className="custom-carousel__empty">{message}</p>
       </div>
     );
   }
