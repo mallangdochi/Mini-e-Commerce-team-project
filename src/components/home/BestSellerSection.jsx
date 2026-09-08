@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import '@/styles/best-seller.css';
@@ -42,10 +42,6 @@ function BestSellerSkeleton() {
 
 function BestSellerSection({ products = [], isLoading = false, error = null }) {
   const [startIndex, setStartIndex] = useState(0);
-
-  useEffect(() => {
-    setStartIndex(0);
-  }, [products]);
 
   const visibleProducts = useMemo(() => {
     if (products.length <= 3) {
