@@ -60,7 +60,7 @@
   display: flex;
   align-items: center;
   height: 100%;
-  gap: 70px;
+  gap: 60px;
 
   justify-self: center;
 }
@@ -73,8 +73,8 @@
 
   color: #fff;
 
-  font-size: 19px;
-  font-weight: 400;
+  font-size: 17px;
+  font-weight: 300;
 
   letter-spacing: 0.06em;
 
@@ -185,7 +185,7 @@
   justify-self: end;
 }
 
-/* 모바일 햄버거 / 오버레이 메뉴 — 데스크톱에서는 숨김 */
+/* 모바일 햄버거 */
 .site-nav-toggle {
   display: none;
   align-items: center;
@@ -203,68 +203,6 @@
 
 .site-mobile-menu {
   display: none;
-}
-
-/* 검색바 */
-.site-search {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  z-index: 40;
-
-  background: #050505;
-  border-top: 1px solid #262626;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
-}
-
-.site-search-inner {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-
-  width: 100%;
-  max-width: 1440px;
-  margin: 0 auto;
-  padding: 14px 28px;
-}
-
-.site-search-input {
-  flex: 1;
-
-  height: 40px;
-  padding: 0 14px;
-
-  background: #141414;
-  border: 1px solid #333;
-  border-radius: 8px;
-
-  color: #fff;
-  font-size: 15px;
-}
-
-.site-search-input::placeholder {
-  color: #777;
-}
-
-.site-search-input:focus-visible {
-  outline: 2px solid #6b4f3a;
-  outline-offset: 2px;
-}
-
-.site-search-submit {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  width: 40px;
-  height: 40px;
-  padding: 0;
-
-  border: 0;
-  background: none;
-  color: #fff;
-  cursor: pointer;
 }
 
 .site-header-action {
@@ -314,7 +252,6 @@
 .site-mega-menu a:focus-visible,
 .site-header-action:focus-visible,
 .site-nav-toggle:focus-visible,
-.site-search-submit:focus-visible,
 .site-mobile-menu-close:focus-visible,
 .site-mobile-menu a:focus-visible,
 .site-mobile-category-trigger:focus-visible {
@@ -372,14 +309,9 @@
     gap: 12px;
   }
 
-  /* 모바일: 로그인 pill 을 컴팩트하게 */
   .header-login-btn {
     padding: 5px 12px;
     font-size: 13px;
-  }
-
-  .site-search-inner {
-    padding: 12px 16px;
   }
 
   /* 풀스크린 오버레이 */
