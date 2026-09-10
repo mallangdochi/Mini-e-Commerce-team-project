@@ -39,7 +39,6 @@ const SLIDES = [
 
 const AUTO_INTERVAL = 5000; // ms
 const SWIPE_THRESHOLD = 40; // px
-const TOTAL = SLIDES.length;
 const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 
 const DOT_R = 5;
@@ -58,21 +57,22 @@ function usePrefersReducedMotion() {
   return reduced;
 }
 
-export default function BannerCarousel() {
+export default function BannerCarousel({ slides, isLoading = false, error = null }) {
+  const data = Array.isArray(slides) && slides.length > 0 ? slides : SLIDES;
+  const total = data.length;
+
   const reduced = usePrefersReducedMotion();
   const [current, setCurrent] = useState(0);
   const touchStartX = useRef(0);
   const videoRefs = useRef([]);
 
-  // 이전 값 기준 이동은 무조건 함수형 업데이트 (자동전환과 경합해도 유실 없음)
-  const step = (delta) => setCurrent((c) => (c + delta + TOTAL) % TOTAL);
+  const step = (delta) => setCurrent((c) => (c + delta + total) % total);
 
-  // 위치가 바뀌면 카운트다운 재시작. reduce-motion 이면 타이머 없음.
   useEffect(() => {
     if (reduced) return undefined;
-    const id = setInterval(() => setCurrent((c) => (c + 1) % TOTAL), AUTO_INTERVAL);
+    const id = setInterval(() => setCurrent((c) => (c + 1) % total), AUTO_INTERVAL);
     return () => clearInterval(id);
-  }, [current, reduced]);
+  }, [current, reduced, total]);
 
   useEffect(() => {
     videoRefs.current.forEach((video, i) => {
@@ -96,6 +96,18 @@ export default function BannerCarousel() {
     step(diff < 0 ? 1 : -1);
   };
 
+  // DEV에서는 에러를 무시하고 fallback 데이터로 렌더링을 계속함 — data가 항상 안전하게
+  // fallback되는 것에 의존(위 61번 줄, slides가 없으면 SLIDES 사용). 배포 빌드에서만 에러 UI 노출.
+  if (isLoading || (error && !import.meta.env.DEV)) {
+    const message = isLoading ? '배너를 불러오는 중입니다…' : '배너를 불러오지 못했습니다.';
+
+    return (
+      <div className="banner-carousel banner-carousel--state" role="region" aria-label="추천 배너">
+        <p className="banner-carousel__empty">{message}</p>
+      </div>
+    );
+  }
+
   return (
     <div
       className="banner-carousel"
@@ -107,7 +119,7 @@ export default function BannerCarousel() {
     >
       <style>{`@keyframes bannerDotFill { to { stroke-dashoffset: 0; } }`}</style>
 
-      {SLIDES.map((slide, i) => (
+      {data.map((slide, i) => (
         <div
           key={slide.id}
           inert={i !== current}
@@ -165,7 +177,7 @@ export default function BannerCarousel() {
       </button>
 
       <div className="banner-carousel__dots">
-        {SLIDES.map((slide, i) => (
+        {data.map((slide, i) => (
           <button
             key={slide.id}
             type="button"

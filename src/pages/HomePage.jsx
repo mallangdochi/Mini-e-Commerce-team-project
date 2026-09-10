@@ -43,9 +43,9 @@ function HomePage() {
     <>
       <Hero />
 
-      <BannerCarousel />
+      <BannerCarousel slides={homeData?.banners} isLoading={isLoading} error={error} />
 
-      <CustomCarousel />
+      <CustomCarousel categories={homeData?.newProducts} isLoading={isLoading} error={error} />
 
       <FeaturedLookSection />
 

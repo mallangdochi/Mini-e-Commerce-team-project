@@ -6,6 +6,19 @@
   background: #000;
 }
 
+.banner-carousel--state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.banner-carousel__empty {
+  margin: 0;
+  color: #999;
+  font-size: 14px;
+  font-weight: 600;
+}
+
 .banner-carousel__slide {
   position: absolute;
   inset: 0;
