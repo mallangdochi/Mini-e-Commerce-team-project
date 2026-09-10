@@ -3,6 +3,44 @@ import { Link } from 'react-router-dom';
 
 import '@/styles/banner-carousel.css';
 
+function ChevronLeft({ size = 18, className }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="m15 18-6-6 6-6" />
+    </svg>
+  );
+}
+
+function ChevronRight({ size = 18, className }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="m9 18 6-6-6-6" />
+    </svg>
+  );
+}
+
 // TODO: SLIDES.video 를 실제 영상으로 교체 (현재 3슬라이드 모두 임시 공용 파일).
 const SLIDES = [
   {
@@ -63,28 +101,35 @@ export default function BannerCarousel({ slides, isLoading = false, error = null
 
   const reduced = usePrefersReducedMotion();
   const [current, setCurrent] = useState(0);
+  const [paused, setPaused] = useState(false);
   const touchStartX = useRef(0);
   const videoRefs = useRef([]);
 
   const step = (delta) => setCurrent((c) => (c + delta + total) % total);
 
   useEffect(() => {
-    if (reduced) return undefined;
+    if (reduced || paused) return undefined;
     const id = setInterval(() => setCurrent((c) => (c + 1) % total), AUTO_INTERVAL);
     return () => clearInterval(id);
-  }, [current, reduced, total]);
+  }, [current, reduced, paused, total]);
 
+  // 슬라이드가 바뀌면 그 영상만 처음으로 되감기
+  useEffect(() => {
+    const video = videoRefs.current[current];
+    if (video) video.currentTime = 0;
+  }, [current]);
+
+  // 활성 슬라이드이면서 재생 중일 때만 play, 그 외에는 pause
   useEffect(() => {
     videoRefs.current.forEach((video, i) => {
       if (!video) return;
-      if (i === current) {
-        video.currentTime = 0;
+      if (i === current && !paused) {
         video.play().catch(() => {});
       } else {
         video.pause();
       }
     });
-  }, [current]);
+  }, [current, paused]);
 
   const handleTouchStart = (e) => {
     touchStartX.current = e.changedTouches[0].screenX;
@@ -165,7 +210,7 @@ export default function BannerCarousel({ slides, isLoading = false, error = null
         aria-label="이전 슬라이드"
         className="banner-carousel__arrow banner-carousel__arrow--prev"
       >
-        &#10094;
+        <ChevronLeft size={20} />
       </button>
       <button
         type="button"
@@ -173,10 +218,29 @@ export default function BannerCarousel({ slides, isLoading = false, error = null
         aria-label="다음 슬라이드"
         className="banner-carousel__arrow banner-carousel__arrow--next"
       >
-        &#10095;
+        <ChevronRight size={20} />
       </button>
 
       <div className="banner-carousel__dots">
+        {!reduced && (
+          <button
+            type="button"
+            onClick={() => setPaused((p) => !p)}
+            aria-label={paused ? '슬라이드 자동 전환 재생' : '슬라이드 자동 전환 정지'}
+            className="banner-carousel__toggle"
+          >
+            {paused ? (
+              <svg viewBox="0 0 12 12" aria-hidden="true">
+                <path d="M3 2l7 4-7 4z" fill="currentColor" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 12 12" aria-hidden="true">
+                <rect x="2.5" y="2" width="2.5" height="8" fill="currentColor" />
+                <rect x="7" y="2" width="2.5" height="8" fill="currentColor" />
+              </svg>
+            )}
+          </button>
+        )}
         {data.map((slide, i) => (
           <button
             key={slide.id}
@@ -197,11 +261,14 @@ export default function BannerCarousel({ slides, isLoading = false, error = null
                     r={DOT_R}
                     fill="none"
                     stroke="#fff"
-                    strokeWidth="2"
+                    strokeWidth="2.5"
                     strokeLinecap="round"
                     strokeDasharray={DOT_CIRC}
                     strokeDashoffset={DOT_CIRC}
-                    style={{ animation: `bannerDotFill ${AUTO_INTERVAL}ms linear forwards` }}
+                    style={{
+                      animation: `bannerDotFill ${AUTO_INTERVAL}ms linear forwards`,
+                      animationPlayState: paused ? 'paused' : 'running',
+                    }}
                   />
                 )}
               </svg>
