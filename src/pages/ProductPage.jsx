@@ -133,11 +133,6 @@ function ProductPage() {
 
         <div className="product-section-header">
           <h3>BEST SELLERS</h3>
-
-          <button type="button" className="view-all-button">
-            VIEW ALL
-            <span>→</span>
-          </button>
         </div>
 
         <div className="product-grid">

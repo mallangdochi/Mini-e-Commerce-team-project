@@ -115,30 +115,6 @@
   font-weight: 700;
 }
 
-.product-page .view-all-button {
-  display: flex;
-
-  align-items: center;
-
-  gap: 15px;
-
-  padding: 0;
-
-  border: 0;
-
-  background: none;
-
-  color: #5978c4;
-
-  font-size: 7px;
-
-  cursor: pointer;
-}
-
-.product-page .view-all-button span {
-  font-size: 14px;
-}
-
 .product-page .product-grid {
   display: grid;
 
@@ -212,7 +188,7 @@
 
   margin: 0;
 
-  font-size: 9px;
+  font-size: 17px;
   font-weight: 600;
 
   white-space: nowrap;
@@ -262,12 +238,12 @@
 
   color: #999;
 
-  font-size: 7px;
+  font-size: 10px;
 }
 
 .product-page .product-card-price {
   display: block;
 
-  font-size: 9px;
+  font-size: 19px;
   font-weight: 500;
 }
