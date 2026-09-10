@@ -4,11 +4,29 @@ import { Link } from 'react-router-dom';
 import mainBanner2 from '@/assets/home/main_banner_2.webp';
 import '@/styles/hero.css';
 
-// TODO: imgMain1 / imgArrow 는 Figma 임시 CDN(약 7일 만료) 더미. 실제 에셋으로 교체할 것.
+// TODO: imgMain1 은 Figma 임시 CDN(약 7일 만료) 더미. 실제 에셋으로 교체할 것.
 const imgMain1 = 'https://www.figma.com/api/mcp/asset/6d276a60-ba49-47b0-9343-1d0e462fc0ff.png';
-const imgArrow = 'https://www.figma.com/api/mcp/asset/dd69c1a6-f95b-413d-b447-0506f8f80c86.svg';
 
 const BASE_WIDTH = 1440;
+
+function ChevronRight({ size = 18, className }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="m9 18 6-6-6-6" />
+    </svg>
+  );
+}
 
 function useFitScale(baseWidth) {
   const ref = useRef(null);
@@ -66,7 +84,7 @@ export default function Hero() {
         <Link to="/products" className="hero__cta">
           <span className="hero__cta-text">자세히 보기</span>
           <span className="hero__cta-spacer" />
-          <img alt="" className="hero__cta-arrow" src={imgArrow} />
+          <ChevronRight size={18} className="hero__cta-arrow" />
         </Link>
       </div>
     </section>

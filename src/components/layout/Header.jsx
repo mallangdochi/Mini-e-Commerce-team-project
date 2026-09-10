@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 import '@/styles/header.css';
 
@@ -115,62 +115,30 @@ const CATEGORY_MENUS = {
 };
 
 const NAV_ITEMS = [
-  { label: '홈', to: '/' },
-  { label: '여성', to: '/products?gender=women', menu: 'women' },
-  { label: '남성', to: '/products?gender=men', menu: 'men' },
-  { label: '악세사리', to: '/products?category=accessories', menu: 'accessories' },
+  { label: 'Home', to: '/' },
+  { label: 'Women', to: '/products?gender=women', menu: 'women' },
+  { label: 'Men', to: '/products?gender=men', menu: 'men' },
+  { label: 'Accessories', to: '/products?category=accessories', menu: 'accessories' },
 ];
 
 // 스크롤이 이 값을 넘어간 뒤부터 스크롤 다운 시 헤더 숨김
 const HEADER_HIDE_THRESHOLD = 80;
 
-// TODO: 인증 store(zustand) 연결되면 교체. 지금은 localStorage 플래그로 임시 처리.
-// 로그인/로그아웃 코드는 AUTH_TOKEN_KEY 설정/삭제 후 window.dispatchEvent(new Event(AUTH_CHANGE_EVENT)) 호출할 것.
-const AUTH_TOKEN_KEY = 'accessToken';
-const AUTH_CHANGE_EVENT = 'auth-change';
-const readLoggedIn = () => !!localStorage.getItem(AUTH_TOKEN_KEY);
-
 function Header() {
-  const navigate = useNavigate();
   const [hidden, setHidden] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileCategory, setMobileCategory] = useState(null);
   const [activeMenu, setActiveMenu] = useState(null);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [query, setQuery] = useState('');
-  const [loggedIn, setLoggedIn] = useState(readLoggedIn);
   const lastY = useRef(0);
-  const searchInputRef = useRef(null);
 
   const openDesktopMenu = (menu) => {
     setActiveMenu(menu);
-    setSearchOpen(false);
     setHidden(false);
   };
 
   const closeMobileMenu = () => {
     setMenuOpen(false);
     setMobileCategory(null);
-  };
-
-  // 로그인 상태 동기화 (다른 탭 storage 이벤트 + 같은 탭 커스텀 이벤트)
-  useEffect(() => {
-    const sync = () => setLoggedIn(readLoggedIn());
-    window.addEventListener('storage', sync);
-    window.addEventListener(AUTH_CHANGE_EVENT, sync);
-    return () => {
-      window.removeEventListener('storage', sync);
-      window.removeEventListener(AUTH_CHANGE_EVENT, sync);
-    };
-  }, []);
-
-  const submitSearch = (e) => {
-    e.preventDefault();
-    const q = query.trim();
-    if (!q) return;
-    navigate(`/products?q=${encodeURIComponent(q)}`);
-    setSearchOpen(false);
-    setQuery('');
   };
 
   // 스크롤 내리면 헤더 숨김, 올리면 표시. 드롭다운이 열려 있으면 헤더 유지.
@@ -223,19 +191,6 @@ function Header() {
       window.removeEventListener('keydown', onKey);
     };
   }, [menuOpen]);
-
-  // 검색바: 열리면 입력창 포커스, Esc 시 닫기
-  useEffect(() => {
-    if (!searchOpen) return undefined;
-    searchInputRef.current?.focus();
-
-    const onKey = (e) => {
-      if (e.key === 'Escape') setSearchOpen(false);
-    };
-
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [searchOpen]);
 
   return (
     <header
@@ -296,45 +251,21 @@ function Header() {
 
         {/* HEADER ACTIONS */}
         <div className="site-header-actions">
-          <button
-            type="button"
-            className="site-header-action"
-            aria-label={searchOpen ? '검색 닫기' : '검색 열기'}
-            aria-expanded={searchOpen}
-            onClick={() => {
-              setSearchOpen((v) => !v);
-              setActiveMenu(null);
-            }}
-          >
+          {/* TODO(auth): 로그인 여부에 따라 로그인 / 마이페이지 중 하나만 노출 */}
+          <Link to="/login" className="site-header-action header-login-btn">
+            로그인
+          </Link>
+          <Link to="/mypage" className="site-header-action" aria-label="마이페이지">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="16"
               height="16"
               fill="currentColor"
-              viewBox="0 0 256 256"
-              aria-hidden="true"
+              viewBox="0 0 16 16"
             >
-              <path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z" />
+              <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6m2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0m4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4m-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10s-3.516.68-4.168 1.332c-.678.678-.83 1.418-.832 1.664z" />
             </svg>
-          </button>
-
-          {loggedIn ? (
-            <Link to="/mypage" className="site-header-action" aria-label="마이페이지">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                fill="currentColor"
-                viewBox="0 0 16 16"
-              >
-                <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6m2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0m4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4m-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10s-3.516.68-4.168 1.332c-.678.678-.83 1.418-.832 1.664z" />
-              </svg>
-            </Link>
-          ) : (
-            <Link to="/login" className="site-header-action header-login-btn">
-              로그인
-            </Link>
-          )}
+          </Link>
 
           <Link to="/cart" className="site-header-action" aria-label="장바구니">
             <svg
@@ -399,35 +330,6 @@ function Header() {
             ))}
           </div>
         </div>
-      )}
-
-      {/* 검색바 */}
-      {searchOpen && (
-        <form className="site-search" role="search" onSubmit={submitSearch}>
-          <div className="site-search-inner">
-            <input
-              ref={searchInputRef}
-              className="site-search-input"
-              type="search"
-              placeholder="검색어를 입력하세요"
-              aria-label="상품 검색"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-            <button type="submit" className="site-search-submit" aria-label="검색">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                fill="currentColor"
-                viewBox="0 0 256 256"
-                aria-hidden="true"
-              >
-                <path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z" />
-              </svg>
-            </button>
-          </div>
-        </form>
       )}
 
       {/* 모바일 메뉴 — 풀스크린 오버레이 + 카테고리 아코디언 */}
@@ -510,15 +412,13 @@ function Header() {
           </nav>
 
           <div className="site-mobile-menu-secondary">
-            {loggedIn ? (
-              <Link to="/mypage" onClick={closeMobileMenu}>
-                마이페이지
-              </Link>
-            ) : (
-              <Link to="/login" onClick={closeMobileMenu}>
-                로그인
-              </Link>
-            )}
+            {/* TODO(auth): 로그인 여부에 따라 로그인 / 마이페이지 중 하나만 노출 */}
+            <Link to="/login" onClick={closeMobileMenu}>
+              로그인
+            </Link>
+            <Link to="/mypage" onClick={closeMobileMenu}>
+              마이페이지
+            </Link>
             <Link to="/cart" onClick={closeMobileMenu}>
               장바구니
             </Link>

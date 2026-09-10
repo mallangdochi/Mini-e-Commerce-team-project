@@ -3,6 +3,21 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import kakiTop from '@/assets/home/kaki_top.webp';
 import '@/styles/custom-carousel.css';
 
+const COMPACT_QUERY = '(max-width: 768px)';
+
+function useIsCompact() {
+  const [compact, setCompact] = useState(() => window.matchMedia(COMPACT_QUERY).matches);
+
+  useEffect(() => {
+    const mql = window.matchMedia(COMPACT_QUERY);
+    const onChange = (e) => setCompact(e.matches);
+    mql.addEventListener('change', onChange);
+    return () => mql.removeEventListener('change', onChange);
+  }, []);
+
+  return compact;
+}
+
 function ChevronLeft({ size = 18, className }) {
   return (
     <svg
@@ -11,7 +26,7 @@ function ChevronLeft({ size = 18, className }) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
+      strokeWidth="2.5"
       strokeLinecap="round"
       strokeLinejoin="round"
       className={className}
@@ -30,7 +45,7 @@ function ChevronRight({ size = 18, className }) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
+      strokeWidth="2.5"
       strokeLinecap="round"
       strokeLinejoin="round"
       className={className}
@@ -66,37 +81,43 @@ const CATALOGUE = {
       id: '1',
       name: 'Endure Half-Zip',
       price: 89000,
-      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+      imageUrl:
+        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
     },
     {
       id: '2',
       name: 'Foundation Tee',
       price: 39000,
-      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+      imageUrl:
+        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
     },
     {
       id: '3',
       name: 'Trail Layer Hoodie',
       price: 119000,
-      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+      imageUrl:
+        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
     },
     {
       id: '4',
       name: 'Base Performance Tee',
       price: 45000,
-      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+      imageUrl:
+        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
     },
     {
       id: '5',
       name: 'Windshell Jacket',
       price: 149000,
-      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+      imageUrl:
+        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
     },
     {
       id: '6',
       name: 'Ridge Quarter-Zip',
       price: 79000,
-      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+      imageUrl:
+        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
     },
   ],
   bottoms: [
@@ -104,37 +125,43 @@ const CATALOGUE = {
       id: '7',
       name: 'Trail Jogger',
       price: 69000,
-      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+      imageUrl:
+        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
     },
     {
       id: '8',
       name: 'Enhance Short 7"',
       price: 42000,
-      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+      imageUrl:
+        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
     },
     {
       id: '9',
       name: 'All Elements Pant',
       price: 99000,
-      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+      imageUrl:
+        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
     },
     {
       id: '10',
       name: 'Foundation Legging',
       price: 55000,
-      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+      imageUrl:
+        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
     },
     {
       id: '11',
       name: 'Traverse Cargo',
       price: 89000,
-      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+      imageUrl:
+        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
     },
     {
       id: '12',
       name: 'Endure Track Pant',
       price: 65000,
-      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+      imageUrl:
+        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
     },
   ],
   sunglasses: [
@@ -142,37 +169,43 @@ const CATALOGUE = {
       id: '13',
       name: 'Custom Radar® Ev',
       price: 189000,
-      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+      imageUrl:
+        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
     },
     {
       id: '14',
       name: 'Custom Holbrook',
       price: 179000,
-      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+      imageUrl:
+        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
     },
     {
       id: '15',
       name: 'Custom Sutro',
       price: 169000,
-      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+      imageUrl:
+        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
     },
     {
       id: '16',
       name: 'Custom EVZero',
       price: 199000,
-      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+      imageUrl:
+        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
     },
     {
       id: '17',
       name: 'Custom Jawbreaker',
       price: 175000,
-      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+      imageUrl:
+        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
     },
     {
       id: '18',
       name: 'Custom Flak® 2.0',
       price: 159000,
-      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+      imageUrl:
+        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
     },
   ],
   hats: [
@@ -180,37 +213,43 @@ const CATALOGUE = {
       id: '19',
       name: 'Ellipse Snapback',
       price: 39000,
-      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+      imageUrl:
+        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
     },
     {
       id: '20',
       name: 'Trail Trucker',
       price: 42000,
-      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+      imageUrl:
+        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
     },
     {
       id: '21',
       name: 'Performance Visor',
       price: 35000,
-      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+      imageUrl:
+        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
     },
     {
       id: '22',
       name: 'Six-Panel Cap',
       price: 45000,
-      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+      imageUrl:
+        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
     },
     {
       id: '23',
       name: 'Bucket Hat',
       price: 32000,
-      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+      imageUrl:
+        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
     },
     {
       id: '24',
       name: 'Ridge Beanie',
       price: 38000,
-      imageUrl: 'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
+      imageUrl:
+        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
     },
   ],
 };
@@ -219,33 +258,61 @@ const FALLBACK_IMAGE = kakiTop;
 
 const SLIDE_MS = 420;
 
-const TILE_WIDTH = 440;
+// 트랙 이동 간격 = 타일 래퍼 너비. 데스크톱/컴팩트에서 다름.
+const TILE_WIDTH_DESKTOP = 440;
+const TILE_WIDTH_COMPACT = 340;
 
-function ProductTile({ product, position, onSelect, animate }) {
+function ProductTile({ product, position, onSelect, onStep, animate, compact, tileWidth }) {
   const isCenter = position === POS.CENTER;
-  const isNear = position === POS.LEFT || position === POS.RIGHT;
+  const isLeft = position === POS.LEFT;
+  const isRight = position === POS.RIGHT;
+  const isNear = isLeft || isRight;
+
+  const centerScale = compact ? 'scale(1)' : 'scale(1.1)';
+  const nearScale = compact ? 'scale(0.66)' : 'scale(0.5)';
+  const farScale = compact ? 'scale(0.4)' : 'scale(0.3)';
 
   const wrapStyle = {
-    width: TILE_WIDTH,
-    transform: isCenter ? 'scale(1.1)' : isNear ? 'scale(0.5)' : 'scale(0.3)',
-    opacity: isCenter ? 1 : isNear ? 0.45 : 0.18,
+    width: tileWidth,
+    transform: isCenter ? centerScale : isNear ? nearScale : farScale,
+    opacity: isCenter ? 1 : isNear ? 0.45 : 0,
     filter: isCenter ? 'none' : isNear ? 'blur(1.5px)' : 'blur(2.5px)',
     transition: animate
       ? `transform ${SLIDE_MS}ms cubic-bezier(.22,.61,.36,1), opacity ${SLIDE_MS}ms ease, filter ${SLIDE_MS}ms ease`
       : 'none',
-    pointerEvents: isCenter ? 'auto' : 'none',
+    pointerEvents: isCenter || isNear ? 'auto' : 'none',
   };
+
+  const handleClick = isCenter
+    ? () => onSelect(product)
+    : isLeft
+      ? () => onStep(-1)
+      : isRight
+        ? () => onStep(1)
+        : undefined;
 
   return (
     <div style={wrapStyle} className="custom-carousel__tile">
       <button
         type="button"
-        onClick={isCenter ? () => onSelect(product) : undefined}
+        onClick={handleClick}
         className={`custom-carousel__tile-button ${
-          isCenter ? 'custom-carousel__tile-button--center' : ''
+          isCenter
+            ? 'custom-carousel__tile-button--center'
+            : isNear
+              ? 'custom-carousel__tile-button--near'
+              : ''
         }`}
-        aria-label={isCenter ? `${product.name} 상세보기` : undefined}
-        tabIndex={isCenter ? 0 : -1}
+        aria-label={
+          isCenter
+            ? `${product.name} 상세보기`
+            : isLeft
+              ? `이전 상품: ${product.name}`
+              : isRight
+                ? `다음 상품: ${product.name}`
+                : undefined
+        }
+        tabIndex={isCenter || isNear ? 0 : -1}
       >
         <img
           src={product.imageUrl ?? product.image ?? FALLBACK_IMAGE}
@@ -269,6 +336,9 @@ export default function CustomCarousel({ categories, isLoading = false, error = 
 
     return CATALOGUE;
   }, [categories]);
+
+  const compact = useIsCompact();
+  const tileWidth = compact ? TILE_WIDTH_COMPACT : TILE_WIDTH_DESKTOP;
 
   const [category, setCategory] = useState(DEFAULT_CATEGORY);
   const items = source[category] ?? [];
@@ -398,56 +468,82 @@ export default function CustomCarousel({ categories, isLoading = false, error = 
       {tabs}
 
       {/* carousel */}
-      <div className="custom-carousel__viewport">
+      <div className="custom-carousel__stage">
+        {/* 데스크톱: 이미지 위 오버레이 화살표 (좁은 화면에서 CSS로 숨김) */}
         <button
           type="button"
           onClick={() => go(-1)}
           aria-label="이전 상품"
-          className="custom-carousel__arrow custom-carousel__arrow--prev"
+          className="custom-carousel__arrow custom-carousel__arrow--overlay custom-carousel__arrow--prev"
         >
-          <ChevronLeft size={22} />
+          <ChevronLeft size={18} />
         </button>
 
-        <div
-          className="custom-carousel__track"
-          onTransitionEnd={handleTransitionEnd}
-          style={{
-            transform: `translate(calc(-50% - ${(pos - (slides.length - 1) / 2) * TILE_WIDTH}px), -50%)`,
-            transition: animate ? `transform ${SLIDE_MS}ms cubic-bezier(.22,.61,.36,1)` : 'none',
-          }}
-        >
-          {slides.map((product, slot) => (
-            <ProductTile
-              key={`${category}-${product.id}-${Math.floor(slot / len)}`}
-              product={product}
-              position={positionOf(slot)}
-              onSelect={handleSelect}
-              animate={animate}
-            />
-          ))}
+        <div className="custom-carousel__viewport">
+          <div
+            className="custom-carousel__track"
+            onTransitionEnd={handleTransitionEnd}
+            style={{
+              transform: `translate(calc(-50% - ${(pos - (slides.length - 1) / 2) * tileWidth}px), -50%)`,
+              transition: animate ? `transform ${SLIDE_MS}ms cubic-bezier(.22,.61,.36,1)` : 'none',
+            }}
+          >
+            {slides.map((product, slot) => (
+              <ProductTile
+                key={`${category}-${product.id}-${Math.floor(slot / len)}`}
+                product={product}
+                position={positionOf(slot)}
+                onSelect={handleSelect}
+                onStep={go}
+                animate={animate}
+                compact={compact}
+                tileWidth={tileWidth}
+              />
+            ))}
+          </div>
         </div>
 
         <button
           type="button"
           onClick={() => go(1)}
           aria-label="다음 상품"
-          className="custom-carousel__arrow custom-carousel__arrow--next"
+          className="custom-carousel__arrow custom-carousel__arrow--overlay custom-carousel__arrow--next"
         >
-          <ChevronRight size={22} />
+          <ChevronRight size={18} />
         </button>
       </div>
 
-      {/* product name + price */}
-      <button
-        type="button"
-        onClick={() => handleSelect(items[realIndex])}
-        className="custom-carousel__meta"
-      >
-        <span className="custom-carousel__meta-name">{items[realIndex].name}</span>
-        <span className="custom-carousel__meta-price">
-          ₩ {items[realIndex].price.toLocaleString()}
-        </span>
-      </button>
+      {/* product name + price + nav (좁은 화면: 화살표를 상품명 옆에) */}
+      <div className="custom-carousel__nav">
+        <button
+          type="button"
+          onClick={() => go(-1)}
+          aria-label="이전 상품"
+          className="custom-carousel__arrow custom-carousel__arrow--inline"
+        >
+          <ChevronLeft size={16} />
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleSelect(items[realIndex])}
+          className="custom-carousel__meta"
+        >
+          <span className="custom-carousel__meta-name">{items[realIndex].name}</span>
+          <span className="custom-carousel__meta-price">
+            ₩ {items[realIndex].price.toLocaleString()}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => go(1)}
+          aria-label="다음 상품"
+          className="custom-carousel__arrow custom-carousel__arrow--inline"
+        >
+          <ChevronRight size={16} />
+        </button>
+      </div>
 
       {/* indicators */}
       <div className="custom-carousel__dots" role="tablist" aria-label="슬라이드 위치">
