@@ -124,11 +124,25 @@
   background: rgba(0, 0, 0, 0.35);
   color: #fff;
   font-size: 20px;
-  transition: background-color 150ms ease;
+  opacity: 0;
+  transition:
+    background-color 150ms ease,
+    opacity 200ms ease;
 }
 
 .banner-carousel__arrow:hover {
   background: rgba(0, 0, 0, 0.6);
+}
+
+.banner-carousel:hover .banner-carousel__arrow,
+.banner-carousel__arrow:focus-visible {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .banner-carousel__arrow {
+    opacity: 1;
+  }
 }
 
 .banner-carousel__arrow--prev {
@@ -155,6 +169,31 @@
   height: 24px;
   align-items: center;
   justify-content: center;
+}
+
+.banner-carousel__toggle {
+  display: flex;
+  width: 24px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: rgba(0, 0, 0, 0.35);
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease;
+}
+
+.banner-carousel__toggle:hover {
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+}
+
+.banner-carousel__toggle svg {
+  width: 12px;
+  height: 12px;
 }
 
 .banner-carousel__dot-idle {
