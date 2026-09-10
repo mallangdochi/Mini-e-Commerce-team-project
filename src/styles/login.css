@@ -43,7 +43,7 @@
   display: block;
 
   width: auto;
-  height: 40px;
+  height: 60px;
 
   color: #000;
 }
@@ -115,12 +115,12 @@
 }
 
 .login-form-title {
-  margin: 0 0 4px;
+  margin: 0 0 8px;
 
   color: #000;
 
-  font-size: 24px;
-  font-weight: 700;
+  font-size: 26px;
+  font-weight: 800;
 }
 
 .login-form-subtitle {
@@ -215,6 +215,34 @@
 
 .login-submit-btn:hover {
   background: #333;
+}
+
+/* --- X 지우기 버튼 --- */
+.login-field {
+  position: relative;
+}
+
+.login-input {
+  padding-right: 40px; /* 글자 깔림 여백 추가 */
+}
+
+.clear-btn {
+  position: absolute;
+  right: 12px;
+  bottom: 12px; /* input 높이에 맞춰 위치 조절 */
+  background: transparent;
+  border: none;
+  font-size: 14px;
+  color: #999;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.clear-btn:hover {
+  color: #000;
 }
 
 .login-error-text {
