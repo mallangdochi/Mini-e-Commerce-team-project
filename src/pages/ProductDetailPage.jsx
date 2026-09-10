@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
+import { handleAddToCart } from '@/api/alert';
 import '@/styles/product-detail.css';
 
 const THUMBNAIL_SLOTS = [1, 2, 3, 4];
@@ -9,12 +10,25 @@ const SIZES = ['S', 'M', 'L', 'XL', 'XXL'];
 function ProductDetailPage() {
   const [quantity, setQuantity] = useState(1);
 
+  const [cartMessage, setCartMessage] = useState(false);
+
+  const [activeDetailTab, setActiveDetailTab] = useState('info');
+
   const handleDecreaseQuantity = () => {
     setQuantity((currentQuantity) => Math.max(1, currentQuantity - 1));
   };
 
   const handleIncreaseQuantity = () => {
     setQuantity((currentQuantity) => currentQuantity + 1);
+  };
+
+  const handleDetailTabClick = (tab, targetId) => {
+    setActiveDetailTab(tab);
+
+    document.getElementById(targetId)?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    });
   };
 
   return (
@@ -58,9 +72,9 @@ function ProductDetailPage() {
           <p className="product-subtitle">ARC 윈드자켓</p>
 
           <div className="price-area">
-            <span className="original-price">₩ 59,000</span>
-            <span className="discount">20%</span>
             <span className="sale-price">₩ 47,200</span>
+            <span className="discount">20%</span>
+            <span className="original-price">₩ 59,000</span>
           </div>
 
           <div className="star-rating">
@@ -103,10 +117,6 @@ function ProductDetailPage() {
           <fieldset className="option-group">
             <legend className="option-title">SIZE</legend>
 
-            <button type="button" className="size-guide">
-              SIZE GUIDE
-            </button>
-
             <div className="size-list">
               {SIZES.map((size) => (
                 <label key={size}>
@@ -143,7 +153,11 @@ function ProductDetailPage() {
             </button>
 
             <div className="cart-row">
-              <button type="button" className="cart-button">
+              <button
+                type="button"
+                className="cart-button"
+                onClick={() => handleAddToCart(setCartMessage)}
+              >
                 ADD TO CART
               </button>
 
@@ -157,23 +171,35 @@ function ProductDetailPage() {
 
       <section className="product-detail-content">
         <nav className="detail-tabs" aria-label="상품 상세 메뉴">
-          <button type="button" className="detail-tab is-active">
+          <button
+            type="button"
+            className={`detail-tab${activeDetailTab === 'info' ? ' is-active' : ''}`}
+            onClick={() => handleDetailTabClick('info', 'product-info')}
+          >
             <span className="detail-tab-icon">◉</span>
             제품 정보
           </button>
 
-          <button type="button" className="detail-tab">
+          <button
+            type="button"
+            className={`detail-tab${activeDetailTab === 'review' ? ' is-active' : ''}`}
+            onClick={() => handleDetailTabClick('review', 'reviews')}
+          >
             <span className="detail-tab-icon">☆</span>
             리뷰
           </button>
 
-          <button type="button" className="detail-tab">
+          <button
+            type="button"
+            className={`detail-tab${activeDetailTab === 'size' ? ' is-active' : ''}`}
+            onClick={() => handleDetailTabClick('size', 'size-guide')}
+          >
             <span className="detail-tab-icon">✎</span>
             사이즈 가이드
           </button>
         </nav>
 
-        <section className="detail-info-section">
+        <section id="product-info" className="detail-info-section detail-scroll-target">
           <h2 className="detail-section-title">특징</h2>
 
           <div className="detail-info-grid">
@@ -282,7 +308,7 @@ function ProductDetailPage() {
         </section>
       </section>
 
-      <section className="product-review-section">
+      <section id="reviews" className="product-review-section detail-scroll-target">
         <div className="review-section-header">
           <h2 className="review-section-title">리뷰</h2>
 
@@ -305,7 +331,7 @@ function ProductDetailPage() {
         <div className="review-list" />
       </section>
 
-      <section id="size-guide" className="product-size-guide-section">
+      <section id="size-guide" className="product-size-guide-section detail-scroll-target">
         <div className="size-guide-heading">
           <span>사이즈 가이드</span>
 
@@ -440,6 +466,7 @@ function ProductDetailPage() {
           </div>
         </div>
       </section>
+      {cartMessage && <div className="cart-toast">장바구니에 들어갔습니다.</div>}
     </main>
   );
 }

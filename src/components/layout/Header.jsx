@@ -115,10 +115,10 @@ const CATEGORY_MENUS = {
 };
 
 const NAV_ITEMS = [
-  { label: '홈', to: '/' },
-  { label: '여성', to: '/products?gender=women', menu: 'women' },
-  { label: '남성', to: '/products?gender=men', menu: 'men' },
-  { label: '악세사리', to: '/products?category=accessories', menu: 'accessories' },
+  { label: 'Home', to: '/' },
+  { label: 'Women', to: '/products?gender=women', menu: 'women' },
+  { label: 'Men', to: '/products?gender=men', menu: 'men' },
+  { label: 'Accessories', to: '/products?category=accessories', menu: 'accessories' },
 ];
 
 // 스크롤이 이 값을 넘어간 뒤부터 스크롤 다운 시 헤더 숨김
