@@ -3,11 +3,122 @@ import { Link, useNavigate } from 'react-router-dom';
 
 import '@/styles/header.css';
 
+const CATEGORY_MENUS = {
+  women: {
+    groups: [
+      {
+        title: 'NEW',
+        items: [
+          { label: '신제품', to: '/products?gender=women&category=new' },
+          { label: '베스트셀러', to: '/products?gender=women&category=best' },
+        ],
+      },
+      {
+        title: 'OUTER',
+        items: [
+          { label: '전체보기', to: '/products?gender=women&category=outer' },
+          { label: '재킷', to: '/products?gender=women&category=jacket' },
+          { label: '윈드브레이커', to: '/products?gender=women&category=windbreaker' },
+        ],
+      },
+      {
+        title: 'TOP',
+        items: [
+          { label: '전체보기', to: '/products?gender=women&category=top' },
+          { label: '티셔츠', to: '/products?gender=women&category=tshirt' },
+          { label: '롱슬리브', to: '/products?gender=women&category=long-sleeve' },
+          { label: '후디, 맨투맨', to: '/products?gender=women&category=hoodie-sweat' },
+        ],
+      },
+      {
+        title: 'BOTTOM',
+        items: [
+          { label: '전체보기', to: '/products?gender=women&category=bottom' },
+          { label: '팬츠', to: '/products?gender=women&category=pants' },
+          { label: '쇼츠', to: '/products?gender=women&category=shorts' },
+        ],
+      },
+      {
+        title: 'SHOES',
+        items: [
+          { label: '전체보기', to: '/products?gender=women&category=shoes' },
+          { label: '러닝화', to: '/products?gender=women&category=running-shoes' },
+          { label: '트레이닝화', to: '/products?gender=women&category=training-shoes' },
+        ],
+      },
+      {
+        title: 'SETS',
+        items: [{ label: '전체보기', to: '/products?gender=women&category=sets' }],
+      },
+    ],
+  },
+  men: {
+    groups: [
+      {
+        title: 'NEW',
+        items: [
+          { label: '신제품', to: '/products?gender=men&category=new' },
+          { label: '베스트셀러', to: '/products?gender=men&category=best' },
+        ],
+      },
+      {
+        title: 'OUTER',
+        items: [
+          { label: '전체보기', to: '/products?gender=men&category=outer' },
+          { label: '재킷', to: '/products?gender=men&category=jacket' },
+          { label: '윈드브레이커', to: '/products?gender=men&category=windbreaker' },
+        ],
+      },
+      {
+        title: 'TOP',
+        items: [
+          { label: '전체보기', to: '/products?gender=men&category=top' },
+          { label: '티셔츠', to: '/products?gender=men&category=tshirt' },
+          { label: '롱슬리브', to: '/products?gender=men&category=long-sleeve' },
+          { label: '후디, 스웨트', to: '/products?gender=men&category=hoodie-sweat' },
+        ],
+      },
+      {
+        title: 'BOTTOM',
+        items: [
+          { label: '전체보기', to: '/products?gender=men&category=bottom' },
+          { label: '팬츠', to: '/products?gender=men&category=pants' },
+          { label: '쇼츠', to: '/products?gender=men&category=shorts' },
+        ],
+      },
+      {
+        title: 'SHOES',
+        items: [
+          { label: '전체보기', to: '/products?gender=men&category=shoes' },
+          { label: '러닝화', to: '/products?gender=men&category=running-shoes' },
+          { label: '트레이닝화', to: '/products?gender=men&category=training-shoes' },
+        ],
+      },
+      {
+        title: 'SETS',
+        items: [{ label: '전체보기', to: '/products?gender=men&category=sets' }],
+      },
+    ],
+  },
+  accessories: {
+    groups: [
+      {
+        title: 'ACCESSORIES',
+        items: [
+          { label: '전체보기', to: '/products?category=accessories' },
+          { label: '선글라스', to: '/products?category=sunglasses' },
+          { label: '모자', to: '/products?category=cap' },
+        ],
+      },
+    ],
+  },
+};
+
 const NAV_ITEMS = [
-  { label: '소개', to: '/' },
-  { label: '여성', to: '/products' },
-  { label: '남성', to: '/products' },
-  { label: '신제품', to: '/products' },
+  { label: '홈', to: '/' },
+  { label: '여성', to: '/products?gender=women', menu: 'women' },
+  { label: '남성', to: '/products?gender=men', menu: 'men' },
+  { label: '악세사리', to: '/products?category=accessories', menu: 'accessories' },
 ];
 
 // 스크롤이 이 값을 넘어간 뒤부터 스크롤 다운 시 헤더 숨김
@@ -23,11 +134,24 @@ function Header() {
   const navigate = useNavigate();
   const [hidden, setHidden] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [mobileCategory, setMobileCategory] = useState(null);
+  const [activeMenu, setActiveMenu] = useState(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [loggedIn, setLoggedIn] = useState(readLoggedIn);
   const lastY = useRef(0);
   const searchInputRef = useRef(null);
+
+  const openDesktopMenu = (menu) => {
+    setActiveMenu(menu);
+    setSearchOpen(false);
+    setHidden(false);
+  };
+
+  const closeMobileMenu = () => {
+    setMenuOpen(false);
+    setMobileCategory(null);
+  };
 
   // 로그인 상태 동기화 (다른 탭 storage 이벤트 + 같은 탭 커스텀 이벤트)
   useEffect(() => {
@@ -49,35 +173,50 @@ function Header() {
     setQuery('');
   };
 
-  // 스크롤 내리면 헤더 숨김, 올리면 표시. 최상단 근처(80px)에선 항상 표시.
+  // 스크롤 내리면 헤더 숨김, 올리면 표시. 드롭다운이 열려 있으면 헤더 유지.
   useEffect(() => {
     let ticking = false;
     const update = () => {
       const y = window.scrollY;
-      setHidden(y >= HEADER_HIDE_THRESHOLD && y > lastY.current);
+
+      if (activeMenu) {
+        setHidden(false);
+      } else {
+        setHidden(y >= HEADER_HIDE_THRESHOLD && y > lastY.current);
+      }
+
       lastY.current = y;
       ticking = false;
     };
+
     const onScroll = () => {
       if (!ticking) {
         ticking = true;
         requestAnimationFrame(update);
       }
     };
+
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
-  }, []);
+  }, [activeMenu]);
 
   // 모바일 메뉴 열림 동안: 배경 스크롤 잠금, 리사이즈 / Esc 시 닫기
   useEffect(() => {
     if (!menuOpen) return undefined;
-    const close = () => setMenuOpen(false);
+
+    const close = () => {
+      setMenuOpen(false);
+      setMobileCategory(null);
+    };
+
     const onKey = (e) => {
       if (e.key === 'Escape') close();
     };
+
     document.body.style.overflow = 'hidden';
     window.addEventListener('resize', close);
     window.addEventListener('keydown', onKey);
+
     return () => {
       document.body.style.overflow = '';
       window.removeEventListener('resize', close);
@@ -89,15 +228,20 @@ function Header() {
   useEffect(() => {
     if (!searchOpen) return undefined;
     searchInputRef.current?.focus();
+
     const onKey = (e) => {
       if (e.key === 'Escape') setSearchOpen(false);
     };
+
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [searchOpen]);
 
   return (
-    <header className={`site-header${hidden ? ' site-header--hidden' : ''}`}>
+    <header
+      className={`site-header${hidden ? ' site-header--hidden' : ''}`}
+      onMouseLeave={() => setActiveMenu(null)}
+    >
       <div className="site-header-inner">
         {/* ARC LOGO */}
         <Link to="/" className="site-logo" aria-label="홈으로 이동">
@@ -123,13 +267,31 @@ function Header() {
           </svg>
         </Link>
 
-        {/* NAVIGATION (데스크톱) */}
-        <nav className="site-nav">
-          {NAV_ITEMS.map((item) => (
-            <Link key={item.label} to={item.to}>
-              {item.label}
-            </Link>
-          ))}
+        {/* NAVIGATION (데스크톱 / 태블릿) */}
+        <nav className="site-nav" aria-label="주요 메뉴">
+          {NAV_ITEMS.map((item) => {
+            const isActive = item.menu && activeMenu === item.menu;
+
+            return (
+              <Link
+                key={item.label}
+                to={item.to}
+                className={isActive ? 'site-nav-link site-nav-link--active' : 'site-nav-link'}
+                aria-expanded={item.menu ? isActive : undefined}
+                onMouseEnter={() => {
+                  if (item.menu) openDesktopMenu(item.menu);
+                  else setActiveMenu(null);
+                }}
+                onFocus={() => {
+                  if (item.menu) openDesktopMenu(item.menu);
+                  else setActiveMenu(null);
+                }}
+                onClick={() => setActiveMenu(null)}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
 
         {/* HEADER ACTIONS */}
@@ -139,7 +301,10 @@ function Header() {
             className="site-header-action"
             aria-label={searchOpen ? '검색 닫기' : '검색 열기'}
             aria-expanded={searchOpen}
-            onClick={() => setSearchOpen((v) => !v)}
+            onClick={() => {
+              setSearchOpen((v) => !v);
+              setActiveMenu(null);
+            }}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -190,7 +355,10 @@ function Header() {
           className="site-nav-toggle"
           aria-label={menuOpen ? '메뉴 닫기' : '메뉴 열기'}
           aria-expanded={menuOpen}
-          onClick={() => setMenuOpen((v) => !v)}
+          onClick={() => {
+            setMenuOpen((v) => !v);
+            setActiveMenu(null);
+          }}
         >
           <svg
             width="22"
@@ -208,6 +376,30 @@ function Header() {
           </svg>
         </button>
       </div>
+
+      {/* 데스크톱 / 태블릿 메가 메뉴 */}
+      {activeMenu && CATEGORY_MENUS[activeMenu] && (
+        <div className="site-mega-menu">
+          <div className="site-mega-menu-inner">
+            {CATEGORY_MENUS[activeMenu].groups.map((group) => (
+              <section className="site-mega-menu-group" key={group.title}>
+                <h3>{group.title}</h3>
+                <div className="site-mega-menu-links">
+                  {group.items.map((link) => (
+                    <Link
+                      key={`${group.title}-${link.label}`}
+                      to={link.to}
+                      onClick={() => setActiveMenu(null)}
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* 검색바 */}
       {searchOpen && (
@@ -238,7 +430,7 @@ function Header() {
         </form>
       )}
 
-      {/* 모바일 메뉴 — 풀스크린 오버레이 */}
+      {/* 모바일 메뉴 — 풀스크린 오버레이 + 카테고리 아코디언 */}
       {menuOpen && (
         <div className="site-mobile-menu">
           <div className="site-mobile-menu-top">
@@ -246,7 +438,7 @@ function Header() {
               type="button"
               className="site-mobile-menu-close"
               aria-label="메뉴 닫기"
-              onClick={() => setMenuOpen(false)}
+              onClick={closeMobileMenu}
             >
               <svg
                 width="24"
@@ -263,25 +455,71 @@ function Header() {
             </button>
           </div>
 
-          <nav className="site-mobile-menu-primary">
-            {NAV_ITEMS.map((item) => (
-              <Link key={item.label} to={item.to} onClick={() => setMenuOpen(false)}>
-                {item.label}
-              </Link>
-            ))}
+          <nav className="site-mobile-menu-primary" aria-label="모바일 주요 메뉴">
+            {NAV_ITEMS.map((item) => {
+              if (!item.menu) {
+                return (
+                  <Link key={item.label} to={item.to} onClick={closeMobileMenu}>
+                    {item.label}
+                  </Link>
+                );
+              }
+
+              const isOpen = mobileCategory === item.menu;
+              const menu = CATEGORY_MENUS[item.menu];
+
+              return (
+                <div className="site-mobile-category" key={item.label}>
+                  <button
+                    type="button"
+                    className="site-mobile-category-trigger"
+                    aria-expanded={isOpen}
+                    onClick={() =>
+                      setMobileCategory((current) => (current === item.menu ? null : item.menu))
+                    }
+                  >
+                    <span>{item.label}</span>
+                    <span className="site-mobile-category-icon" aria-hidden="true">
+                      {isOpen ? '−' : '+'}
+                    </span>
+                  </button>
+
+                  {isOpen && (
+                    <div className="site-mobile-submenu">
+                      {menu.groups.map((group) => (
+                        <section className="site-mobile-submenu-group" key={group.title}>
+                          <h3>{group.title}</h3>
+                          <div>
+                            {group.items.map((link) => (
+                              <Link
+                                key={`${group.title}-${link.label}`}
+                                to={link.to}
+                                onClick={closeMobileMenu}
+                              >
+                                {link.label}
+                              </Link>
+                            ))}
+                          </div>
+                        </section>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </nav>
 
           <div className="site-mobile-menu-secondary">
             {loggedIn ? (
-              <Link to="/mypage" onClick={() => setMenuOpen(false)}>
+              <Link to="/mypage" onClick={closeMobileMenu}>
                 마이페이지
               </Link>
             ) : (
-              <Link to="/login" onClick={() => setMenuOpen(false)}>
+              <Link to="/login" onClick={closeMobileMenu}>
                 로그인
               </Link>
             )}
-            <Link to="/cart" onClick={() => setMenuOpen(false)}>
+            <Link to="/cart" onClick={closeMobileMenu}>
               장바구니
             </Link>
           </div>
