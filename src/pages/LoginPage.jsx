@@ -78,19 +78,26 @@ function LoginPage() {
             <p className="login-form-subtitle">ARC와 함께 더 나은 움직임을 만나보세요.</p>
 
             <form className="login-form" onSubmit={handleSubmit}>
-              <label className="login-field">
+              <div className="login-field">
                 <span className="login-field-label">이메일</span>
 
                 <input
                   type="email"
                   value={email}
+                  maxLength={50}
                   onChange={(event) => setEmail(event.target.value)}
                   placeholder="이메일"
                   className="login-input"
                   autoComplete="email"
                   required
                 />
-              </label>
+                {/*email이 빈값이 아닐 때 X 버튼 노출 */}
+                {email && (
+                  <button type="button" className="clear-btn" onClick={() => setEmail('')}>
+                    ✕
+                  </button>
+                )}
+              </div>
 
               <label className="login-field">
                 <span className="login-field-label">비밀번호</span>
@@ -98,12 +105,19 @@ function LoginPage() {
                 <input
                   type="password"
                   value={password}
+                  maxLength={20}
                   onChange={(event) => setPassword(event.target.value)}
                   placeholder="비밀번호"
                   className="login-input"
                   autoComplete="current-password"
                   required
                 />
+                {/*password가 빈값이 아닐 때 X 버튼 노출 */}
+                {password && (
+                  <button type="button" className="clear-btn" onClick={() => setPassword('')}>
+                    ✕
+                  </button>
+                )}
               </label>
 
               <button type="submit" className="login-submit-btn" disabled={isLoading}>
