@@ -467,17 +467,15 @@
 }
 
 .cart-table-header {
-  grid-template-columns: 40px minmax(220px, 2fr) minmax(90px, 1fr) minmax(100px, 1fr) minmax(
-      90px,
-      1fr
-    ) 40px;
+  grid-template-columns:
+    40px minmax(220px, 2fr) minmax(90px, 1fr) minmax(100px, 1fr) minmax(90px, 1fr)
+    40px;
 }
 
 .cart-item-row {
-  grid-template-columns: 40px minmax(220px, 2fr) minmax(90px, 1fr) minmax(100px, 1fr) minmax(
-      90px,
-      1fr
-    ) 40px;
+  grid-template-columns:
+    40px minmax(220px, 2fr) minmax(90px, 1fr) minmax(100px, 1fr) minmax(90px, 1fr)
+    40px;
 }
 
 .cart-checkbox-cell {
