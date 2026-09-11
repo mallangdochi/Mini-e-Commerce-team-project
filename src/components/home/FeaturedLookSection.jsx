@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import modelFull from '@/assets/home/featured-look/arc-model-full.png';
 import partTop from '@/assets/home/featured-look/arc-top.png';
@@ -15,6 +15,36 @@ const VIEW_LABELS = {
   bottom: '하의',
   shoes: '신발',
 };
+
+// 모바일 히어로 이미지 위 핫스팟 라벨(영문, 목업 기준)
+const HOTSPOT_LABELS = {
+  top: 'TOP',
+  bottom: 'BOTTOM',
+  shoes: 'SHOES',
+};
+
+// 모바일 요약 카드용 — 부위별 가격이 아니라 세트 전체 표시값 (TODO: 실제 상품 데이터 연결)
+const SET_SUMMARY = {
+  title: 'ARC TRACK SET-UP',
+  price: 159000,
+  thumbnail: partTop,
+};
+
+const COMPACT_QUERY = '(max-width: 767px)';
+const SWIPE_THRESHOLD = 40; // px
+
+function useIsCompact() {
+  const [isCompact, setIsCompact] = useState(() => window.matchMedia(COMPACT_QUERY).matches);
+
+  useEffect(() => {
+    const mql = window.matchMedia(COMPACT_QUERY);
+    const onChange = (e) => setIsCompact(e.matches);
+    mql.addEventListener('change', onChange);
+    return () => mql.removeEventListener('change', onChange);
+  }, []);
+
+  return isCompact;
+}
 
 const PRODUCT_INFO = {
   full: {
@@ -55,6 +85,7 @@ const MODELS = [
 ];
 
 function FeaturedLookSection() {
+  const isCompact = useIsCompact();
   const [currentModel, setCurrentModel] = useState(0);
   const [selectedView, setSelectedView] = useState('full');
   const [hoveredPart, setHoveredPart] = useState(null);
@@ -62,6 +93,7 @@ function FeaturedLookSection() {
   const [selectedColor, setSelectedColor] = useState('black');
   const [isSliding, setIsSliding] = useState(false);
   const [isViewTransitioning, setIsViewTransitioning] = useState(false);
+  const touchStartX = useRef(0);
 
   const current = MODELS[currentModel];
   const nextModelIndex = (currentModel + 1) % MODELS.length;
@@ -69,6 +101,20 @@ function FeaturedLookSection() {
   const next = MODELS[nextModelIndex];
   const afterNext = MODELS[afterNextModelIndex];
   const activeInfo = PRODUCT_INFO[selectedView];
+
+  // 모바일: 모델(LOOK 01/02/03) 스와이프/탭 전환 — 데스크톱 스테이지 슬라이드 애니메이션과는 별개
+  const goToNextModel = () => {
+    setCurrentModel((i) => (i + 1) % MODELS.length);
+  };
+
+  const handleHeroTouchStart = (event) => {
+    touchStartX.current = event.changedTouches[0].screenX;
+  };
+
+  const handleHeroTouchEnd = (event) => {
+    const diff = event.changedTouches[0].screenX - touchStartX.current;
+    if (diff < -SWIPE_THRESHOLD) goToNextModel();
+  };
 
   const changeView = (view) => {
     if (isSliding || view === selectedView) return;
@@ -267,6 +313,70 @@ function FeaturedLookSection() {
           </div>
         </section>
       </section>
+
+      {/* 모바일 전용 레이아웃 — 데스크톱 그리드/호버 인터랙션 대신 라벨 핫스팟 + 요약 카드 */}
+      {isCompact && (
+        <div className="arc-mobile-look">
+          <div className="arc-mobile-hero-wrap">
+            <div
+              className="arc-mobile-hero"
+              onTouchStart={handleHeroTouchStart}
+              onTouchEnd={handleHeroTouchEnd}
+            >
+              <img src={current.image} alt={`${current.label} 모델`} draggable="false" />
+
+              {PARTS.map((part) => (
+                <button
+                  key={part}
+                  type="button"
+                  className={`arc-hotspot-pill arc-hotspot-pill--${part}`}
+                  onClick={() => changeView(part)}
+                  aria-label={`${VIEW_LABELS[part]} 자세히 보기`}
+                >
+                  <span className="arc-hotspot-pill-label">{HOTSPOT_LABELS[part]}</span>
+                  <span className="arc-hotspot-pill-arrow">›</span>
+                </button>
+              ))}
+            </div>
+
+            {/* .arc-mobile-hero 밖(overflow 밖)으로 빠져나와 보이도록 형제로 분리 */}
+            <button
+              type="button"
+              className="arc-swipe-hint"
+              onClick={goToNextModel}
+              aria-label={`${next.label} 보기`}
+            >
+              <span className="arc-swipe-hint-arrow">›</span>
+            </button>
+          </div>
+
+          <div className="arc-set-summary">
+            <img
+              className="arc-set-summary-thumb"
+              src={SET_SUMMARY.thumbnail}
+              alt=""
+              draggable="false"
+            />
+
+            <div className="arc-set-summary-info">
+              <p className="arc-set-summary-title">{SET_SUMMARY.title}</p>
+              <p className="arc-set-summary-price">₩ {SET_SUMMARY.price.toLocaleString()}</p>
+            </div>
+
+            <span className="arc-set-summary-divider" aria-hidden="true" />
+
+            {/* TODO: 실제 상품 상세 페이지 연결 */}
+            <button type="button" className="arc-set-summary-arrow" aria-label="자세히 보기">
+              ›
+            </button>
+          </div>
+
+          {/* TODO: 실제 구매/장바구니 플로우 연결 */}
+          <button type="button" className="arc-buy-button">
+            <span>구매하기</span>
+          </button>
+        </div>
+      )}
     </section>
   );
 }
