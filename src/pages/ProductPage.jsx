@@ -269,7 +269,7 @@ function ProductPage() {
             <label className="product-stock-toggle">
               <input type="checkbox" defaultChecked />
               <span className="product-stock-toggle-track" aria-hidden="true" />
-              <span>품절 제외</span>
+              <span>품절 상품 지우기</span>
             </label>
           </div>
 
