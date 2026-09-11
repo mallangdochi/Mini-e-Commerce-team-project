@@ -4,7 +4,6 @@
   --arc-text: #171717;
   --arc-muted: rgba(23, 23, 23, 0.56);
   position: relative;
-  min-height: calc(100dvh - 64px);
   background:
     radial-gradient(
       circle at 58% 42%,
@@ -78,33 +77,11 @@
   box-shadow: inset 0 -2px 0 #111111;
 }
 
-.arc-view-button span {
+.arc-view-button svg {
   display: block;
-  background: #050505;
-}
-
-.arc-view-button--full span {
-  width: 11px;
-  height: 11px;
-  border-radius: 50%;
-}
-
-.arc-view-button--top span {
-  width: 26px;
-  height: 17px;
-  border-radius: 50%;
-}
-
-.arc-view-button--bottom span {
-  width: 8px;
-  height: 21px;
-  border-radius: 50%;
-}
-
-.arc-view-button--shoes span {
-  width: 29px;
-  height: 8px;
-  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  color: #050505;
 }
 
 .arc-product-card {
@@ -764,6 +741,11 @@
   background: currentColor;
 }
 
+/* ==========================================================================
+   반응형 — 큰 화면 → 작은 화면 순서로 배치 (아래로 갈수록 좁은 화면 대상)
+   ========================================================================== */
+
+/* 데스크톱 축소 (~1200px): 사이드 레일·모델 트랙 폭만 조정 */
 @media (max-width: 1200px) {
   .arc-look-shell {
     grid-template-columns: 320px minmax(0, 1fr);
@@ -781,6 +763,7 @@
   }
 }
 
+/* 태블릿 (~900px): 배경 장식 요소만 축소/제거, 레이아웃 구조는 유지 */
 @media (max-width: 900px) {
   .arc-look-page::before,
   .arc-model-stage::after {
@@ -794,8 +777,8 @@
   }
 }
 
-/* ===== 모바일 (320~767px): 데스크톱 그리드 대신 라벨 핫스팟 히어로 + 요약 카드 ===== */
-
+/* 모바일 (320~767px): 데스크톱 그리드 대신 라벨 핫스팟 히어로 + 요약 카드로 완전히 다른 레이아웃.
+   .arc-mobile-look 은 기본 숨김 상태로 두고, 아래 미디어 쿼리에서만 노출한다. */
 .arc-mobile-look {
   display: none;
 }
@@ -807,6 +790,7 @@
 
   .arc-mobile-look {
     display: block;
+    width: 100%;
     padding: 30px 16px 32px;
     background: #f4f4f4;
   }
@@ -819,7 +803,8 @@
     position: relative;
     width: 100%;
     aspect-ratio: 1637 / 2048;
-    height: 60vh;
+    min-height: 60vh;
+    max-height: 88vh;
     padding: 20px 0;
     overflow: hidden;
     border-radius: 10px;
@@ -844,6 +829,22 @@
     background: rgba(255, 255, 255, 0.92);
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
     cursor: pointer;
+  }
+
+  .arc-hotspot-pill-icon {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    color: #111111;
+  }
+
+  .arc-hotspot-pill-icon svg {
+    display: block;
+    width: 100%;
+    height: 100%;
   }
 
   .arc-hotspot-pill-label {
