@@ -2,18 +2,18 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import '@/styles/checkout2.css';
 
-const initialOrderItems = [
-  { id: 1, name: 'abcdefgabcdef', size: 'abcdef', price: 49000, quantity: 1 },
-  { id: 2, name: 'abcdefgabcdef', size: 'abcdef', price: 49000, quantity: 1 },
-  { id: 3, name: 'abcdefgabcdef', size: 'abcdef', price: 49000, quantity: 1 },
-];
-
 function CheckoutPage2() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // CheckoutPage에서 전달받은 state 데이터 추출 (사용하지 않는 selectedCoupon 제거)
-  const { discountAmount = 0, finalPrice: passedFinalPrice } = location.state || {};
+  // 이전 페이지(CheckoutPage)에서 전달받은 state 구조분해 할당 (없을 경우 기본값 설정)
+  const {
+    orderItems = [],
+    paymentMethod = 'card',
+    discountAmount = 0,
+    selectedCoupon = '',
+    finalPrice: passedFinalPrice,
+  } = location.state || {};
 
   const [shippingInfo, setShippingInfo] = useState({
     name: '',
@@ -24,6 +24,9 @@ function CheckoutPage2() {
     memo: '',
   });
 
+  // 사용자가 마지막으로 '주문 완료'를 눌렀을 때 검사한 기준 필드
+  const [activeErrorField, setActiveErrorField] = useState(null);
+
   const formatPhoneNumber = (value) => {
     const numbers = value.replace(/[^\d]/g, '');
     if (numbers.length <= 3) {
@@ -31,7 +34,6 @@ function CheckoutPage2() {
     } else if (numbers.length <= 7) {
       return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
     } else {
-      // 11자리를 초과하지 않도록 최대 11자리까지만 잘라서 포맷팅
       const limitedNumbers = numbers.slice(0, 11);
       return `${limitedNumbers.slice(0, 3)}-${limitedNumbers.slice(3, 7)}-${limitedNumbers.slice(7)}`;
     }
@@ -46,20 +48,76 @@ function CheckoutPage2() {
       return;
     }
 
+    // 우편번호 입력 시 숫자만 허용 (최대 5자리)
+    if (name === 'zonecode') {
+      const numbers = value.replace(/[^\d]/g, '').slice(0, 5);
+      setShippingInfo((prev) => ({ ...prev, [name]: numbers }));
+      return;
+    }
+
+    // 주소 및 상세주소 입력 시 허용되지 않는 특수문자 차단
+    // (한글, 영문, 숫자, 띄어쓰기, 하이픈(-), 쉼표(,), 괄호(()), 해시(#) 등 주소에 주로 쓰이는 기호 외 특수문자 제거)
+    if (name === 'address' || name === 'detailAddress') {
+      const filteredValue = value.replace(/[^ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9\s\-\,\(\)\#\.]/g, '');
+      setShippingInfo((prev) => ({ ...prev, [name]: filteredValue }));
+      return;
+    }
+
     setShippingInfo((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleCompleteOrder = () => {
-    navigate('/checkout/complete');
+  // 현재 위에서부터 차례대로 비어있는 첫 번째 필드 찾기 (이름 -> 연락처 -> 주소 -> 상세주소)
+  const getFirstEmptyField = () => {
+    if (shippingInfo.name.trim() === '') return 'name';
+    if (shippingInfo.phone.trim() === '') return 'phone';
+    if (shippingInfo.address.trim() === '') return 'address';
+    if (shippingInfo.detailAddress.trim() === '') return 'detailAddress';
+    return null;
   };
 
-  const productTotal = initialOrderItems.reduce(
-    (total, item) => total + item.price * item.quantity,
-    0
-  );
+  const handleCompleteOrder = () => {
+    if (orderItems.length === 0) {
+      alert('주문할 상품이 없습니다.');
+      navigate('/cart');
+      return;
+    }
+
+    const emptyField = getFirstEmptyField();
+
+    // 주문 완료를 누른 순간의 첫 번째 빈 필드로 에러 지정
+    setActiveErrorField(emptyField);
+
+    if (emptyField !== null) {
+      return;
+    }
+
+    // 최종 주문 완료 페이지로 전달할 데이터 구성
+    navigate('/checkout/complete', {
+      state: {
+        orderItems,
+        paymentMethod,
+        shippingInfo,
+        discountAmount,
+        selectedCoupon,
+        finalPrice,
+      },
+    });
+  };
+
+  // 특정 필드에 에러를 표시할지 여부 결정:
+  // 1. 주문 완료를 눌러서 지정된 필드(activeErrorField)여야 하고,
+  // 2. 실제로 그 칸이 비어있을 때만 에러를 유지합니다. (값이 입력되면 즉시 사라짐)
+  const getFieldError = (fieldName) => {
+    if (activeErrorField === fieldName && shippingInfo[fieldName].trim() === '') {
+      return true;
+    }
+    return false;
+  };
+
+  // 전달받은 실제 상품 목록을 기준으로 금액 계산
+  const productTotal = orderItems.reduce((total, item) => total + item.price * item.quantity, 0);
   const deliveryFee = 0;
 
-  // 전달받은 최종 결제 금액이 있다면 그것을 사용하고, 없다면 직접 계산
   const finalPrice =
     passedFinalPrice !== undefined ? passedFinalPrice : productTotal + deliveryFee - discountAmount;
 
@@ -89,6 +147,7 @@ function CheckoutPage2() {
               <div className="checkout-box-title">배송지 정보</div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                {/* 이름 필드 */}
                 <div className="checkout-form-row">
                   <label htmlFor="name">이름</label>
                   <input
@@ -96,13 +155,15 @@ function CheckoutPage2() {
                     name="name"
                     type="text"
                     maxLength={10}
-                    className="checkout-form-control"
+                    className={`checkout-form-control ${getFieldError('name') ? 'input-error' : ''}`}
                     placeholder="홍길동"
                     value={shippingInfo.name}
                     onChange={handleChange}
                   />
+                  {getFieldError('name') && <p className="error-text">이름을 입력해 주세요.</p>}
                 </div>
 
+                {/* 연락처 필드 */}
                 <div className="checkout-form-row">
                   <label htmlFor="phone">연락처</label>
                   <input
@@ -110,11 +171,12 @@ function CheckoutPage2() {
                     name="phone"
                     type="text"
                     maxLength={13}
-                    className="checkout-form-control"
+                    className={`checkout-form-control ${getFieldError('phone') ? 'input-error' : ''}`}
                     placeholder="010-1234-5678"
                     value={shippingInfo.phone}
                     onChange={handleChange}
                   />
+                  {getFieldError('phone') && <p className="error-text">연락처를 입력해 주세요.</p>}
                 </div>
               </div>
 
@@ -137,6 +199,7 @@ function CheckoutPage2() {
                 </div>
               </div>
 
+              {/* 주소 필드 */}
               <div className="checkout-form-row">
                 <label htmlFor="address">주소</label>
                 <input
@@ -144,13 +207,15 @@ function CheckoutPage2() {
                   name="address"
                   type="text"
                   maxLength={50}
-                  className="checkout-form-control"
+                  className={`checkout-form-control ${getFieldError('address') ? 'input-error' : ''}`}
                   placeholder="서울특별시 강남구 어느곳 어느날 123"
                   value={shippingInfo.address}
                   onChange={handleChange}
                 />
+                {getFieldError('address') && <p className="error-text">주소를 입력해 주세요.</p>}
               </div>
 
+              {/* 상세주소 필드 */}
               <div className="checkout-form-row">
                 <label htmlFor="detailAddress">상세주소</label>
                 <input
@@ -158,11 +223,14 @@ function CheckoutPage2() {
                   name="detailAddress"
                   type="text"
                   maxLength={50}
-                  className="checkout-form-control"
+                  className={`checkout-form-control ${getFieldError('detailAddress') ? 'input-error' : ''}`}
                   placeholder="101동 1004호"
                   value={shippingInfo.detailAddress}
                   onChange={handleChange}
                 />
+                {getFieldError('detailAddress') && (
+                  <p className="error-text">상세주소를 입력해 주세요.</p>
+                )}
               </div>
 
               <div className="checkout-form-row" style={{ marginBottom: 0 }}>
@@ -196,17 +264,27 @@ function CheckoutPage2() {
               </div>
 
               <div className="checkout-mini-item-list">
-                {initialOrderItems.map((item) => (
-                  <div key={item.id} className="checkout-mini-item">
-                    <div className="checkout-mini-img-placeholder">IMAGE</div>
-                    <div className="checkout-mini-info">
-                      <div className="checkout-mini-name">{item.name}</div>
-                      <div className="checkout-mini-sub">{item.size}</div>
+                {orderItems.length > 0 ? (
+                  orderItems.map((item) => (
+                    <div key={item.id} className="checkout-mini-item">
+                      {item.imageUrl ? (
+                        <img className="checkout-mini-img" src={item.imageUrl} alt={item.name} />
+                      ) : (
+                        <div className="checkout-mini-img-placeholder">IMAGE</div>
+                      )}
+                      <div className="checkout-mini-info">
+                        <div className="checkout-mini-name">{item.name}</div>
+                        <div className="checkout-mini-sub">
+                          {item.option || `SIZE / ${item.size || 'L'}`}
+                        </div>
+                      </div>
+                      <div className="checkout-mini-price">₩ {item.price.toLocaleString()}</div>
+                      <div className="checkout-mini-qty">x {item.quantity}</div>
                     </div>
-                    <div className="checkout-mini-price">₩ {item.price.toLocaleString()}</div>
-                    <div className="checkout-mini-qty">x {item.quantity}</div>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <div className="checkout-empty">주문할 상품이 없습니다.</div>
+                )}
               </div>
 
               <div className="checkout-summary-prices">

@@ -229,7 +229,7 @@
   margin-top: 15px;
   padding-top: 15px;
   border-top: 1px solid #ddd;
-  color: #000;
+  color: #ff4500;
   font-size: 16px;
   font-weight: 700;
 }
@@ -258,4 +258,14 @@
     grid-template-columns: 1fr;
     gap: 20px;
   }
+}
+.input-error {
+  border-color: #ff4500 !important;
+}
+
+.error-text {
+  margin-top: 6px;
+  color: #ff4500;
+  font-size: 11px;
+  font-weight: 500;
 }

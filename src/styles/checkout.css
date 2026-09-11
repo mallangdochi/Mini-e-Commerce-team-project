@@ -527,3 +527,233 @@
     font-size: 11px;
   }
 }
+
+.payment-loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.payment-loading-modal {
+  background-color: #ffffff;
+  padding: 40px 50px;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.payment-spinner {
+  width: 48px;
+  height: 48px;
+  border: 5px solid #e5e7eb;
+  border-top: 5px solid #2563eb;
+  border-radius: 50%;
+  animation: payment-spin 0.8s linear infinite;
+  margin-bottom: 20px;
+}
+
+.payment-loading-text {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 8px 0;
+}
+
+.payment-loading-subtext {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+}
+
+@keyframes payment-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.payment-complete-icon {
+  width: 48px;
+  height: 48px;
+  background-color: #2563eb;
+  color: #ffffff;
+  font-size: 24px;
+  font-weight: bold;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 20px;
+}
+/* 네이버페이*/
+.naver-pay-sdk-modal {
+  background-color: #ffffff;
+  width: 360px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+}
+
+.naver-sdk-header {
+  background-color: #03c75a;
+  color: #ffffff;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.naver-sdk-logo {
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: -0.5px;
+}
+
+.naver-sdk-title {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.naver-sdk-body {
+  padding: 24px 20px;
+  text-align: left;
+}
+
+.naver-sdk-product {
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 8px 0;
+}
+
+.naver-sdk-price {
+  font-size: 14px;
+  color: #4b5563;
+  margin: 0;
+}
+
+.naver-sdk-footer {
+  padding: 12px 20px 20px 20px;
+  display: flex;
+  gap: 10px;
+}
+
+.naver-sdk-cancel-btn {
+  flex: 1;
+  padding: 12px;
+  background-color: #f3f4f6;
+  color: #4b5563;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.naver-sdk-pay-btn {
+  flex: 2;
+  padding: 12px;
+  background-color: #03c75a;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.naver-sdk-pay-btn:hover {
+  background-color: #02b350;
+}
+/* 카카오페이*/
+.kakao-pay-sdk-modal {
+  background-color: #ffffff;
+  width: 360px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+}
+
+.kakao-sdk-header {
+  background-color: #fee500;
+  color: #191919;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.kakao-sdk-logo {
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: -0.5px;
+}
+
+.kakao-sdk-title {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.kakao-sdk-body {
+  padding: 24px 20px;
+  text-align: left;
+}
+
+.kakao-sdk-product {
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 8px 0;
+}
+
+.kakao-sdk-price {
+  font-size: 14px;
+  color: #4b5563;
+  margin: 0;
+}
+
+.kakao-sdk-footer {
+  padding: 12px 20px 20px 20px;
+  display: flex;
+  gap: 10px;
+}
+
+.kakao-sdk-cancel-btn {
+  flex: 1;
+  padding: 12px;
+  background-color: #f3f4f6;
+  color: #4b5563;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.kakao-sdk-pay-btn {
+  flex: 2;
+  padding: 12px;
+  background-color: #fee500;
+  color: #191919;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.kakao-sdk-pay-btn:hover {
+  background-color: #fdd800;
+}
