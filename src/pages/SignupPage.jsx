@@ -49,8 +49,7 @@ function SignupPage() {
       return;
     }
 
-    const passwordRegex =
-      /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,12}$/;
+    const passwordRegex = /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[!@#$%^&*()_+-=[\]{};':"\\|,.<>/?]).{8,12}$/;
 
     if (passwordRegex.test(value)) {
       setPasswordMessage('사용 가능한 비밀번호입니다.');
