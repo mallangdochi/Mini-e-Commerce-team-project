@@ -1,10 +1,202 @@
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import '@/styles/header.css';
 
+const CATEGORY_MENUS = {
+  women: {
+    groups: [
+      {
+        title: 'NEW',
+        items: [
+          { label: '신제품', to: '/products?gender=women&category=new' },
+          { label: '베스트셀러', to: '/products?gender=women&category=best' },
+        ],
+      },
+      {
+        title: 'OUTER',
+        items: [
+          { label: '전체보기', to: '/products?gender=women&category=outer' },
+          { label: '재킷', to: '/products?gender=women&category=jacket' },
+          { label: '윈드브레이커', to: '/products?gender=women&category=windbreaker' },
+        ],
+      },
+      {
+        title: 'TOP',
+        items: [
+          { label: '전체보기', to: '/products?gender=women&category=top' },
+          { label: '티셔츠', to: '/products?gender=women&category=tshirt' },
+          { label: '롱슬리브', to: '/products?gender=women&category=long-sleeve' },
+          { label: '후디, 맨투맨', to: '/products?gender=women&category=hoodie-sweat' },
+        ],
+      },
+      {
+        title: 'BOTTOM',
+        items: [
+          { label: '전체보기', to: '/products?gender=women&category=bottom' },
+          { label: '팬츠', to: '/products?gender=women&category=pants' },
+          { label: '쇼츠', to: '/products?gender=women&category=shorts' },
+        ],
+      },
+      {
+        title: 'SHOES',
+        items: [
+          { label: '전체보기', to: '/products?gender=women&category=shoes' },
+          { label: '러닝화', to: '/products?gender=women&category=running-shoes' },
+          { label: '트레이닝화', to: '/products?gender=women&category=training-shoes' },
+        ],
+      },
+      {
+        title: 'SETS',
+        items: [{ label: '전체보기', to: '/products?gender=women&category=sets' }],
+      },
+    ],
+  },
+  men: {
+    groups: [
+      {
+        title: 'NEW',
+        items: [
+          { label: '신제품', to: '/products?gender=men&category=new' },
+          { label: '베스트셀러', to: '/products?gender=men&category=best' },
+        ],
+      },
+      {
+        title: 'OUTER',
+        items: [
+          { label: '전체보기', to: '/products?gender=men&category=outer' },
+          { label: '재킷', to: '/products?gender=men&category=jacket' },
+          { label: '윈드브레이커', to: '/products?gender=men&category=windbreaker' },
+        ],
+      },
+      {
+        title: 'TOP',
+        items: [
+          { label: '전체보기', to: '/products?gender=men&category=top' },
+          { label: '티셔츠', to: '/products?gender=men&category=tshirt' },
+          { label: '롱슬리브', to: '/products?gender=men&category=long-sleeve' },
+          { label: '후디, 스웨트', to: '/products?gender=men&category=hoodie-sweat' },
+        ],
+      },
+      {
+        title: 'BOTTOM',
+        items: [
+          { label: '전체보기', to: '/products?gender=men&category=bottom' },
+          { label: '팬츠', to: '/products?gender=men&category=pants' },
+          { label: '쇼츠', to: '/products?gender=men&category=shorts' },
+        ],
+      },
+      {
+        title: 'SHOES',
+        items: [
+          { label: '전체보기', to: '/products?gender=men&category=shoes' },
+          { label: '러닝화', to: '/products?gender=men&category=running-shoes' },
+          { label: '트레이닝화', to: '/products?gender=men&category=training-shoes' },
+        ],
+      },
+      {
+        title: 'SETS',
+        items: [{ label: '전체보기', to: '/products?gender=men&category=sets' }],
+      },
+    ],
+  },
+  accessories: {
+    groups: [
+      {
+        title: 'ACCESSORIES',
+        items: [
+          { label: '전체보기', to: '/products?category=accessories' },
+          { label: '선글라스', to: '/products?category=sunglasses' },
+          { label: '모자', to: '/products?category=cap' },
+        ],
+      },
+    ],
+  },
+};
+
+const NAV_ITEMS = [
+  { label: 'Home', to: '/' },
+  { label: 'Women', to: '/products?gender=women', menu: 'women' },
+  { label: 'Men', to: '/products?gender=men', menu: 'men' },
+  { label: 'Accessories', to: '/products?category=accessories', menu: 'accessories' },
+];
+
+// 스크롤이 이 값을 넘어간 뒤부터 스크롤 다운 시 헤더 숨김
+const HEADER_HIDE_THRESHOLD = 80;
+
 function Header() {
+  const [hidden, setHidden] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [mobileCategory, setMobileCategory] = useState(null);
+  const [activeMenu, setActiveMenu] = useState(null);
+  const lastY = useRef(0);
+
+  const openDesktopMenu = (menu) => {
+    setActiveMenu(menu);
+    setHidden(false);
+  };
+
+  const closeMobileMenu = () => {
+    setMenuOpen(false);
+    setMobileCategory(null);
+  };
+
+  // 스크롤 내리면 헤더 숨김, 올리면 표시. 드롭다운이 열려 있으면 헤더 유지.
+  useEffect(() => {
+    let ticking = false;
+    const update = () => {
+      const y = window.scrollY;
+
+      if (activeMenu) {
+        setHidden(false);
+      } else {
+        setHidden(y >= HEADER_HIDE_THRESHOLD && y > lastY.current);
+      }
+
+      lastY.current = y;
+      ticking = false;
+    };
+
+    const onScroll = () => {
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(update);
+      }
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [activeMenu]);
+
+  // 모바일 메뉴 열림 동안: 배경 스크롤 잠금, 리사이즈 / Esc 시 닫기
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+
+    const close = () => {
+      setMenuOpen(false);
+      setMobileCategory(null);
+    };
+
+    const onKey = (e) => {
+      if (e.key === 'Escape') close();
+    };
+
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('resize', close);
+    window.addEventListener('keydown', onKey);
+
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('resize', close);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [menuOpen]);
+
   return (
-    <header className="site-header">
+    <header
+      className={`site-header${hidden ? ' site-header--hidden' : ''}`}
+      onMouseLeave={() => setActiveMenu(null)}
+    >
       <div className="site-header-inner">
         {/* ARC LOGO */}
         <Link to="/" className="site-logo" aria-label="홈으로 이동">
@@ -30,32 +222,45 @@ function Header() {
           </svg>
         </Link>
 
-        {/* NAVIGATION */}
-        <nav className="site-nav">
-          <Link to="/">홈</Link>
+        {/* NAVIGATION (데스크톱 / 태블릿) */}
+        <nav className="site-nav" aria-label="주요 메뉴">
+          {NAV_ITEMS.map((item) => {
+            const isActive = item.menu && activeMenu === item.menu;
 
-          <Link to="/">소개</Link>
-
-          <Link to="/products">여성</Link>
-
-          <Link to="/products">남성</Link>
-
-          <Link to="/products">new</Link>
+            return (
+              <Link
+                key={item.label}
+                to={item.to}
+                className={isActive ? 'site-nav-link site-nav-link--active' : 'site-nav-link'}
+                aria-expanded={item.menu ? isActive : undefined}
+                onMouseEnter={() => {
+                  if (item.menu) openDesktopMenu(item.menu);
+                  else setActiveMenu(null);
+                }}
+                onFocus={() => {
+                  if (item.menu) openDesktopMenu(item.menu);
+                  else setActiveMenu(null);
+                }}
+                onClick={() => setActiveMenu(null)}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
 
         {/* HEADER ACTIONS */}
         <div className="site-header-actions">
+          {/* TODO(auth): 로그인 여부에 따라 로그인 / 마이페이지 중 하나만 노출 */}
           <Link to="/login" className="site-header-action header-login-btn">
             로그인
           </Link>
-
           <Link to="/mypage" className="site-header-action" aria-label="마이페이지">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="16"
               height="16"
               fill="currentColor"
-              className="bi bi-person"
               viewBox="0 0 16 16"
             >
               <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6m2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0m4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4m-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10s-3.516.68-4.168 1.332c-.678.678-.83 1.418-.832 1.664z" />
@@ -74,7 +279,152 @@ function Header() {
             </svg>
           </Link>
         </div>
+
+        {/* 모바일 햄버거 (데스크톱 숨김) */}
+        <button
+          type="button"
+          className="site-nav-toggle"
+          aria-label={menuOpen ? '메뉴 닫기' : '메뉴 열기'}
+          aria-expanded={menuOpen}
+          onClick={() => {
+            setMenuOpen((v) => !v);
+            setActiveMenu(null);
+          }}
+        >
+          <svg
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            aria-hidden="true"
+          >
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <line x1="3" y1="12" x2="21" y2="12" />
+            <line x1="3" y1="18" x2="21" y2="18" />
+          </svg>
+        </button>
       </div>
+
+      {/* 데스크톱 / 태블릿 메가 메뉴 */}
+      {activeMenu && CATEGORY_MENUS[activeMenu] && (
+        <div className="site-mega-menu">
+          <div className="site-mega-menu-inner">
+            {CATEGORY_MENUS[activeMenu].groups.map((group) => (
+              <section className="site-mega-menu-group" key={group.title}>
+                <h3>{group.title}</h3>
+                <div className="site-mega-menu-links">
+                  {group.items.map((link) => (
+                    <Link
+                      key={`${group.title}-${link.label}`}
+                      to={link.to}
+                      onClick={() => setActiveMenu(null)}
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 모바일 메뉴 — 풀스크린 오버레이 + 카테고리 아코디언 */}
+      {menuOpen && (
+        <div className="site-mobile-menu">
+          <div className="site-mobile-menu-top">
+            <button
+              type="button"
+              className="site-mobile-menu-close"
+              aria-label="메뉴 닫기"
+              onClick={closeMobileMenu}
+            >
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                aria-hidden="true"
+              >
+                <path d="M6 6l12 12M18 6L6 18" />
+              </svg>
+            </button>
+          </div>
+
+          <nav className="site-mobile-menu-primary" aria-label="모바일 주요 메뉴">
+            {NAV_ITEMS.map((item) => {
+              if (!item.menu) {
+                return (
+                  <Link key={item.label} to={item.to} onClick={closeMobileMenu}>
+                    {item.label}
+                  </Link>
+                );
+              }
+
+              const isOpen = mobileCategory === item.menu;
+              const menu = CATEGORY_MENUS[item.menu];
+
+              return (
+                <div className="site-mobile-category" key={item.label}>
+                  <button
+                    type="button"
+                    className="site-mobile-category-trigger"
+                    aria-expanded={isOpen}
+                    onClick={() =>
+                      setMobileCategory((current) => (current === item.menu ? null : item.menu))
+                    }
+                  >
+                    <span>{item.label}</span>
+                    <span className="site-mobile-category-icon" aria-hidden="true">
+                      {isOpen ? '−' : '+'}
+                    </span>
+                  </button>
+
+                  {isOpen && (
+                    <div className="site-mobile-submenu">
+                      {menu.groups.map((group) => (
+                        <section className="site-mobile-submenu-group" key={group.title}>
+                          <h3>{group.title}</h3>
+                          <div>
+                            {group.items.map((link) => (
+                              <Link
+                                key={`${group.title}-${link.label}`}
+                                to={link.to}
+                                onClick={closeMobileMenu}
+                              >
+                                {link.label}
+                              </Link>
+                            ))}
+                          </div>
+                        </section>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </nav>
+
+          <div className="site-mobile-menu-secondary">
+            {/* TODO(auth): 로그인 여부에 따라 로그인 / 마이페이지 중 하나만 노출 */}
+            <Link to="/login" onClick={closeMobileMenu}>
+              로그인
+            </Link>
+            <Link to="/mypage" onClick={closeMobileMenu}>
+              마이페이지
+            </Link>
+            <Link to="/cart" onClick={closeMobileMenu}>
+              장바구니
+            </Link>
+          </div>
+        </div>
+      )}
     </header>
   );
 }

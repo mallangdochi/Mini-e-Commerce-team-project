@@ -1,13 +1,47 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 
-// 홈 영상 배너 캐러셀 (풀블리드, 2:1 비율)
-// - 슬라이드 클릭 → to(제품 페이지)로 이동
-// - 화살표 / 하단 점으로 수동 이동
-// - AUTO_INTERVAL 마다 자동 전환, 무한 순환. 위치가 바뀌면 카운트다운 재시작
-// - prefers-reduced-motion 이면 자동 전환·트랜지션 없음
-//
-// TODO: SLIDES.video 를 실제 영상으로 교체 (public/ 또는 외부 호스팅), to 도 실제 경로로.
+import '@/styles/banner-carousel.css';
+
+function ChevronLeft({ size = 18, className }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="m15 18-6-6 6-6" />
+    </svg>
+  );
+}
+
+function ChevronRight({ size = 18, className }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="m9 18 6-6-6-6" />
+    </svg>
+  );
+}
+
+// TODO: SLIDES.video 를 실제 영상으로 교체 (현재 3슬라이드 모두 임시 공용 파일).
 const SLIDES = [
   {
     id: 'wind-shell',
@@ -43,13 +77,11 @@ const SLIDES = [
 
 const AUTO_INTERVAL = 5000; // ms
 const SWIPE_THRESHOLD = 40; // px
-const TOTAL = SLIDES.length;
 const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 
 const DOT_R = 5;
 const DOT_CIRC = 2 * Math.PI * DOT_R;
 
-// 브라우저 미디어쿼리 구독 — 세션 중 OS 설정 변경도 반영, 리스너는 클린업에서 회수
 function usePrefersReducedMotion() {
   const [reduced, setReduced] = useState(() => window.matchMedia(REDUCED_MOTION_QUERY).matches);
 
@@ -63,34 +95,41 @@ function usePrefersReducedMotion() {
   return reduced;
 }
 
-export default function BannerCarousel() {
+export default function BannerCarousel({ slides, isLoading = false, error = null }) {
+  const data = Array.isArray(slides) && slides.length > 0 ? slides : SLIDES;
+  const total = data.length;
+
   const reduced = usePrefersReducedMotion();
   const [current, setCurrent] = useState(0);
+  const [paused, setPaused] = useState(false);
   const touchStartX = useRef(0);
   const videoRefs = useRef([]);
 
-  // 이전 값 기준 이동은 무조건 함수형 업데이트 (자동전환과 경합해도 유실 없음)
-  const step = (delta) => setCurrent((c) => (c + delta + TOTAL) % TOTAL);
+  const step = (delta) => setCurrent((c) => (c + delta + total) % total);
 
-  // 위치가 바뀌면 카운트다운 재시작. reduce-motion 이면 타이머 없음.
   useEffect(() => {
-    if (reduced) return undefined;
-    const id = setInterval(() => setCurrent((c) => (c + 1) % TOTAL), AUTO_INTERVAL);
+    if (reduced || paused) return undefined;
+    const id = setInterval(() => setCurrent((c) => (c + 1) % total), AUTO_INTERVAL);
     return () => clearInterval(id);
-  }, [current, reduced]);
+  }, [current, reduced, paused, total]);
 
-  // 활성 슬라이드 영상만 재생, 나머지는 정지
+  // 슬라이드가 바뀌면 그 영상만 처음으로 되감기
+  useEffect(() => {
+    const video = videoRefs.current[current];
+    if (video) video.currentTime = 0;
+  }, [current]);
+
+  // 활성 슬라이드이면서 재생 중일 때만 play, 그 외에는 pause
   useEffect(() => {
     videoRefs.current.forEach((video, i) => {
       if (!video) return;
-      if (i === current) {
-        video.currentTime = 0;
+      if (i === current && !paused) {
         video.play().catch(() => {});
       } else {
         video.pause();
       }
     });
-  }, [current]);
+  }, [current, paused]);
 
   const handleTouchStart = (e) => {
     touchStartX.current = e.changedTouches[0].screenX;
@@ -102,9 +141,21 @@ export default function BannerCarousel() {
     step(diff < 0 ? 1 : -1);
   };
 
+  // DEV에서는 에러를 무시하고 fallback 데이터로 렌더링을 계속함 — data가 항상 안전하게
+  // fallback되는 것에 의존(위 61번 줄, slides가 없으면 SLIDES 사용). 배포 빌드에서만 에러 UI 노출.
+  if (isLoading || (error && !import.meta.env.DEV)) {
+    const message = isLoading ? '배너를 불러오는 중입니다…' : '배너를 불러오지 못했습니다.';
+
+    return (
+      <div className="banner-carousel banner-carousel--state" role="region" aria-label="추천 배너">
+        <p className="banner-carousel__empty">{message}</p>
+      </div>
+    );
+  }
+
   return (
     <div
-      className="relative aspect-[2/1] w-full overflow-hidden bg-black"
+      className="banner-carousel"
       role="region"
       aria-roledescription="carousel"
       aria-label="추천 배너"
@@ -113,22 +164,22 @@ export default function BannerCarousel() {
     >
       <style>{`@keyframes bannerDotFill { to { stroke-dashoffset: 0; } }`}</style>
 
-      {SLIDES.map((slide, i) => (
+      {data.map((slide, i) => (
         <div
           key={slide.id}
           inert={i !== current}
-          className={`absolute inset-0 ${i === current ? 'opacity-100' : 'opacity-0'}`}
+          className={`banner-carousel__slide ${i === current ? 'banner-carousel__slide--active' : ''}`}
         >
           <Link
             to={slide.to}
-            className="absolute inset-0 block"
+            className="banner-carousel__link"
             aria-label={`${slide.title} 제품 페이지로 이동`}
           >
             <video
               ref={(el) => {
                 videoRefs.current[i] = el;
               }}
-              className="absolute inset-0 h-full w-full object-cover"
+              className="banner-carousel__video"
               muted
               loop
               playsInline
@@ -138,22 +189,16 @@ export default function BannerCarousel() {
             </video>
           </Link>
 
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.35)_0%,rgba(0,0,0,0)_30%,rgba(0,0,0,0)_60%,rgba(0,0,0,0.55)_100%)]" />
+          <div className="banner-carousel__scrim" />
 
-          <div className="pointer-events-none absolute inset-0 z-[2] text-white">
-            <div className="absolute left-8 top-7 text-[13px] uppercase tracking-[2px] opacity-90">
-              {slide.topLeft}
-            </div>
-            <div className="absolute right-8 top-7 text-[12px] italic tracking-[0.5px] opacity-85">
-              {slide.topRight}
-            </div>
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap text-center text-[64px] font-extrabold tracking-[6px] [text-shadow:0_2px_12px_rgba(0,0,0,0.35)]">
-              {slide.title}
-            </div>
-            <div className="absolute bottom-[30px] left-8 text-[15px] leading-[1.6]">
+          <div className="banner-carousel__text">
+            <div className="banner-carousel__eyebrow">{slide.topLeft}</div>
+            <div className="banner-carousel__caption">{slide.topRight}</div>
+            <div className="banner-carousel__title">{slide.title}</div>
+            <div className="banner-carousel__bottom">
               {slide.bottomMain}
               <br />
-              <span className="text-[13px] opacity-85">{slide.bottomSub}</span>
+              <span className="banner-carousel__bottom-sub">{slide.bottomSub}</span>
             </div>
           </div>
         </div>
@@ -163,31 +208,50 @@ export default function BannerCarousel() {
         type="button"
         onClick={() => step(-1)}
         aria-label="이전 슬라이드"
-        className="absolute left-5 top-1/2 z-[5] flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/35 text-xl text-white transition-colors hover:bg-black/60"
+        className="banner-carousel__arrow banner-carousel__arrow--prev"
       >
-        &#10094;
+        <ChevronLeft size={20} />
       </button>
       <button
         type="button"
         onClick={() => step(1)}
         aria-label="다음 슬라이드"
-        className="absolute right-5 top-1/2 z-[5] flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/35 text-xl text-white transition-colors hover:bg-black/60"
+        className="banner-carousel__arrow banner-carousel__arrow--next"
       >
-        &#10095;
+        <ChevronRight size={20} />
       </button>
 
-      <div className="absolute bottom-7 right-8 z-[5] flex items-center gap-3">
-        {SLIDES.map((slide, i) => (
+      <div className="banner-carousel__dots">
+        {!reduced && (
+          <button
+            type="button"
+            onClick={() => setPaused((p) => !p)}
+            aria-label={paused ? '슬라이드 자동 전환 재생' : '슬라이드 자동 전환 정지'}
+            className="banner-carousel__toggle"
+          >
+            {paused ? (
+              <svg viewBox="0 0 12 12" aria-hidden="true">
+                <path d="M3 2l7 4-7 4z" fill="currentColor" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 12 12" aria-hidden="true">
+                <rect x="2.5" y="2" width="2.5" height="8" fill="currentColor" />
+                <rect x="7" y="2" width="2.5" height="8" fill="currentColor" />
+              </svg>
+            )}
+          </button>
+        )}
+        {data.map((slide, i) => (
           <button
             key={slide.id}
             type="button"
             onClick={() => setCurrent(i)}
             aria-label={`${i + 1}번 슬라이드로 이동`}
             aria-current={i === current || undefined}
-            className="flex h-6 w-6 items-center justify-center"
+            className="banner-carousel__dot"
           >
             {i === current ? (
-              <svg viewBox="0 0 12 12" className="h-3 w-3 -rotate-90">
+              <svg viewBox="0 0 12 12" className="banner-carousel__ring">
                 <circle cx="6" cy="6" r={DOT_R} fill="none" strokeWidth="" />
                 {!reduced && (
                   <circle
@@ -197,16 +261,19 @@ export default function BannerCarousel() {
                     r={DOT_R}
                     fill="none"
                     stroke="#fff"
-                    strokeWidth="2"
+                    strokeWidth="2.5"
                     strokeLinecap="round"
                     strokeDasharray={DOT_CIRC}
                     strokeDashoffset={DOT_CIRC}
-                    style={{ animation: `bannerDotFill ${AUTO_INTERVAL}ms linear forwards` }}
+                    style={{
+                      animation: `bannerDotFill ${AUTO_INTERVAL}ms linear forwards`,
+                      animationPlayState: paused ? 'paused' : 'running',
+                    }}
                   />
                 )}
               </svg>
             ) : (
-              <span className="h-3 w-3 rounded-full bg-white/85" />
+              <span className="banner-carousel__dot-idle" />
             )}
           </button>
         ))}
