@@ -69,25 +69,99 @@
   font-weight: 300;
 }
 
-.product-page .product-section {
+/* ===== 레이아웃: 사이드바 + 본문 ===== */
+
+.product-page .product-layout {
+  display: flex;
+  gap: 40px;
+
   width: 100%;
   max-width: 1440px;
 
   margin: 0 auto;
 
-  padding: 70px 45px 110px;
+  padding: 40px 45px 110px;
 }
+
+.product-page .product-sidebar {
+  flex: 0 0 148px;
+}
+
+.product-page .product-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+}
+
+.product-page .product-sidebar-link {
+  position: relative;
+
+  padding: 17px 0;
+
+  color: #b5bcc7;
+
+  font-size: 20px;
+  font-weight: 700;
+
+  letter-spacing: 0.05em;
+
+  text-decoration: none;
+}
+
+.product-page .product-sidebar-link.is-active {
+  color: #0b0c0e;
+}
+
+.product-page .product-sidebar-link.is-active::after {
+  content: '';
+
+  position: absolute;
+  left: 0;
+  bottom: 17px;
+
+  width: 123px;
+  height: 2px;
+
+  border-radius: 9999px;
+
+  background: #0b0c0e;
+}
+
+.product-page .product-main {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ===== breadcrumb ===== */
+
+.product-page .product-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+
+  margin-bottom: 10px;
+
+  color: #90959d;
+
+  font-size: 12px;
+
+  letter-spacing: 0.07em;
+}
+
+.product-page .product-breadcrumb-sep {
+  color: #c7cbd1;
+}
+
+.product-page .product-breadcrumb .is-current {
+  color: #0b0c0e;
+}
+
+/* ===== 제목 ===== */
 
 .product-page .category-heading {
-  margin-bottom: 65px;
-}
+  margin-bottom: 20px;
+  padding-bottom: 16px;
 
-.product-page .category-heading span {
-  display: block;
-
-  margin-bottom: 3px;
-
-  font-size: 14px;
+  border-bottom: 1px solid #dadada;
 }
 
 .product-page .category-heading h2 {
@@ -99,20 +173,212 @@
   line-height: 1;
 }
 
-.product-page .product-section-header {
-  display: flex;
+/* ===== 필터 바 ===== */
 
+.product-page .product-filter-bar {
+  display: flex;
   align-items: center;
   justify-content: space-between;
-
-  margin-bottom: 15px;
+  gap: 16px;
 }
 
-.product-page .product-section-header h3 {
-  margin: 0;
+.product-page .product-filter-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 
-  font-size: 11px;
-  font-weight: 700;
+.product-page .filter-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+
+  height: 34px;
+  padding: 0 13px;
+
+  border: 1px solid #dadada;
+  background: #fff;
+
+  color: #2b2f36;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+.product-page .filter-btn-count {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+
+  border-radius: 9999px;
+  background: #0b0c0e;
+
+  color: #fff;
+
+  font-size: 12px;
+}
+
+.product-page .product-search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  width: 207px;
+  height: 34px;
+  padding: 0 14px;
+
+  border: 1px solid #dde0e5;
+  background: #fff;
+
+  color: #90959d;
+
+  font-size: 14px;
+}
+
+/* ===== 활성 필터 태그 + 품절 토글 ===== */
+
+.product-page .product-active-filters {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+
+  margin: 12px 0 50px;
+}
+
+.product-page .product-active-filters-list {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.product-page .filter-tag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  height: 30px;
+  padding: 0 6px 0 11px;
+
+  border: 1px solid #dde0e5;
+  border-radius: 9999px;
+  background: #f3f4f6;
+}
+
+.product-page .filter-tag-dot {
+  width: 8px;
+  height: 8px;
+
+  border-radius: 9999px;
+}
+
+.product-page .filter-tag-label {
+  color: #2b2f36;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  white-space: nowrap;
+}
+
+.product-page .filter-tag-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 18px;
+  height: 18px;
+
+  border: 0;
+  border-radius: 9999px;
+  background: none;
+
+  cursor: pointer;
+}
+
+.product-page .product-filter-clear {
+  height: 30px;
+  padding: 0 11px;
+
+  border: 0;
+  background: none;
+
+  color: #6b7078;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  text-decoration: underline;
+
+  cursor: pointer;
+}
+
+.product-page .product-stock-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  color: #2b2f36;
+
+  font-size: 14px;
+
+  cursor: pointer;
+}
+
+.product-page .product-stock-toggle input {
+  position: absolute;
+
+  opacity: 0;
+
+  pointer-events: none;
+}
+
+.product-page .product-stock-toggle-track {
+  position: relative;
+
+  width: 34px;
+  height: 20px;
+  padding: 2px;
+
+  border-radius: 9999px;
+  background: #cfd3d8;
+
+  transition: background 0.15s ease;
+}
+
+.product-page .product-stock-toggle-track::after {
+  content: '';
+
+  position: absolute;
+  top: 2px;
+  left: 2px;
+
+  width: 16px;
+  height: 16px;
+
+  border-radius: 9999px;
+  background: #fff;
+
+  transition: transform 0.15s ease;
+}
+
+.product-page .product-stock-toggle input:checked + .product-stock-toggle-track {
+  background: #0b0c0e;
+}
+
+.product-page .product-stock-toggle input:checked + .product-stock-toggle-track::after {
+  transform: translateX(14px);
+}
+
+.product-page .product-stock-toggle input:focus-visible + .product-stock-toggle-track {
+  outline: 2px solid #6b4f3a;
+  outline-offset: 2px;
 }
 
 .product-page .product-grid {
@@ -233,6 +499,13 @@
   background: #fff;
 }
 
+/* 색 지정 없음(그 외 색상) 표시용 스와치 */
+.product-page .product-color--empty {
+  border-color: #d1d1d1;
+
+  background: #fbfbfc;
+}
+
 .product-page .product-card-category {
   margin: 7px 0 12px;
 
@@ -246,4 +519,57 @@
 
   font-size: 19px;
   font-weight: 500;
+}
+
+/* ===== 반응형: 좁은 화면에서 사이드바/검색 숨김 ===== */
+
+@media (max-width: 900px) {
+  .product-page .product-layout {
+    flex-direction: column;
+    gap: 0;
+
+    padding: 32px 20px 80px;
+  }
+
+  .product-page .product-sidebar,
+  .product-page .product-search-box {
+    display: none;
+  }
+
+  .product-page .product-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* =================================
+   무한 스크롤
+================================= */
+
+.product-scroll-trigger {
+  width: 100%;
+  min-height: 80px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 30px 0;
+
+  font-size: 13px;
+  font-weight: 400;
+
+  color: #90959d;
+}
+
+.product-scroll-end {
+  width: 100%;
+
+  padding: 50px 0 70px;
+
+  text-align: center;
+
+  font-size: 13px;
+  font-weight: 400;
+
+  color: #90959d;
 }

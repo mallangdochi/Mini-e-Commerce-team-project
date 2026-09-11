@@ -3,5 +3,5 @@ export const handleAddToCart = (setCartMessage) => {
 
   setTimeout(() => {
     setCartMessage(false);
-  }, 2000);
+  }, 4500);
 };

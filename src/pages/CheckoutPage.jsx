@@ -1,68 +1,79 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 import '@/styles/checkout.css';
 
-const initialOrderItems = [
-  {
-    id: 1,
-    name: 'ARC Product Name',
-    size: 'L',
-    price: 49000,
-    quantity: 1,
-  },
-  {
-    id: 2,
-    name: 'ARC Product Name',
-    size: 'L',
-    price: 49000,
-    quantity: 1,
-  },
-  {
-    id: 3,
-    name: 'ARC Product Name',
-    size: 'L',
-    price: 49000,
-    quantity: 1,
-  },
-];
-
 function CheckoutPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const { orderItems = [] } = location.state || {};
 
   const [paymentMethod, setPaymentMethod] = useState('card');
-  const [couponCode, setCouponCode] = useState('');
-  const [selectedCoupon, setSelectedCoupon] = useState('');
+  const [selectedCoupon, setSelectedCoupon] = useState('vip-50000');
 
-  const productTotal = initialOrderItems.reduce(
-    (total, item) => total + item.price * item.quantity,
-    0
-  );
+  // 모달 상태 관리 ('none' | 'naver-sdk' | 'kakao-sdk' | 'processing' | 'complete')
+  const [modalState, setModalState] = useState('none');
 
+  const productTotal = orderItems.reduce((total, item) => total + item.price * item.quantity, 0);
   const deliveryFee = 0;
 
-  const discountAmount = selectedCoupon === 'open-20000' ? 20000 : 0;
+  const getDiscountAmount = (coupon) => {
+    if (coupon === 'open-20000') return 20000;
+    if (coupon === 'vip-50000') return 50000;
+    return 0;
+  };
 
-  const finalPrice = productTotal + deliveryFee - discountAmount;
+  const discountAmount = getDiscountAmount(selectedCoupon);
+  const finalPrice = Math.max(0, productTotal + deliveryFee - discountAmount);
 
-  const handleCouponApply = () => {
-    if (selectedCoupon === 'open-20000') {
+  const handleNextStep = () => {
+    if (orderItems.length === 0) {
+      alert('주문할 상품이 없습니다.');
+      navigate('/cart');
       return;
     }
 
-    if (couponCode.trim()) {
-      setSelectedCoupon('open-20000');
+    if (paymentMethod === 'naver') {
+      setModalState('naver-sdk');
+      return;
     }
+
+    if (paymentMethod === 'kakao') {
+      setModalState('kakao-sdk');
+      return;
+    }
+
+    startPaymentFlow();
   };
 
-  const handleNextStep = () => {
-    navigate('/checkout2', {
-      state: {
-        discountAmount: discountAmount,
-        selectedCoupon: selectedCoupon,
-        finalPrice: finalPrice,
-      },
-    });
+  const handleNaverPaySubmit = () => {
+    startPaymentFlow();
+  };
+
+  const handleKakaoPaySubmit = () => {
+    startPaymentFlow();
+  };
+
+  const startPaymentFlow = () => {
+    setModalState('processing');
+
+    setTimeout(() => {
+      setModalState('complete');
+
+      setTimeout(() => {
+        setModalState('none');
+        navigate('/checkout2', {
+          state: {
+            orderItems,
+            paymentMethod,
+            discountAmount,
+            selectedCoupon,
+            finalPrice,
+          },
+        });
+      }, 1200);
+    }, 2000);
   };
 
   return (
@@ -105,9 +116,7 @@ function CheckoutPage() {
                   checked={paymentMethod === 'card'}
                   onChange={(event) => setPaymentMethod(event.target.value)}
                 />
-
                 <span className="checkout-pay-name">신용카드</span>
-
                 <span className="checkout-pay-desc">신용/체크카드</span>
               </label>
 
@@ -119,7 +128,6 @@ function CheckoutPage() {
                   checked={paymentMethod === 'kakao'}
                   onChange={(event) => setPaymentMethod(event.target.value)}
                 />
-
                 <span className="checkout-pay-name">
                   <svg
                     width="50"
@@ -149,7 +157,6 @@ function CheckoutPage() {
                     />
                   </svg>
                 </span>
-
                 <span className="checkout-pay-desc">카카오페이</span>
               </label>
 
@@ -161,7 +168,6 @@ function CheckoutPage() {
                   checked={paymentMethod === 'naver'}
                   onChange={(event) => setPaymentMethod(event.target.value)}
                 />
-
                 <span className="checkout-pay-name">
                   <svg
                     width="45"
@@ -181,7 +187,6 @@ function CheckoutPage() {
                     />
                   </svg>
                 </span>
-
                 <span className="checkout-pay-desc">네이버페이</span>
               </label>
 
@@ -193,9 +198,7 @@ function CheckoutPage() {
                   checked={paymentMethod === 'bank'}
                   onChange={(event) => setPaymentMethod(event.target.value)}
                 />
-
                 <span className="checkout-pay-name">무통장입금</span>
-
                 <span className="checkout-pay-desc">가상계좌 입금</span>
               </label>
             </section>
@@ -206,24 +209,9 @@ function CheckoutPage() {
                 쿠폰 적용
               </div>
 
-              <div className="checkout-form-row">
-                <label htmlFor="couponCode">쿠폰 코드</label>
-
-                <input
-                  id="couponCode"
-                  type="text"
-                  className="checkout-form-control"
-                  placeholder="쿠폰 코드를 입력하세요"
-                  maxLength={20}
-                  value={couponCode}
-                  onChange={(event) => setCouponCode(event.target.value)}
-                />
-              </div>
-
               <div className="checkout-coupon-row">
-                <div className="checkout-coupon-select">
+                <div className="checkout-coupon-select" style={{ width: '100%' }}>
                   <label htmlFor="couponSelect">쿠폰 선택</label>
-
                   <select
                     id="couponSelect"
                     className="checkout-form-control"
@@ -231,14 +219,10 @@ function CheckoutPage() {
                     onChange={(event) => setSelectedCoupon(event.target.value)}
                   >
                     <option value="">쿠폰을 선택하세요</option>
-
                     <option value="open-20000">[2만원 할인] 오픈 기념 쿠폰</option>
+                    <option value="vip-50000">[5만원 할인] VIP 고객 특별 쿠폰</option>
                   </select>
                 </div>
-
-                <button type="button" className="checkout-btn-coupon" onClick={handleCouponApply}>
-                  쿠폰 적용
-                </button>
               </div>
             </section>
           </div>
@@ -250,50 +234,53 @@ function CheckoutPage() {
                   <span>C</span>
                   주문 상품
                 </div>
-
                 <span className="checkout-quantity-heading">수량</span>
               </div>
 
               <div className="checkout-mini-item-list">
-                {initialOrderItems.map((item) => (
-                  <div key={item.id} className="checkout-mini-item">
-                    <div className="checkout-mini-img-placeholder">IMAGE</div>
+                {orderItems.length > 0 ? (
+                  orderItems.map((item) => (
+                    <div key={item.id} className="checkout-mini-item">
+                      {item.imageUrl ? (
+                        <img className="checkout-mini-img" src={item.imageUrl} alt={item.name} />
+                      ) : (
+                        <div className="checkout-mini-img-placeholder">IMAGE</div>
+                      )}
 
-                    <div className="checkout-mini-info">
-                      <div className="checkout-mini-name">{item.name}</div>
+                      <div className="checkout-mini-info">
+                        <div className="checkout-mini-name">{item.name}</div>
+                        <div className="checkout-mini-sub">
+                          {item.option || `SIZE / ${item.size || 'L'}`}
+                        </div>
+                      </div>
 
-                      <div className="checkout-mini-sub">SIZE / {item.size}</div>
+                      <div className="checkout-mini-price">₩ {item.price.toLocaleString()}</div>
+                      <div className="checkout-mini-qty">x {item.quantity}</div>
                     </div>
-
-                    <div className="checkout-mini-price">₩ {item.price.toLocaleString()}</div>
-
-                    <div className="checkout-mini-qty">x {item.quantity}</div>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <div className="checkout-empty">주문할 상품이 없습니다.</div>
+                )}
               </div>
 
               <div className="checkout-summary-prices">
                 <div className="checkout-summary-row">
                   <span>상품금액</span>
-
                   <span>₩ {productTotal.toLocaleString()}</span>
                 </div>
 
                 <div className="checkout-summary-row">
                   <span>배송비</span>
-
                   <span>{deliveryFee === 0 ? '무료' : `₩ ${deliveryFee.toLocaleString()}`}</span>
                 </div>
 
                 <div className="checkout-summary-row checkout-discount-row">
                   <span>할인 금액</span>
-
                   <span>- ₩ {discountAmount.toLocaleString()}</span>
                 </div>
 
                 <div className="checkout-summary-row checkout-total-row">
                   <span>총 결제 금액</span>
-
                   <span>₩ {finalPrice.toLocaleString()}</span>
                 </div>
               </div>
@@ -305,6 +292,88 @@ function CheckoutPage() {
           </div>
         </div>
       </div>
+
+      {modalState === 'naver-sdk' && (
+        <div className="payment-loading-overlay">
+          <div className="naver-pay-sdk-modal">
+            <div className="naver-sdk-header">
+              <span className="naver-sdk-logo">N Pay</span>
+              <span className="naver-sdk-title">주문/결제</span>
+            </div>
+            <div className="naver-sdk-body">
+              <p className="naver-sdk-product">
+                {orderItems[0]?.name || '상품'} 외 {orderItems.length}건
+              </p>
+              <p className="naver-sdk-price">
+                총 결제금액: <strong>₩ {finalPrice.toLocaleString()}</strong>
+              </p>
+            </div>
+            <div className="naver-sdk-footer">
+              <button
+                type="button"
+                className="naver-sdk-cancel-btn"
+                onClick={() => setModalState('none')}
+              >
+                취소
+              </button>
+              <button type="button" className="naver-sdk-pay-btn" onClick={handleNaverPaySubmit}>
+                네이버페이 결제하기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {modalState === 'kakao-sdk' && (
+        <div className="payment-loading-overlay">
+          <div className="kakao-pay-sdk-modal">
+            <div className="kakao-sdk-header">
+              <span className="kakao-sdk-logo">KAKAO PAY</span>
+              <span className="kakao-sdk-title">주문/결제</span>
+            </div>
+            <div className="kakao-sdk-body">
+              <p className="kakao-sdk-product">
+                {orderItems[0]?.name || '상품'} 외 {orderItems.length}건
+              </p>
+              <p className="kakao-sdk-price">
+                총 결제금액: <strong>₩ {finalPrice.toLocaleString()}</strong>
+              </p>
+            </div>
+            <div className="kakao-sdk-footer">
+              <button
+                type="button"
+                className="kakao-sdk-cancel-btn"
+                onClick={() => setModalState('none')}
+              >
+                취소
+              </button>
+              <button type="button" className="kakao-sdk-pay-btn" onClick={handleKakaoPaySubmit}>
+                카카오페이 결제하기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {modalState === 'processing' && (
+        <div className="payment-loading-overlay">
+          <div className="payment-loading-modal">
+            <div className="payment-spinner"></div>
+            <p className="payment-loading-text">결제가 진행 중입니다.</p>
+            <p className="payment-loading-subtext">잠시만 기다려 주십시오.</p>
+          </div>
+        </div>
+      )}
+
+      {modalState === 'complete' && (
+        <div className="payment-loading-overlay">
+          <div className="payment-loading-modal">
+            <div className="payment-complete-icon">✓</div>
+            <p className="payment-loading-text">결제가 완료되었습니다!</p>
+            <p className="payment-loading-subtext">다음 단계로 이동합니다.</p>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

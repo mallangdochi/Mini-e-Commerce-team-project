@@ -424,3 +424,62 @@
     width: 100%;
   }
 }
+/* 상단 전체선택 & 선택삭제 컨트롤 바 */
+.cart-control-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding: 0 5px;
+}
+
+.cart-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  user-select: none;
+}
+
+/* 검은색 사각형 체크박스 */
+.cart-custom-checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: #000000;
+  cursor: pointer;
+  border-radius: 2px;
+}
+
+.cart-btn-delete-selected {
+  background: none;
+  border: none;
+  color: #666;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.cart-btn-delete-selected:hover {
+  color: #000;
+  text-decoration: underline;
+}
+
+.cart-table-header {
+  grid-template-columns:
+    40px minmax(220px, 2fr) minmax(90px, 1fr) minmax(100px, 1fr) minmax(90px, 1fr)
+    40px;
+}
+
+.cart-item-row {
+  grid-template-columns:
+    40px minmax(220px, 2fr) minmax(90px, 1fr) minmax(100px, 1fr) minmax(90px, 1fr)
+    40px;
+}
+
+.cart-checkbox-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
