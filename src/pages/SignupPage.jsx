@@ -15,6 +15,51 @@ function SignupPage() {
   const [address, setAddress] = useState('');
   const [detailAddress, setDetailAddress] = useState('');
 
+  const [emailCheckMessage, setEmailCheckMessage] = useState('');
+  const [isEmailAvailable, setIsEmailAvailable] = useState(null);
+
+  const handleCheckDuplicate = () => {
+    if (!email.trim()) {
+      setEmailCheckMessage('이메일을 입력해 주세요.');
+      setIsEmailAvailable(false);
+      return;
+    }
+
+    // 테스트용 중복 이메일 목록
+    const existingEmails = ['user@test.com', 'admin@test.com', 'test@test.com'];
+
+    if (existingEmails.includes(email.trim())) {
+      setEmailCheckMessage('이미 있는 아이디 입니다.');
+      setIsEmailAvailable(false);
+    } else {
+      setEmailCheckMessage('사용 가능한 이메일입니다.');
+      setIsEmailAvailable(true);
+    }
+  };
+
+  // 비밀번호 관련 State
+  const [passwordMessage, setPasswordMessage] = useState('');
+  const [isPasswordValid, setIsPasswordValid] = useState(null);
+
+  // 비밀번호 유효성 검사 함수
+  const validatePassword = (value) => {
+    if (!value) {
+      setPasswordMessage('');
+      setIsPasswordValid(null);
+      return;
+    }
+
+    const passwordRegex = /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[!@#$%^&*()_+-=[\]{};':"\\|,.<>/?]).{8,12}$/;
+
+    if (passwordRegex.test(value)) {
+      setPasswordMessage('사용 가능한 비밀번호입니다.');
+      setIsPasswordValid(true);
+    } else {
+      setPasswordMessage('비밀번호는 영문, 숫자, 특수문자를 포함하여 8~12자로 작성해 주세요.');
+      setIsPasswordValid(false);
+    }
+  };
+
   const [allAgree, setAllAgree] = useState(false);
   const [marketingAgree, setMarketingAgree] = useState(false);
   const [thirdPartyAgree, setThirdPartyAgree] = useState(false);
@@ -98,7 +143,7 @@ function SignupPage() {
 
             <div className="signup-form-group">
               <label htmlFor="signupEmail">
-                아이디 (이메일)
+                아이디
                 <span className="signup-required">*</span>
               </label>
 
@@ -108,20 +153,27 @@ function SignupPage() {
                     id="signupEmail"
                     type="email"
                     value={email}
-                    onChange={(event) => setEmail(event.target.value)}
+                    onChange={(event) => {
+                      setEmail(event.target.value);
+                      setEmailCheckMessage('');
+                    }}
                     placeholder="이메일을 입력하세요"
                     required
                   />
-
                   {email && <span className="signup-check-icon">✓</span>}
                 </div>
 
-                <button type="button" className="signup-inline-btn">
+                <button type="button" className="signup-inline-btn" onClick={handleCheckDuplicate}>
                   아이디 중복확인
                 </button>
               </div>
 
-              {email && <p className="signup-success-text">사용 가능한 이메일입니다.</p>}
+              {/* 중복확인 결과 안내 메시지 */}
+              {emailCheckMessage && (
+                <p className={`check-message ${isEmailAvailable ? 'success' : 'error'}`}>
+                  {emailCheckMessage}
+                </p>
+              )}
             </div>
 
             <div className="signup-form-group">
@@ -135,17 +187,23 @@ function SignupPage() {
                   id="signupPassword"
                   type="password"
                   value={password}
-                  onChange={(event) => setPassword(event.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    validatePassword(e.target.value);
+                  }}
                   placeholder="비밀번호를 입력하세요"
                   required
                 />
-
                 {password && <span className="signup-check-icon">✓</span>}
               </div>
 
-              {password && <p className="signup-success-text">안전한 비밀번호입니다.</p>}
+              {/* 비밀번호 안내 메시지 */}
+              {passwordMessage && (
+                <p className={`check-message ${isPasswordValid ? 'success' : 'error'}`}>
+                  {passwordMessage}
+                </p>
+              )}
             </div>
-
             <div className="signup-form-group">
               <label htmlFor="signupPasswordCheck">
                 비밀번호 확인
@@ -234,7 +292,11 @@ function SignupPage() {
                   <input
                     type="checkbox"
                     checked={marketingAgree}
-                    onChange={(event) => setMarketingAgree(event.target.checked)}
+                    onChange={(event) => {
+                      const checked = event.target.checked;
+                      setMarketingAgree(checked);
+                      setAllAgree(checked && thirdPartyAgree);
+                    }}
                   />
                   이벤트 및 마케팅 정보 수신에 동의합니다.
                 </label>
@@ -243,7 +305,11 @@ function SignupPage() {
                   <input
                     type="checkbox"
                     checked={thirdPartyAgree}
-                    onChange={(event) => setThirdPartyAgree(event.target.checked)}
+                    onChange={(event) => {
+                      const checked = event.target.checked;
+                      setThirdPartyAgree(checked);
+                      setAllAgree(marketingAgree && checked);
+                    }}
                   />
                   개인정보 제 3자 제공에 동의합니다.
                 </label>
