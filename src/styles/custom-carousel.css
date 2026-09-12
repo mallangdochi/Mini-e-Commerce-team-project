@@ -248,7 +248,7 @@
 
 /* ===== 반응형 ===== */
 
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .custom-carousel__arrow--overlay {
     display: none;
   }
@@ -263,17 +263,18 @@
   }
 
   .custom-carousel__nav {
+    display: grid;
+    grid-template-columns: 30px 1fr 30px;
     box-sizing: border-box;
     width: 100%;
     padding: 0 20px;
     align-items: flex-start;
-    justify-content: center;
-    gap: 50px;
+    gap: 20px;
   }
 
   .custom-carousel__meta {
-    flex: none;
     min-width: 0;
+    justify-self: center;
   }
 
   .custom-carousel__meta-name {
