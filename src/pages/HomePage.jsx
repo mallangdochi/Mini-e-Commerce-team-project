@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import { getHomeData } from '@/api/homeApi';
+import { getBanners, getHomeData, getNewProducts } from '@/api/homeApi';
 import BannerCarousel from '@/components/home/BannerCarousel';
 import BestSellerSection from '@/components/home/BestSellerSection';
 import BrandStorySection from '@/components/home/BrandStorySection';
@@ -10,10 +10,21 @@ import Hero from '@/components/home/Hero';
 import NewsletterSection from '@/components/home/NewsletterSection';
 import TrendingSection from '@/components/home/TrendingSection';
 
+// TODO: 서버가 실제 배너 영상 URL을 제공하게 되면 이 오버라이드 제거
+const LOCAL_BANNER_VIDEOS = ['/main_video_1.mp4', '/main_video_2.mp4', '/main_video_3.mp4'];
+
 function HomePage() {
   const [homeData, setHomeData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const [banners, setBanners] = useState(null);
+  const [isBannersLoading, setIsBannersLoading] = useState(true);
+  const [bannersError, setBannersError] = useState(null);
+
+  const [newProducts, setNewProducts] = useState(null);
+  const [isNewProductsLoading, setIsNewProductsLoading] = useState(true);
+  const [newProductsError, setNewProductsError] = useState(null);
 
   useEffect(() => {
     const loadHomeData = async () => {
@@ -39,13 +50,76 @@ function HomePage() {
     loadHomeData();
   }, []);
 
+  useEffect(() => {
+    const loadBanners = async () => {
+      try {
+        setIsBannersLoading(true);
+        setBannersError(null);
+
+        const response = await getBanners();
+
+        if (!response.success) {
+          throw new Error(response.message || '배너 정보를 불러오지 못했습니다.');
+        }
+
+        setBanners(response.data);
+      } catch (error) {
+        console.error('BANNERS API ERROR:', error);
+        setBannersError('배너 정보를 불러오지 못했습니다.');
+      } finally {
+        setIsBannersLoading(false);
+      }
+    };
+
+    loadBanners();
+  }, []);
+
+  const bannersWithLocalVideo = Array.isArray(banners)
+    ? banners.map((slide, index) => ({
+        ...slide,
+        video: LOCAL_BANNER_VIDEOS[index] ?? slide.video,
+      }))
+    : banners;
+
+  useEffect(() => {
+    const loadNewProducts = async () => {
+      try {
+        setIsNewProductsLoading(true);
+        setNewProductsError(null);
+
+        const response = await getNewProducts();
+
+        if (!response.success) {
+          throw new Error(response.message || '신상품 정보를 불러오지 못했습니다.');
+        }
+
+        setNewProducts(response.data);
+      } catch (error) {
+        console.error('NEW PRODUCTS API ERROR:', error);
+        setNewProductsError('신상품 정보를 불러오지 못했습니다.');
+      } finally {
+        setIsNewProductsLoading(false);
+      }
+    };
+
+    loadNewProducts();
+  }, []);
+
   return (
     <>
       <Hero />
 
-      <BannerCarousel slides={homeData?.banners} isLoading={isLoading} error={error} />
+      <BannerCarousel
+        slides={bannersWithLocalVideo}
+        isLoading={isBannersLoading}
+        error={bannersError}
+      />
 
-      <CustomCarousel categories={homeData?.newProducts} isLoading={isLoading} error={error} />
+      <CustomCarousel
+        categories={newProducts}
+        isLoading={isNewProductsLoading}
+        error={newProductsError}
+      />
 
       <FeaturedLookSection />
 

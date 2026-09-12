@@ -41,12 +41,11 @@ function ChevronRight({ size = 18, className }) {
   );
 }
 
-// TODO: SLIDES.video 를 실제 영상으로 교체 (현재 3슬라이드 모두 임시 공용 파일).
 const SLIDES = [
   {
     id: 'wind-shell',
     to: '/products/wind-shell',
-    video: '/main_video.mp4',
+    video: '/main_video_1.mp4',
     topLeft: 'THE LIGHT WAY OUT',
     topRight: 'LAYER FOR THE WIND. PACK WHAT YOU NEED.',
     title: 'THE LIGHT WAY OUT',
@@ -56,7 +55,7 @@ const SLIDES = [
   {
     id: 'product-2',
     to: '/products/product-2',
-    video: '/main_video.mp4',
+    video: '/main_video_2.mp4',
     topLeft: 'SLIDE TWO',
     topRight: 'SAMPLE CAPTION',
     title: 'SECOND ITEM',
@@ -66,7 +65,7 @@ const SLIDES = [
   {
     id: 'product-3',
     to: '/products/product-3',
-    video: '/main_video.mp4',
+    video: '/main_video_3.mp4',
     topLeft: 'SLIDE THREE',
     topRight: 'SAMPLE CAPTION',
     title: 'THIRD ITEM',
@@ -75,7 +74,7 @@ const SLIDES = [
   },
 ];
 
-const AUTO_INTERVAL = 5000; // ms
+const DEFAULT_SLIDE_DURATION = 5000; // ms — 영상 길이를 아직 모를 때 fallback
 const SWIPE_THRESHOLD = 40; // px
 const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 
@@ -102,16 +101,24 @@ export default function BannerCarousel({ slides, isLoading = false, error = null
   const reduced = usePrefersReducedMotion();
   const [current, setCurrent] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [durations, setDurations] = useState({});
   const touchStartX = useRef(0);
   const videoRefs = useRef([]);
 
   const step = (delta) => setCurrent((c) => (c + delta + total) % total);
 
-  useEffect(() => {
-    if (reduced || paused) return undefined;
-    const id = setInterval(() => setCurrent((c) => (c + 1) % total), AUTO_INTERVAL);
-    return () => clearInterval(id);
-  }, [current, reduced, paused, total]);
+  // reduced-motion일 땐 영상이 끝나도 자동 전환하지 않음
+  const handleVideoEnded = () => {
+    if (reduced) return;
+    step(1);
+  };
+
+  const handleLoadedMetadata = (i) => (e) => {
+    const { duration } = e.currentTarget;
+    if (Number.isFinite(duration)) {
+      setDurations((d) => ({ ...d, [i]: duration * 1000 }));
+    }
+  };
 
   // 슬라이드가 바뀌면 그 영상만 처음으로 되감기
   useEffect(() => {
@@ -181,9 +188,11 @@ export default function BannerCarousel({ slides, isLoading = false, error = null
               }}
               className="banner-carousel__video"
               muted
-              loop
+              autoPlay={i === current}
               playsInline
               preload={i === current ? 'auto' : 'metadata'}
+              onEnded={i === current ? handleVideoEnded : undefined}
+              onLoadedMetadata={handleLoadedMetadata(i)}
             >
               <source src={slide.video} type="video/mp4" />
             </video>
@@ -266,7 +275,7 @@ export default function BannerCarousel({ slides, isLoading = false, error = null
                     strokeDasharray={DOT_CIRC}
                     strokeDashoffset={DOT_CIRC}
                     style={{
-                      animation: `bannerDotFill ${AUTO_INTERVAL}ms linear forwards`,
+                      animation: `bannerDotFill ${durations[current] ?? DEFAULT_SLIDE_DURATION}ms linear forwards`,
                       animationPlayState: paused ? 'paused' : 'running',
                     }}
                   />

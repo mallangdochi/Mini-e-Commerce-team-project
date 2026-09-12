@@ -16,7 +16,9 @@
   position: relative;
   z-index: 2;
   width: 100%;
-  padding: 48px 0 48px 6.8%;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 80px 0 80px 6.8%;
 }
 
 .newsletter-section__panel {

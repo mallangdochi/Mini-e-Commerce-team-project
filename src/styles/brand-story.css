@@ -9,23 +9,25 @@
   display: grid;
   grid-template-columns: minmax(430px, 500px) minmax(0, 1fr);
   width: 100%;
-  min-height: 640px;
+  max-width: 1440px;
+  min-height: 540px;
+  margin: 0 auto;
 }
 
 .brand-story__copy {
   display: flex;
   min-width: 0;
   flex-direction: column;
-  justify-content: center;
-  padding: 56px 38px 56px 42px;
+  justify-content: flex-start;
+  padding: 80px 38px 56px 42px;
 }
 
 .brand-story__title {
   margin: 0;
-  font-size: clamp(42px, 3.25vw, 56px);
-  font-weight: 650;
-  line-height: 1.12;
-  letter-spacing: -0.055em;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
 }
 
 .brand-story__title span {
@@ -44,11 +46,11 @@
 }
 
 .brand-story__visual {
-  --brand-story-slant: 72px;
+  --brand-story-slant: 160px;
   display: flex;
   min-width: 0;
+  height: 540px;
   overflow: visible;
-  padding: 10px 0;
   background: transparent;
 }
 
@@ -56,7 +58,7 @@
   position: relative;
   min-width: 0;
   flex: 1 1 0;
-  height: 100%;
+  height: 540px;
   overflow: hidden;
   background: #e5e5e1;
   clip-path: polygon(
@@ -73,7 +75,7 @@
 
 .brand-story__image {
   width: 100%;
-  height: 100%;
+  height: 540px;
   object-fit: cover;
 }
 
@@ -143,10 +145,6 @@
     padding-right: 28px;
   }
 
-  .brand-story__title {
-    font-size: clamp(38px, 3.8vw, 50px);
-  }
-
   .brand-story__visual {
     --brand-story-slant: 66px;
   }
@@ -175,9 +173,6 @@
   }
 }
 
-/* 작은 태블릿/큰 폰 (~620px) — .brand-story__inner 자체 줄바꿈 대응.
-   767px 이하는 아래 .brand-story-mobile 블록이 .brand-story__inner 를 통째로 숨기므로
-   이 블록은 실제로는 도달하지 않는 죽은 코드지만, 그 경계값 참고용으로 남겨둠. */
 @media (max-width: 620px) {
   .brand-story__inner {
     display: block;
@@ -229,10 +224,10 @@
   .brand-story-mobile__title {
     margin: 0;
     padding: 0px 20px;
-    font-size: clamp(30px, 9vw, 40px);
+    font-size: 26px;
     font-weight: 700;
-    line-height: 1.25;
-    letter-spacing: -0.04em;
+    line-height: 1.3;
+    letter-spacing: -0.02em;
   }
 
   .brand-story-mobile__title span {

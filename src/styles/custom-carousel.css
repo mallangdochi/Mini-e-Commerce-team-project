@@ -1,7 +1,7 @@
 .custom-carousel {
   width: 100%;
   margin: 0 auto;
-  padding: 64px 0;
+  padding: 80px 0;
   background: #fff;
   display: flex;
   flex-direction: column;
@@ -26,7 +26,7 @@
   margin-top: 24px;
   display: flex;
   align-items: center;
-  gap: 40px;
+  gap: 30px;
 }
 
 .custom-carousel__tab {
@@ -248,7 +248,7 @@
 
 /* ===== 반응형 ===== */
 
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .custom-carousel__arrow--overlay {
     display: none;
   }
@@ -263,17 +263,18 @@
   }
 
   .custom-carousel__nav {
+    display: grid;
+    grid-template-columns: 30px 1fr 30px;
     box-sizing: border-box;
     width: 100%;
     padding: 0 20px;
     align-items: flex-start;
-    justify-content: space-between;
-    gap: 12px;
+    gap: 20px;
   }
 
   .custom-carousel__meta {
-    flex: 1;
     min-width: 0;
+    justify-self: center;
   }
 
   .custom-carousel__meta-name {
