@@ -26,7 +26,7 @@ const ACTIVE_FILTERS = [
 ];
 
 /* ================================
-   테스트용 상품 30개
+   테스트용 상품 
 ================================ */
 
 const PRODUCT_IMAGES = [
@@ -149,6 +149,18 @@ function FilterTag({ label, color }) {
 ================================ */
 
 function ProductPage() {
+  /* 필터 열림 / 닫힘 */
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+  const [isColorOpen, setIsColorOpen] = useState(true);
+
+  /* 가격 필터 */
+  const PRICE_MIN = 34300;
+  const PRICE_MAX = 59000;
+
+  const [minPrice, setMinPrice] = useState(PRICE_MIN);
+  const [maxPrice, setMaxPrice] = useState(PRICE_MAX);
+
   /* 현재 몇 개까지 보여줄지 */
   const [visibleCount, setVisibleCount] = useState(PRODUCTS_PER_LOAD);
 
@@ -160,6 +172,21 @@ function ProductPage() {
 
   /* 아직 불러올 상품이 남았는지 */
   const hasMore = visibleCount < products.length;
+
+  /* 정렬 메뉴 */
+  const [isSortOpen, setIsSortOpen] = useState(false);
+  const [sortType, setSortType] = useState('인기순');
+
+  const SORT_OPTIONS = ['인기순', '신상품', '낮은 가격순', '높은 가격순'];
+
+  const filterFormRef = useRef(null);
+
+  const resetFilters = () => {
+    filterFormRef.current?.reset();
+
+    setMinPrice(PRICE_MIN);
+    setMaxPrice(PRICE_MAX);
+  };
 
   /* ================================
      무한 스크롤
@@ -277,13 +304,38 @@ function ProductPage() {
 
           <div className="product-filter-bar">
             <div className="product-filter-bar-left">
-              <button type="button" className="filter-btn">
-                <span>인기순</span>
+              <div className="product-sort">
+                <button
+                  type="button"
+                  className={`filter-btn product-sort-btn ${isSortOpen ? 'is-open' : ''}`}
+                  onClick={() => setIsSortOpen((prev) => !prev)}
+                  aria-expanded={isSortOpen}
+                >
+                  <span>{sortType}</span>
 
-                <IconChevronDown />
-              </button>
+                  <IconChevronDown />
+                </button>
 
-              <button type="button" className="filter-btn">
+                {isSortOpen && (
+                  <div className="product-sort-menu">
+                    {SORT_OPTIONS.map((option) => (
+                      <button
+                        type="button"
+                        key={option}
+                        className={`product-sort-option ${sortType === option ? 'is-active' : ''}`}
+                        onClick={() => {
+                          setSortType(option);
+                          setIsSortOpen(false);
+                        }}
+                      >
+                        {option}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <button type="button" className="filter-btn" onClick={() => setIsFilterOpen(true)}>
                 <IconFilter />
 
                 <span>전체 필터</span>
@@ -301,6 +353,253 @@ function ProductPage() {
             </div>
           </div>
 
+          {/* ================================
+    오른쪽 전체 필터
+================================ */}
+
+          <div
+            className={`filter-overlay ${isFilterOpen ? 'is-open' : ''}`}
+            onClick={() => setIsFilterOpen(false)}
+          />
+
+          <aside className={`filter-drawer ${isFilterOpen ? 'is-open' : ''}`}>
+            {/* ================================
+      필터 헤더
+  ================================ */}
+
+            <div className="filter-drawer-header">
+              <h2>전체 필터</h2>
+
+              <div className="filter-drawer-header-actions">
+                <button type="button" className="filter-reset-btn" onClick={resetFilters}>
+                  초기화
+                </button>
+
+                <button
+                  type="button"
+                  className="filter-close-btn"
+                  aria-label="필터 닫기"
+                  onClick={() => setIsFilterOpen(false)}
+                >
+                  <IconClose />
+                </button>
+              </div>
+            </div>
+
+            {/* ================================
+      필터 본문
+  ================================ */}
+
+            <form
+              ref={filterFormRef}
+              className="filter-drawer-body"
+              onSubmit={(e) => e.preventDefault()}
+            >
+              {/* ================================
+        컬러
+    ================================ */}
+
+              <section
+                className={`filter-section color-filter-section ${
+                  !isColorOpen ? 'is-collapsed' : ''
+                }`}
+              >
+                <div className="filter-section-header">
+                  <h3>컬러</h3>
+
+                  <button
+                    type="button"
+                    className={`filter-section-toggle ${isColorOpen ? 'is-open' : ''}`}
+                    onClick={() => setIsColorOpen((prev) => !prev)}
+                    aria-expanded={isColorOpen}
+                    aria-label="컬러 필터 열기/닫기"
+                  >
+                    <IconChevronDown />
+                  </button>
+                </div>
+
+                {isColorOpen && (
+                  <div className="filter-section-content">
+                    <label className="color-filter-item">
+                      <input type="checkbox" />
+
+                      <span
+                        className="color-filter-swatch"
+                        style={{ backgroundColor: '#111111' }}
+                      />
+
+                      <span className="color-filter-name">Black</span>
+
+                      <span className="color-filter-count">(12)</span>
+                    </label>
+                  </div>
+                )}
+              </section>
+
+              {/* ================================
+        소재
+    ================================ */}
+
+              <section className="filter-section">
+                <h3>소재</h3>
+
+                <div className="filter-check-list">
+                  <label>
+                    <input type="checkbox" />
+                    <span className="custom-check" />
+                    코튼
+                  </label>
+
+                  <label>
+                    <input type="checkbox" />
+                    <span className="custom-check" />
+                    폴리에스터
+                  </label>
+                </div>
+              </section>
+
+              {/* ================================
+        긴팔 / 반팔
+    ================================ */}
+
+              <section className="filter-section">
+                <h3>긴팔 / 반팔</h3>
+
+                <div className="filter-check-list">
+                  <label>
+                    <input type="checkbox" />
+                    <span className="custom-check" />
+                    긴팔
+                  </label>
+
+                  <label>
+                    <input type="checkbox" />
+                    <span className="custom-check" />
+                    반팔
+                  </label>
+                </div>
+              </section>
+
+              {/* ================================
+        가격
+    ================================ */}
+
+              <section className="filter-section filter-price-section">
+                <div className="price-section-header">
+                  <h3>가격</h3>
+                </div>
+
+                <div
+                  className="price-range"
+                  style={{
+                    '--min-position': `${
+                      ((minPrice - PRICE_MIN) / (PRICE_MAX - PRICE_MIN)) * 100
+                    }%`,
+
+                    '--max-position': `${
+                      ((maxPrice - PRICE_MIN) / (PRICE_MAX - PRICE_MIN)) * 100
+                    }%`,
+                  }}
+                >
+                  <div className="price-range-track" />
+
+                  <input
+                    type="range"
+                    className="price-range-input price-range-min"
+                    min={PRICE_MIN}
+                    max={PRICE_MAX}
+                    step="100"
+                    value={minPrice}
+                    onChange={(e) => {
+                      const value = Math.min(Number(e.target.value), maxPrice - 100);
+
+                      setMinPrice(value);
+                    }}
+                  />
+
+                  <input
+                    type="range"
+                    className="price-range-input price-range-max"
+                    min={PRICE_MIN}
+                    max={PRICE_MAX}
+                    step="100"
+                    value={maxPrice}
+                    onChange={(e) => {
+                      const value = Math.max(Number(e.target.value), minPrice + 100);
+
+                      setMaxPrice(value);
+                    }}
+                  />
+                </div>
+
+                <div className="price-range-values">
+                  <span>{minPrice.toLocaleString()} 원</span>
+
+                  <span>{maxPrice.toLocaleString()} 원</span>
+                </div>
+
+                <div className="price-inputs">
+                  <label>
+                    <strong>낮은 가격 (KRW)</strong>
+
+                    <input
+                      type="number"
+                      value={minPrice}
+                      onChange={(e) => {
+                        const value = Number(e.target.value);
+
+                        setMinPrice(Math.max(PRICE_MIN, Math.min(value, maxPrice - 100)));
+                      }}
+                    />
+                  </label>
+
+                  <label>
+                    <strong>높은 가격 (KRW)</strong>
+
+                    <input
+                      type="number"
+                      value={maxPrice}
+                      onChange={(e) => {
+                        const value = Number(e.target.value);
+
+                        setMaxPrice(Math.min(PRICE_MAX, Math.max(value, minPrice + 100)));
+                      }}
+                    />
+                  </label>
+                </div>
+              </section>
+
+              {/* ================================
+        사이즈
+    ================================ */}
+
+              <section className="filter-section">
+                <h3>사이즈</h3>
+
+                <div className="shoe-size-grid">
+                  {[230, 235, 240, 245, 250, 255, 260, 265, 270, 275, 280].map((size) => (
+                    <button type="button" key={size}>
+                      {size}
+                    </button>
+                  ))}
+                </div>
+              </section>
+            </form>
+
+            {/* ================================
+      적용 버튼
+  ================================ */}
+
+            <div className="filter-drawer-footer">
+              <button
+                type="button"
+                className="filter-apply-btn"
+                onClick={() => setIsFilterOpen(false)}
+              >
+                적용하기
+              </button>
+            </div>
+          </aside>
           {/* ================================
               활성 필터
           ================================ */}
