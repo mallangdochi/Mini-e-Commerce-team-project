@@ -85,6 +85,11 @@
 
 .product-page .product-sidebar {
   flex: 0 0 148px;
+
+  position: sticky;
+  top: 100px;
+  align-self: flex-start;
+  height: fit-content;
 }
 
 .product-page .product-sidebar-nav {
@@ -105,16 +110,18 @@
   letter-spacing: 0.05em;
 
   text-decoration: none;
+
+  transition:
+    color 0.25s ease,
+    transform 0.25s ease;
 }
 
-.product-page .product-sidebar-link.is-active {
-  color: #0b0c0e;
-}
-
-.product-page .product-sidebar-link.is-active::after {
+/* 밑줄 */
+.product-page .product-sidebar-link::after {
   content: '';
 
   position: absolute;
+
   left: 0;
   bottom: 17px;
 
@@ -124,11 +131,27 @@
   border-radius: 9999px;
 
   background: #0b0c0e;
+
+  transform: scaleX(0);
+  transform-origin: left;
+
+  transition: transform 0.28s ease;
 }
 
-.product-page .product-main {
-  flex: 1;
-  min-width: 0;
+/* 모든 메뉴 hover */
+.product-page .product-sidebar-link:hover {
+  color: #0b0c0e;
+
+  transform: translateX(6px);
+}
+
+.product-page .product-sidebar-link:hover::after {
+  transform: scaleX(1);
+}
+
+/* is-active가 붙어 있어도 기본 상태는 회색 */
+.product-page .product-sidebar-link.is-active {
+  color: #b5bcc7;
 }
 
 /* ===== breadcrumb ===== */
@@ -572,4 +595,768 @@
   font-weight: 400;
 
   color: #90959d;
+}
+
+/* =================================
+   오른쪽 전체 필터 패널
+================================= */
+
+/* 뒤쪽 배경 */
+.product-page .filter-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+
+  background: rgba(0, 0, 0, 0.2);
+
+  opacity: 0;
+  visibility: hidden;
+
+  transition:
+    opacity 0.3s ease,
+    visibility 0.3s ease;
+}
+
+.product-page .filter-overlay.is-open {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* 오른쪽 패널 */
+.product-page .filter-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 1001;
+
+  display: flex;
+  flex-direction: column;
+
+  width: min(620px, 100vw);
+  height: 100dvh;
+
+  background: #fff;
+  border-left: 1px solid #dadada;
+
+  transform: translateX(100%);
+
+  transition: transform 0.35s ease;
+
+  box-shadow: -8px 0 30px rgba(0, 0, 0, 0.08);
+}
+
+.product-page .filter-drawer.is-open {
+  transform: translateX(0);
+}
+
+/* =================================
+   필터 헤더
+================================= */
+
+.product-page .filter-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  flex: 0 0 auto;
+
+  min-height: 72px;
+  padding: 0 28px;
+
+  border-bottom: 1px solid #dadada;
+}
+
+.product-page .filter-drawer-header h2 {
+  margin: 0;
+
+  font-size: 21px;
+  font-weight: 600;
+}
+
+.product-page .filter-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 38px;
+  height: 38px;
+
+  padding: 0;
+
+  border: 0;
+  background: transparent;
+
+  cursor: pointer;
+}
+
+/* 기존 IconClose가 작아서 필터 닫기에서는 조금 확대 */
+.product-page .filter-close-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* =================================
+   필터 본문
+================================= */
+
+.product-page .filter-drawer-body {
+  flex: 1;
+  min-height: 0;
+
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.product-page .filter-section {
+  padding: 28px;
+
+  border-bottom: 1px solid #dadada;
+}
+
+/* =================================
+   체크박스
+================================= */
+
+.product-page .filter-check-list {
+  display: flex;
+  flex-wrap: wrap;
+
+  gap: 18px 42px;
+}
+
+.product-page .filter-check-list label {
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+
+  min-width: 72px;
+
+  color: #111;
+
+  font-size: 16px;
+
+  cursor: pointer;
+}
+
+.product-page .filter-check-list input {
+  position: absolute;
+
+  width: 1px;
+  height: 1px;
+
+  opacity: 0;
+  pointer-events: none;
+}
+
+.product-page .custom-check {
+  position: relative;
+
+  display: block;
+
+  width: 27px;
+  height: 27px;
+
+  flex: 0 0 27px;
+
+  border: 1px solid #aeb2b8;
+  border-radius: 2px;
+
+  background: #fff;
+}
+
+.product-page .filter-check-list input:checked + .custom-check {
+  border-color: #000;
+  background: #000;
+}
+
+.product-page .filter-check-list input:checked + .custom-check::after {
+  content: '';
+
+  position: absolute;
+
+  top: 5px;
+  left: 9px;
+
+  width: 6px;
+  height: 11px;
+
+  border-right: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+
+  transform: rotate(45deg);
+}
+
+/* =================================
+   컬러 필터
+================================= */
+
+.product-page .color-filter-item {
+  display: flex;
+  align-items: center;
+
+  gap: 10px;
+
+  width: fit-content;
+
+  color: #555;
+
+  font-size: 14px;
+
+  cursor: pointer;
+}
+
+.product-page .color-filter-item input[type='checkbox'] {
+  width: 14px;
+  height: 14px;
+
+  margin: 0;
+
+  accent-color: #1667b1;
+
+  cursor: pointer;
+}
+
+.product-page .color-filter-swatch {
+  display: block;
+
+  width: 19px;
+  height: 19px;
+
+  flex: 0 0 19px;
+
+  border-radius: 50%;
+}
+
+.product-page .color-filter-name {
+  line-height: 1;
+}
+/* =================================
+   필터 섹션 접기 / 펼치기
+================================= */
+
+.product-page .filter-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.product-page .filter-section-header h3 {
+  margin: 0;
+}
+
+.product-page .filter-section-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 30px;
+  height: 30px;
+
+  padding: 0;
+
+  border: 0;
+  background: transparent;
+
+  cursor: pointer;
+}
+
+.product-page .filter-section-toggle svg {
+  transition: transform 0.2s ease;
+}
+
+/* 열려 있을 때 화살표 위쪽 */
+.product-page .filter-section-toggle.is-open svg {
+  transform: rotate(180deg);
+}
+
+.product-page .filter-section-content {
+  margin-top: 0px;
+}
+
+/* 컬러 섹션 접힘/펼침 */
+.product-page .color-filter-section {
+  padding: 26px 28px;
+}
+
+.product-page .color-filter-section.is-collapsed {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.product-page .color-filter-section .filter-section-header {
+  min-height: 58px;
+}
+
+.product-page .color-filter-section .filter-section-content {
+  margin-top: 14px;
+}
+/* =================================
+   가격
+================================= */
+
+.product-page .filter-price-section {
+  padding-top: 28px;
+  padding-bottom: 30px;
+}
+
+.product-page .price-inputs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+
+  gap: 16px;
+}
+
+.product-page .price-inputs label {
+  display: flex;
+  flex-direction: column;
+
+  gap: 10px;
+
+  min-width: 0;
+}
+
+.product-page .price-inputs strong {
+  color: #111;
+
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.product-page .price-inputs input {
+  width: 100%;
+  height: 55px;
+
+  padding: 0 16px;
+
+  border: 1px solid #c7cbd1;
+  border-radius: 0;
+
+  outline: none;
+
+  background: #fff;
+
+  color: #111;
+
+  font-family: inherit;
+  font-size: 18px;
+}
+
+.product-page .price-inputs input:focus {
+  border-color: #111;
+}
+
+/* number 화살표 제거 */
+.product-page .price-inputs input::-webkit-outer-spin-button,
+.product-page .price-inputs input::-webkit-inner-spin-button {
+  margin: 0;
+
+  appearance: none;
+}
+
+.product-page .price-inputs input[type='number'] {
+  appearance: textfield;
+}
+
+/* =================================
+   신발 사이즈
+================================= */
+
+.product-page .shoe-size-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+
+  gap: 10px 12px;
+}
+
+.product-page .shoe-size-grid button {
+  height: 52px;
+
+  padding: 0;
+
+  border: 1px solid #c7cbd1;
+
+  background: #fff;
+
+  color: #111;
+
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 400;
+
+  cursor: pointer;
+
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.product-page .shoe-size-grid button:hover {
+  border-color: #111;
+}
+
+.product-page .shoe-size-grid button.is-selected {
+  border-color: #000;
+
+  background: #000;
+
+  color: #fff;
+}
+
+/* =================================
+   적용하기
+================================= */
+
+.product-page .filter-drawer-footer {
+  flex: 0 0 auto;
+
+  padding: 16px 22px 22px;
+
+  border-top: 1px solid #dadada;
+
+  background: #fff;
+}
+
+.product-page .filter-apply-btn {
+  width: 100%;
+  height: 56px;
+
+  padding: 0;
+
+  border: 0;
+  border-radius: 4px;
+
+  background: #000;
+
+  color: #fff;
+
+  font-family: inherit;
+  font-size: 18px;
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+.product-page .filter-apply-btn:hover {
+  background: #222;
+}
+
+/* =================================
+   오른쪽 전체 필터 패널
+================================= */
+
+/* 뒤쪽 배경 */
+
+/* 오른쪽 패널 */
+
+/* =================================
+   필터 헤더
+================================= */
+
+/* 기존 IconClose가 작아서 필터 닫기에서는 조금 확대 */
+
+/* =================================
+   필터 본문
+================================= */
+
+.product-page .filter-section h3 {
+  margin: 10px 0 10px;
+
+  color: #111;
+
+  font-size: 19px;
+  font-weight: 600;
+}
+
+/* =================================
+   체크박스
+================================= */
+
+/* ================================
+   가격 듀얼 슬라이더
+================================ */
+
+.product-page .price-range {
+  position: relative;
+
+  width: 100%;
+  height: 30px;
+
+  margin-top: 10px;
+}
+
+/* 우리가 직접 그리는 선 */
+.product-page .price-range-track {
+  position: absolute;
+
+  top: 50%;
+  left: 12px;
+  right: 12px;
+
+  height: 2px;
+
+  background: #111;
+
+  transform: translateY(-50%);
+
+  pointer-events: none;
+}
+
+/* 두 range를 같은 자리에 완전히 겹침 */
+.product-page .price-range-input {
+  position: absolute;
+
+  top: 0;
+  left: 0;
+
+  width: 100%;
+  height: 30px;
+
+  margin: 0;
+  padding: 0;
+
+  background: transparent;
+
+  appearance: none;
+  -webkit-appearance: none;
+
+  pointer-events: none;
+}
+
+/* 크롬 / 엣지 선 제거 */
+.product-page .price-range-input::-webkit-slider-runnable-track {
+  height: 2px;
+
+  background: transparent;
+
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+/* 크롬 / 엣지 손잡이 */
+.product-page .price-range-input::-webkit-slider-thumb {
+  width: 22px;
+  height: 22px;
+
+  margin-top: -10px;
+
+  border: 4px solid #fff;
+  border-radius: 50%;
+
+  background: #000;
+
+  box-shadow: 0 0 0 1px #999;
+
+  appearance: none;
+  -webkit-appearance: none;
+
+  pointer-events: auto;
+
+  cursor: pointer;
+}
+
+/* Firefox */
+.product-page .price-range-input::-moz-range-track {
+  height: 2px;
+
+  background: transparent;
+}
+
+.product-page .price-range-input::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+
+  border: 4px solid #fff;
+  border-radius: 50%;
+
+  background: #000;
+
+  box-shadow: 0 0 0 1px #999;
+
+  pointer-events: auto;
+
+  cursor: pointer;
+}
+
+.product-page .price-range-min {
+  z-index: 2;
+}
+
+.product-page .price-range-max {
+  z-index: 3;
+}
+
+/* 슬라이더 밑 가격 */
+.product-page .price-range-values {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  width: 100%;
+
+  margin-top: 4px;
+  margin-bottom: 22px;
+
+  color: #666;
+
+  font-size: 15px;
+}
+
+/* number 화살표 제거 */
+
+/* =================================
+   신발 사이즈
+================================= */
+
+/* =================================
+   적용하기
+================================= */
+
+/* =================================
+   필터 패널 반응형
+================================= */
+
+@media (max-width: 767px) {
+  .product-page .filter-drawer {
+    width: 100%;
+  }
+
+  .product-page .filter-drawer-header {
+    min-height: 64px;
+    padding: 0 20px;
+  }
+
+  .product-page .filter-section {
+    padding: 24px 20px;
+  }
+
+  .product-page .shoe-size-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+
+    gap: 9px;
+  }
+
+  .product-page .shoe-size-grid button {
+    height: 48px;
+
+    font-size: 15px;
+  }
+
+  .product-page .price-inputs {
+    gap: 12px;
+  }
+
+  .product-page .price-inputs input {
+    height: 50px;
+
+    padding: 0 12px;
+
+    font-size: 16px;
+  }
+
+  .product-page .filter-drawer-footer {
+    padding: 12px 16px 16px;
+  }
+}
+
+/* =================================
+   상품 정렬 드롭다운
+================================= */
+
+.product-page .product-sort {
+  position: relative;
+}
+
+.product-page .product-sort-btn svg {
+  transition: transform 0.2s ease;
+}
+
+.product-page .product-sort-btn.is-open svg {
+  transform: rotate(180deg);
+}
+
+/* 메뉴 */
+.product-page .product-sort-menu {
+  position: absolute;
+
+  top: calc(100% + 6px);
+  left: 0;
+
+  z-index: 100;
+
+  width: 145px;
+
+  padding: 6px 0;
+
+  border: 1px solid #dadada;
+
+  background: #fff;
+
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+/* 메뉴 항목 */
+.product-page .product-sort-option {
+  display: block;
+
+  width: 100%;
+  height: 40px;
+
+  padding: 0 14px;
+
+  border: 0;
+
+  background: #fff;
+
+  color: #60656d;
+
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+
+  text-align: left;
+
+  cursor: pointer;
+}
+
+.product-page .product-sort-option:hover {
+  background: #f5f5f5;
+
+  color: #111;
+}
+
+.product-page .product-sort-option.is-active {
+  color: #111;
+
+  font-weight: 700;
+}
+
+.product-page .filter-drawer-header-actions {
+  display: flex;
+  align-items: center;
+
+  gap: 20px;
+}
+
+/* 초기화 버튼 */
+.product-page .filter-reset-btn {
+  padding: 0;
+
+  border: 0;
+  background: transparent;
+
+  color: #777;
+
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+
+  cursor: pointer;
+
+  transition: color 0.2s ease;
+}
+
+.product-page .filter-reset-btn:hover {
+  color: #111;
 }
