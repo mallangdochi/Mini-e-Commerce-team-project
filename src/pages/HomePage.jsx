@@ -10,6 +10,9 @@ import Hero from '@/components/home/Hero';
 import NewsletterSection from '@/components/home/NewsletterSection';
 import TrendingSection from '@/components/home/TrendingSection';
 
+// TODO: 서버가 실제 배너 영상 URL을 제공하게 되면 이 오버라이드 제거
+const LOCAL_BANNER_VIDEOS = ['/main_video_1.mp4', '/main_video_2.mp4', '/main_video_3.mp4'];
+
 function HomePage() {
   const [homeData, setHomeData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -71,6 +74,13 @@ function HomePage() {
     loadBanners();
   }, []);
 
+  const bannersWithLocalVideo = Array.isArray(banners)
+    ? banners.map((slide, index) => ({
+        ...slide,
+        video: LOCAL_BANNER_VIDEOS[index] ?? slide.video,
+      }))
+    : banners;
+
   useEffect(() => {
     const loadNewProducts = async () => {
       try {
@@ -99,7 +109,11 @@ function HomePage() {
     <>
       <Hero />
 
-      <BannerCarousel slides={banners} isLoading={isBannersLoading} error={bannersError} />
+      <BannerCarousel
+        slides={bannersWithLocalVideo}
+        isLoading={isBannersLoading}
+        error={bannersError}
+      />
 
       <CustomCarousel
         categories={newProducts}
