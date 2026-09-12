@@ -251,11 +251,11 @@ function Header() {
 
         {/* HEADER ACTIONS */}
         <div className="site-header-actions">
-          {/* TODO(auth): 로그인 여부에 따라 로그인 / 마이페이지 중 하나만 노출 */}
-          <Link to="/login" className="site-header-action header-login-btn">
-            로그인
-          </Link>
-          <Link to="/mypage" className="site-header-action" aria-label="마이페이지">
+          <Link
+            to="/mypage"
+            className="site-header-action site-header-action--mypage"
+            aria-label="마이페이지"
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="16"
@@ -265,6 +265,11 @@ function Header() {
             >
               <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6m2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0m4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4m-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10s-3.516.68-4.168 1.332c-.678.678-.83 1.418-.832 1.664z" />
             </svg>
+          </Link>
+
+          {/* TODO(auth): 로그인 여부에 따라 로그인 / 마이페이지 중 하나만 노출 */}
+          <Link to="/login" className="site-header-action header-login-btn">
+            로그인
           </Link>
 
           <Link to="/cart" className="site-header-action" aria-label="장바구니">

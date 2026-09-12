@@ -41,7 +41,6 @@
   min-height: 760px;
   max-height: 860px;
   margin: 0 auto;
-  padding: 44px 50px 38px;
   display: grid;
   grid-template-columns: 360px minmax(0, 1fr);
   gap: clamp(24px, 3vw, 52px);
@@ -762,7 +761,7 @@
 
   .arc-mobile-look__title {
     margin: 0 0 26px;
-    font-size: 28px;
+    font-size: 26px;
     font-weight: 700;
     line-height: 1.1;
     letter-spacing: -0.02em;
@@ -841,7 +840,7 @@
 
   .arc-hotspot-pill--bottom {
     left: 55%;
-    top: 51%;
+    top: 60%;
   }
 
   .arc-hotspot-pill--shoes {
