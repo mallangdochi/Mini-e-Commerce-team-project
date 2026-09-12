@@ -1,106 +1,260 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useMemo, useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 
+import { checkIdAvailability, signup } from '@/api/authApi';
 import '@/styles/signup.css';
+import TermsPage from '@/pages/TermsPage';
+
+const LIMITS = {
+  name: 20,
+  email: 50,
+  password: 12,
+  address: 100,
+  detailAddress: 50,
+};
+const NAME_PATTERN = /^[가-힣a-zA-Z ]+$/;
+const EMAIL_PATTERN = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+const PASSWORD_PATTERN = /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[.!@#$%^&*?])[a-zA-Z\d.!@#$%^&*?]{8,12}$/;
+
+function StatusIcon({ status }) {
+  if (status === 'success') return <span className="signup-status-icon success">✓</span>;
+  if (status === 'error') return <span className="signup-status-icon error">✕</span>;
+  return null;
+}
 
 function SignupPage() {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [passwordCheck, setPasswordCheck] = useState('');
+  const navigate = useNavigate();
+  const termsDialog = useRef(null);
+  const [selectedTerms, setSelectedTerms] = useState(null);
+  const addressDialog = useRef(null);
+  const addressContainer = useRef(null);
+  const emailRevision = useRef(0);
+  const [addressLoading, setAddressLoading] = useState(false);
+  const [form, setForm] = useState({
+    name: '',
+    email: '',
+    password: '',
+    passwordCheck: '',
+    birthDate: '',
+    postcode: '',
+    address: '',
+    detailAddress: '',
+  });
+  const [agreements, setAgreements] = useState({
+    service: false,
+    privacy: false,
+    marketing: false,
+  });
+  const [emailStatus, setEmailStatus] = useState('idle');
+  const [emailMessage, setEmailMessage] = useState('');
+  const [submitError, setSubmitError] = useState('');
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [birthDate, setBirthDate] = useState('');
+  const passwordStatus = useMemo(() => {
+    if (!form.password) return 'idle';
+    return PASSWORD_PATTERN.test(form.password) ? 'success' : 'error';
+  }, [form.password]);
 
-  const [postcode, setPostcode] = useState('');
-  const [address, setAddress] = useState('');
-  const [detailAddress, setDetailAddress] = useState('');
+  const passwordCheckStatus = useMemo(() => {
+    if (!form.passwordCheck) return 'idle';
+    return form.password === form.passwordCheck ? 'success' : 'error';
+  }, [form.password, form.passwordCheck]);
 
-  const [emailCheckMessage, setEmailCheckMessage] = useState('');
-  const [isEmailAvailable, setIsEmailAvailable] = useState(null);
+  const allAgreed = Object.values(agreements).every(Boolean);
+  const updateForm = (name, value) => {
+    setForm((previous) => ({ ...previous, [name]: value }));
+    setSubmitError('');
+  };
 
-  const handleCheckDuplicate = () => {
-    if (!email.trim()) {
-      setEmailCheckMessage('이메일을 입력해 주세요.');
-      setIsEmailAvailable(false);
+  const handleEmailChange = (event) => {
+    const value = event.target.value.replace(/[^a-zA-Z0-9@._%+-]/g, '').slice(0, LIMITS.email);
+    emailRevision.current += 1;
+    updateForm('email', value);
+    setEmailStatus('idle');
+    setEmailMessage('');
+  };
+
+  const handlePasswordChange = (name, value) => {
+    updateForm(name, value.replace(/[^a-zA-Z0-9.!@#$%^&*?]/g, '').slice(0, LIMITS.password));
+  };
+
+  const handleCheckDuplicate = async () => {
+    if (!EMAIL_PATTERN.test(form.email)) {
+      setEmailStatus('error');
+      setEmailMessage('올바른 이메일 형식으로 입력해 주세요.');
       return;
     }
-
-    // 테스트용 중복 이메일 목록
-    const existingEmails = ['user@test.com', 'admin@test.com', 'test@test.com'];
-
-    if (existingEmails.includes(email.trim())) {
-      setEmailCheckMessage('이미 있는 아이디 입니다.');
-      setIsEmailAvailable(false);
-    } else {
-      setEmailCheckMessage('사용 가능한 이메일입니다.');
-      setIsEmailAvailable(true);
+    const revision = emailRevision.current;
+    setEmailMessage('');
+    setIsCheckingEmail(true);
+    setEmailStatus('idle');
+    try {
+      const response = await checkIdAvailability(form.email);
+      if (revision !== emailRevision.current) return;
+      const available = response.available === true;
+      setEmailStatus(available ? 'success' : 'error');
+      setEmailMessage(
+        response.message ||
+          (available ? '사용 가능한 아이디입니다.' : '이미 사용 중인 아이디입니다.')
+      );
+    } catch (error) {
+      if (revision !== emailRevision.current) return;
+      setEmailStatus('error');
+      setEmailMessage(error.message);
+    } finally {
+      setIsCheckingEmail(false);
     }
   };
 
-  // 비밀번호 관련 State
-  const [passwordMessage, setPasswordMessage] = useState('');
-  const [isPasswordValid, setIsPasswordValid] = useState(null);
-
-  // 비밀번호 유효성 검사 함수
-  const validatePassword = (value) => {
-    if (!value) {
-      setPasswordMessage('');
-      setIsPasswordValid(null);
-      return;
-    }
-
-    const passwordRegex = /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[!@#$%^&*()_+-=[\]{};':"\\|,.<>/?]).{8,12}$/;
-
-    if (passwordRegex.test(value)) {
-      setPasswordMessage('사용 가능한 비밀번호입니다.');
-      setIsPasswordValid(true);
-    } else {
-      setPasswordMessage('비밀번호는 영문, 숫자, 특수문자를 포함하여 8~12자로 작성해 주세요.');
-      setIsPasswordValid(false);
+  const handleAddressSearch = async () => {
+    if (addressLoading) return;
+    setAddressLoading(true);
+    setSubmitError('');
+    try {
+      if (!window.kakao?.Postcode && !window.daum?.Postcode) {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          const timer = window.setTimeout(
+            () => reject(new Error('주소 검색 연결 시간이 초과되었습니다.')),
+            15000
+          );
+          script.src = 'https://t1.kakaocdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
+          script.onload = () => {
+            window.clearTimeout(timer);
+            resolve();
+          };
+          script.onerror = () => {
+            window.clearTimeout(timer);
+            reject(new Error('주소 검색 서비스를 불러오지 못했습니다.'));
+          };
+          document.head.appendChild(script);
+        });
+      }
+      const Postcode = window.kakao?.Postcode || window.daum?.Postcode;
+      if (!Postcode) throw new Error('주소 검색 서비스를 불러오지 못했습니다.');
+      addressContainer.current.replaceChildren();
+      addressDialog.current.showModal();
+      new Postcode({
+        width: '100%',
+        height: '100%',
+        oncomplete: (data) => {
+          setForm((previous) => ({
+            ...previous,
+            postcode: data.zonecode,
+            address: data.address,
+            detailAddress: '',
+          }));
+          addressDialog.current.close();
+          window.requestAnimationFrame(() =>
+            document.getElementById('signupDetailAddress')?.focus()
+          );
+        },
+      }).embed(addressContainer.current);
+    } catch (error) {
+      addressDialog.current?.close();
+      setSubmitError(error.message + ' 일반 브라우저에서 다시 시도해 주세요.');
+    } finally {
+      setAddressLoading(false);
     }
   };
 
-  const [allAgree, setAllAgree] = useState(false);
-  const [marketingAgree, setMarketingAgree] = useState(false);
-  const [thirdPartyAgree, setThirdPartyAgree] = useState(false);
-
-  const handleAllAgree = (event) => {
-    const checked = event.target.checked;
-
-    setAllAgree(checked);
-    setMarketingAgree(checked);
-    setThirdPartyAgree(checked);
+  const validateForm = () => {
+    if (!form.name.trim()) return '이름을 입력해 주세요.';
+    if (!NAME_PATTERN.test(form.name)) return '이름은 한글과 영문만 입력할 수 있습니다.';
+    if (emailStatus !== 'success') return '아이디 중복확인을 완료해 주세요.';
+    if (passwordStatus !== 'success') return '비밀번호 입력 조건을 확인해 주세요.';
+    if (passwordCheckStatus !== 'success') return '비밀번호가 일치하지 않습니다.';
+    if (!agreements.service || !agreements.privacy) return '필수 약관에 동의해 주세요.';
+    return '';
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-
-    // 추후 api연결 위치
-    console.log({
-      name,
-      email,
-      password,
-      passwordCheck,
-      birthDate,
-      postcode,
-      address,
-      detailAddress,
-      marketingAgree,
-      thirdPartyAgree,
-    });
+    const message = validateForm();
+    if (message) {
+      setSubmitError(message);
+      return;
+    }
+    setIsSubmitting(true);
+    setSubmitError('');
+    try {
+      const response = await signup({
+        id: form.email,
+        password: form.password,
+        name: form.name.trim(),
+        birthDate: form.birthDate || null,
+        postcode: form.postcode || null,
+        address: form.address || null,
+        detailAddress: form.detailAddress.trim() || null,
+        agreements,
+      });
+      navigate('/login', {
+        replace: true,
+        state: {
+          signupMessage: response.message || '회원가입이 완료되었습니다. 로그인해 주세요.',
+        },
+      });
+    } catch (error) {
+      setSubmitError(error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  const agreementItems = [
+    {
+      name: 'service',
+      required: true,
+      text: 'ARC 이용약관에 동의합니다.',
+      to: '/terms/service',
+    },
+    {
+      name: 'privacy',
+      required: true,
+      text: '개인정보 수집 및 이용에 동의합니다.',
+      to: '/terms/privacy',
+    },
+    {
+      name: 'marketing',
+      required: false,
+      text: '이벤트 및 마케팅 정보 수신에 동의합니다.',
+      to: '/terms/marketing',
+    },
+  ];
 
   return (
     <main className="signup-page">
+      <dialog
+        ref={termsDialog}
+        className="signup-terms-dialog"
+        aria-label="약관 상세"
+        onClose={() => setSelectedTerms(null)}
+      >
+        {selectedTerms && (
+          <TermsPage selectedType={selectedTerms} onConfirm={() => termsDialog.current.close()} />
+        )}
+      </dialog>
+      <dialog
+        ref={addressDialog}
+        className="signup-address-dialog"
+        aria-labelledby="addressDialogTitle"
+      >
+        <div className="signup-address-dialog-header">
+          <h2 id="addressDialogTitle">우편번호 찾기</h2>
+          <button
+            type="button"
+            onClick={() => addressDialog.current.close()}
+            aria-label="주소 검색 닫기"
+          >
+            ✕
+          </button>
+        </div>
+        <div ref={addressContainer} className="signup-address-embed" />
+      </dialog>
       <div className="signup-container">
         <Link to="/" className="signup-logo-wrapper" aria-label="ARC 홈으로 이동">
-          <svg
-            id="_레이어_1"
-            data-name="레이어 1"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 658.06 315.87"
-            className="signup-app-logo"
-          >
+          <svg viewBox="0 0 658.06 315.87" className="signup-app-logo">
             <g>
               <path d="M358.38,172.98l73,54h-40.5l-84.5-65h62.5c3.87,0,15.05-4.19,18.44-6.56,10.05-7.05,18.44-25.02,6-33.87-1-.71-6.79-3.57-7.43-3.57h-115.5c.37-2.24.71-4.54,1.02-6.9.23-1.72.43-3.42.61-5.08,41.3-.02,82.6-.03,123.91-.05,44.35,4.58,33,52.14-.86,64.21-1.72.61-9,2.83-10.17,2.83h-26.5Z" />
               <path d="M576.38,206.98l-15.56,11.94c-34.3-3.13-122.87,15.06-127.43-37.46-3.57-41.13,40.34-69.87,76.61-74.36,31.05-3.85,65.93.14,97.37-.63l-14.7,12.3c-40.86,3.54-92.55-11.84-121.71,25.29-21.54,27.42-12.47,62.92,25.92,62.92h79.5Z" />
@@ -112,218 +266,235 @@ function SignupPage() {
             </g>
           </svg>
         </Link>
-
         <section className="signup-card">
           <div className="signup-card-header">
             <h1>회원가입</h1>
-
-            <p>모든 항목을 정확히 입력해주세요.</p>
+            <p>모든 항목을 정확히 입력해 주세요.</p>
           </div>
-
-          <form className="signup-form" onSubmit={handleSubmit}>
+          <form className="signup-form" onSubmit={handleSubmit} noValidate>
             <div className="signup-form-group">
               <label htmlFor="signupName">
-                이름
-                <span className="signup-required">*</span>
+                이름 <span className="signup-required">*</span>
               </label>
-
               <div className="signup-input-with-icon">
                 <input
                   id="signupName"
                   type="text"
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
+                  value={form.name}
+                  onChange={(event) => {
+                    const value = event.target.value.slice(0, LIMITS.name);
+                    updateForm(
+                      'name',
+                      value.replace(/[^ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z\u1100-\u11ff\u3130-\u318f ]/g, '')
+                    );
+                  }}
+                  maxLength={LIMITS.name}
                   placeholder="이름을 입력하세요"
+                  autoComplete="name"
                   required
                 />
-
-                {name && <span className="signup-check-icon">✓</span>}
+                {form.name.trim() && (
+                  <StatusIcon status={NAME_PATTERN.test(form.name) ? 'success' : 'error'} />
+                )}
               </div>
             </div>
-
             <div className="signup-form-group">
               <label htmlFor="signupEmail">
-                아이디
-                <span className="signup-required">*</span>
+                아이디 <span className="signup-required">*</span>
               </label>
-
               <div className="signup-input-row">
                 <div className="signup-input-with-icon signup-flex-1">
                   <input
                     id="signupEmail"
                     type="email"
-                    value={email}
-                    onChange={(event) => {
-                      setEmail(event.target.value);
-                      setEmailCheckMessage('');
-                    }}
+                    value={form.email}
+                    onChange={handleEmailChange}
+                    maxLength={LIMITS.email}
                     placeholder="이메일을 입력하세요"
+                    autoComplete="email"
                     required
                   />
-                  {email && <span className="signup-check-icon">✓</span>}
+                  <StatusIcon status={emailStatus} />
                 </div>
-
-                <button type="button" className="signup-inline-btn" onClick={handleCheckDuplicate}>
-                  아이디 중복확인
+                <button
+                  type="button"
+                  className="signup-inline-btn"
+                  onClick={handleCheckDuplicate}
+                  disabled={isCheckingEmail}
+                >
+                  {isCheckingEmail ? '확인 중' : '아이디 중복확인'}
                 </button>
               </div>
-
-              {/* 중복확인 결과 안내 메시지 */}
-              {emailCheckMessage && (
-                <p className={`check-message ${isEmailAvailable ? 'success' : 'error'}`}>
-                  {emailCheckMessage}
-                </p>
-              )}
+              <div className="signup-feedback-row">
+                {emailMessage ? (
+                  <p className={`signup-message ${emailStatus}`}>{emailMessage}</p>
+                ) : (
+                  <span />
+                )}
+              </div>
             </div>
-
             <div className="signup-form-group">
               <label htmlFor="signupPassword">
-                비밀번호
-                <span className="signup-required">*</span>
+                비밀번호 <span className="signup-required">*</span>
               </label>
-
               <div className="signup-input-with-icon">
                 <input
                   id="signupPassword"
                   type="password"
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    validatePassword(e.target.value);
-                  }}
+                  value={form.password}
+                  onChange={(event) => handlePasswordChange('password', event.target.value)}
+                  maxLength={LIMITS.password}
                   placeholder="비밀번호를 입력하세요"
+                  autoComplete="new-password"
                   required
                 />
-                {password && <span className="signup-check-icon">✓</span>}
+                <StatusIcon status={passwordStatus} />
               </div>
-
-              {/* 비밀번호 안내 메시지 */}
-              {passwordMessage && (
-                <p className={`check-message ${isPasswordValid ? 'success' : 'error'}`}>
-                  {passwordMessage}
+              <div className="signup-feedback-row">
+                <p className={`signup-message ${passwordStatus === 'error' ? 'error' : ''}`}>
+                  영문, 숫자, 특수문자(.!@#$%^&*?)를 포함한 8~12자
                 </p>
-              )}
+              </div>
             </div>
             <div className="signup-form-group">
               <label htmlFor="signupPasswordCheck">
-                비밀번호 확인
-                <span className="signup-required">*</span>
+                비밀번호 확인 <span className="signup-required">*</span>
               </label>
-
               <div className="signup-input-with-icon">
                 <input
                   id="signupPasswordCheck"
                   type="password"
-                  value={passwordCheck}
-                  onChange={(event) => setPasswordCheck(event.target.value)}
+                  value={form.passwordCheck}
+                  onChange={(event) => handlePasswordChange('passwordCheck', event.target.value)}
+                  maxLength={LIMITS.password}
                   placeholder="비밀번호를 다시 입력하세요"
+                  autoComplete="new-password"
                   required
                 />
-
-                {passwordCheck && password === passwordCheck && (
-                  <span className="signup-check-icon">✓</span>
+                <StatusIcon status={passwordCheckStatus} />
+              </div>
+              <div className="signup-feedback-row">
+                {passwordCheckStatus === 'error' ? (
+                  <p className="signup-message error">비밀번호가 일치하지 않습니다.</p>
+                ) : (
+                  <span />
                 )}
               </div>
-
-              {passwordCheck && password !== passwordCheck && (
-                <p className="signup-error-text">비밀번호가 일치하지 않습니다.</p>
-              )}
             </div>
-
             <div className="signup-form-group">
               <label htmlFor="signupBirthDate">생년월일</label>
-
               <input
                 id="signupBirthDate"
                 type="date"
                 min="1900-01-01"
-                max="2099-12-31"
-                value={birthDate}
-                onChange={(event) => setBirthDate(event.target.value)}
+                max={new Date().toISOString().slice(0, 10)}
+                value={form.birthDate}
+                onChange={(event) => updateForm('birthDate', event.target.value)}
               />
             </div>
             <div className="signup-form-group">
               <label htmlFor="signupPostcode">주소</label>
-
               <div className="signup-address-stack">
                 <div className="signup-input-row">
                   <input
                     id="signupPostcode"
                     type="text"
-                    value={postcode}
-                    onChange={(event) => setPostcode(event.target.value)}
+                    value={form.postcode}
                     placeholder="우편번호"
                     className="signup-flex-1"
+                    maxLength={5}
+                    readOnly
                   />
-
-                  <button type="button" className="signup-inline-btn">
-                    우편 번호 찾기
+                  <button
+                    type="button"
+                    className="signup-inline-btn"
+                    onClick={handleAddressSearch}
+                    disabled={addressLoading}
+                  >
+                    우편번호 찾기
                   </button>
                 </div>
-
                 <input
                   type="text"
-                  value={address}
-                  onChange={(event) => setAddress(event.target.value)}
+                  value={form.address}
                   placeholder="주소"
+                  maxLength={LIMITS.address}
+                  readOnly
                 />
-
-                <input
-                  type="text"
-                  value={detailAddress}
-                  onChange={(event) => setDetailAddress(event.target.value)}
-                  placeholder="상세주소"
-                />
+                <div className="signup-counted-input">
+                  <input
+                    id="signupDetailAddress"
+                    type="text"
+                    value={form.detailAddress}
+                    onChange={(event) =>
+                      updateForm('detailAddress', event.target.value.slice(0, LIMITS.detailAddress))
+                    }
+                    placeholder="상세주소"
+                    maxLength={LIMITS.detailAddress}
+                  />
+                </div>
               </div>
             </div>
-
             <div className="signup-terms-section">
-              <p className="signup-terms-main-title">이용약관 및 개인정보 수집 / 이용 동의</p>
-
+              <p className="signup-terms-main-title">이용약관 및 개인정보 수집·이용 동의</p>
               <label className="signup-checkbox-label signup-checkbox-bold">
-                <input type="checkbox" checked={allAgree} onChange={handleAllAgree} />
-                모두 동의합니다.
+                <input
+                  type="checkbox"
+                  checked={allAgreed}
+                  onChange={(event) => {
+                    const checked = event.target.checked;
+                    setAgreements({
+                      service: checked,
+                      privacy: checked,
+                      marketing: checked,
+                    });
+                  }}
+                />
+                <span>모두 동의합니다.</span>
               </label>
-
-              <div className="signup-terms-sub-group">
-                <p className="signup-sub-title">선택 항목 (선택)</p>
-
-                <label className="signup-checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={marketingAgree}
-                    onChange={(event) => {
-                      const checked = event.target.checked;
-                      setMarketingAgree(checked);
-                      setAllAgree(checked && thirdPartyAgree);
-                    }}
-                  />
-                  이벤트 및 마케팅 정보 수신에 동의합니다.
-                </label>
-
-                <label className="signup-checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={thirdPartyAgree}
-                    onChange={(event) => {
-                      const checked = event.target.checked;
-                      setThirdPartyAgree(checked);
-                      setAllAgree(marketingAgree && checked);
-                    }}
-                  />
-                  개인정보 제 3자 제공에 동의합니다.
-                </label>
+              <div className="signup-terms-list">
+                {agreementItems.map((item) => (
+                  <div className="signup-term-row" key={item.name}>
+                    <label className="signup-checkbox-label">
+                      <input
+                        type="checkbox"
+                        checked={agreements[item.name]}
+                        onChange={(event) =>
+                          setAgreements((previous) => ({
+                            ...previous,
+                            [item.name]: event.target.checked,
+                          }))
+                        }
+                      />
+                      <span>
+                        <strong>[{item.required ? '필수' : '선택'}]</strong> {item.text}
+                      </span>
+                    </label>
+                    <button
+                      type="button"
+                      className="signup-terms-view"
+                      onClick={() => {
+                        setSelectedTerms(item.name);
+                        termsDialog.current.showModal();
+                      }}
+                    >
+                      보기
+                    </button>
+                  </div>
+                ))}
               </div>
             </div>
-
-            <button type="submit" className="signup-submit-btn">
-              회원가입
+            {submitError && (
+              <p className="signup-submit-error" role="alert">
+                {submitError}
+              </p>
+            )}
+            <button type="submit" className="signup-submit-btn" disabled={isSubmitting}>
+              {isSubmitting ? '가입 중...' : '회원가입'}
             </button>
           </form>
-
           <p className="signup-bottom-link">
-            이미 계정이 있으신가요?
-            <Link to="/login">로그인</Link>
+            이미 계정이 있으신가요?<Link to="/login">로그인</Link>
           </p>
         </section>
       </div>

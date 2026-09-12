@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import modelFull from '@/assets/home/featured-look/arc-model-full.png';
 import partTop from '@/assets/home/featured-look/arc-top.png';
@@ -62,6 +62,8 @@ function FeaturedLookSection() {
   const [selectedColor, setSelectedColor] = useState('black');
   const [isSliding, setIsSliding] = useState(false);
   const [isViewTransitioning, setIsViewTransitioning] = useState(false);
+  const viewTransitionTimerRef = useRef(null);
+  const modelSlideTimerRef = useRef(null);
 
   const current = MODELS[currentModel];
   const nextModelIndex = (currentModel + 1) % MODELS.length;
@@ -70,21 +72,59 @@ function FeaturedLookSection() {
   const afterNext = MODELS[afterNextModelIndex];
   const activeInfo = PRODUCT_INFO[selectedView];
 
+  const clearViewTransitionTimer = () => {
+    if (viewTransitionTimerRef.current) {
+      window.clearTimeout(viewTransitionTimerRef.current);
+      viewTransitionTimerRef.current = null;
+    }
+  };
+
+  const clearModelSlideTimer = () => {
+    if (modelSlideTimerRef.current) {
+      window.clearTimeout(modelSlideTimerRef.current);
+      modelSlideTimerRef.current = null;
+    }
+  };
+
+  const finishViewTransition = () => {
+    clearViewTransitionTimer();
+    setHoveredPart(null);
+    setIsModelHovered(false);
+    setIsViewTransitioning(false);
+  };
+
+  const finishModelSlide = () => {
+    clearModelSlideTimer();
+    setCurrentModel((currentIndex) => (currentIndex + 1) % MODELS.length);
+    setIsSliding(false);
+  };
+
+  useEffect(() => {
+    return () => {
+      clearViewTransitionTimer();
+      clearModelSlideTimer();
+    };
+  }, []);
+
   const changeView = (view) => {
     if (isSliding || view === selectedView) return;
 
+    clearViewTransitionTimer();
     setHoveredPart(null);
     setIsModelHovered(false);
+    setIsViewTransitioning(true);
     setSelectedView(view);
-    setIsViewTransitioning(view !== 'full');
+
+    viewTransitionTimerRef.current = window.setTimeout(() => {
+      finishViewTransition();
+    }, 1000);
   };
 
   const handleViewTransitionEnd = (event) => {
     if (event.currentTarget !== event.target) return;
     if (event.propertyName !== 'transform') return;
-    setHoveredPart(null);
-    setIsModelHovered(false);
-    setIsViewTransitioning(false);
+
+    finishViewTransition();
   };
 
   const handleNextModel = () => {
@@ -93,6 +133,12 @@ function FeaturedLookSection() {
     setHoveredPart(null);
     setIsModelHovered(false);
     setIsSliding(true);
+
+    clearModelSlideTimer();
+
+    modelSlideTimerRef.current = window.setTimeout(() => {
+      finishModelSlide();
+    }, 750);
   };
 
   const handleNextModelAnimationEnd = (event) => {
@@ -100,8 +146,7 @@ function FeaturedLookSection() {
     if (event.animationName !== 'arc-next-to-center') return;
     if (!isSliding) return;
 
-    setCurrentModel(nextModelIndex);
-    setIsSliding(false);
+    finishModelSlide();
   };
 
   return (
@@ -207,6 +252,7 @@ function FeaturedLookSection() {
                         alt=""
                         draggable="false"
                       />
+
                       <span className="arc-part-metal-fill" />
                     </div>
                   ))}

@@ -122,13 +122,12 @@
 
 .site-mega-menu-inner {
   display: grid;
-  grid-template-columns: repeat(6, minmax(110px, 1fr));
-  gap: 40px;
-
+  grid-template-columns: repeat(5, max-content);
+  justify-content: center;
+  gap: 48px;
   width: 100%;
-  max-width: 1100px;
   margin: 0 auto;
-  padding: 28px 28px 34px;
+  padding: 24px 28px 28px;
 }
 
 .site-mega-menu-group h3 {
@@ -451,4 +450,16 @@
   .site-mobile-submenu {
     grid-template-columns: 1fr;
   }
+}
+.site-mega-menu-inner:has(> .site-mega-menu-group:only-child) {
+  grid-template-columns: 1fr;
+  justify-items: center;
+}
+
+.site-mega-menu-group:only-child {
+  text-align: left;
+}
+
+.site-mega-menu-group:only-child .site-mega-menu-links {
+  align-items: flex-start;
 }

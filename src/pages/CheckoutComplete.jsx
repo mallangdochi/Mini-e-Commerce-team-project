@@ -11,29 +11,6 @@ function CheckoutComplete() {
   return (
     <section className="checkout-complete-page">
       <div className="checkout-container">
-        {/* 상단 단계 인디케이터 (3단계 주문완료 활성화) */}
-        <div className="checkout-step-indicator">
-          <div className="checkout-step">
-            <span className="checkout-step-num">1</span>
-            결제 수단
-          </div>
-
-          <div className="checkout-step-line" />
-
-          <div className="checkout-step">
-            <span className="checkout-step-num">2</span>
-            배송지 정보
-          </div>
-
-          <div className="checkout-step-line" />
-
-          <div className="checkout-step checkout-step-active">
-            <span className="checkout-step-num">3</span>
-            주문완료
-          </div>
-        </div>
-
-        {/* 주문 완료 안내 영역 */}
         <div className="checkout-complete-content">
           <div className="checkout-complete-icon-box" aria-hidden="true">
             <svg
@@ -51,6 +28,7 @@ function CheckoutComplete() {
           </div>
 
           <h1 className="checkout-complete-title">주문이 완료되었습니다.</h1>
+
           <p className="checkout-complete-desc">이용해주셔서 감사합니다.</p>
 
           <button type="button" className="checkout-btn-action" onClick={handleGoHome}>
