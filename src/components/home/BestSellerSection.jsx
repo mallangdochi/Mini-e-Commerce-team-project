@@ -1,7 +1,23 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import '@/styles/best-seller.css';
+
+const COMPACT_QUERY = '(max-width: 767px)';
+const MOBILE_INITIAL_COUNT = 4;
+
+function useIsCompact() {
+  const [compact, setCompact] = useState(() => window.matchMedia(COMPACT_QUERY).matches);
+
+  useEffect(() => {
+    const mql = window.matchMedia(COMPACT_QUERY);
+    const onChange = (e) => setCompact(e.matches);
+    mql.addEventListener('change', onChange);
+    return () => mql.removeEventListener('change', onChange);
+  }, []);
+
+  return compact;
+}
 
 function StarRating({ rating = 0, reviewCount = 0 }) {
   const safeRating = Number.isFinite(Number(rating)) ? Number(rating) : 0;
@@ -42,6 +58,8 @@ function BestSellerSkeleton() {
 
 function BestSellerSection({ products = [], isLoading = false, error = null }) {
   const [startIndex, setStartIndex] = useState(0);
+  const [showAllMobile, setShowAllMobile] = useState(false);
+  const isCompact = useIsCompact();
 
   const visibleProducts = useMemo(() => {
     if (products.length <= 3) {
@@ -53,6 +71,14 @@ function BestSellerSection({ products = [], isLoading = false, error = null }) {
       return products[index];
     });
   }, [products, startIndex]);
+
+  const hasMoreForMobile = products.length > MOBILE_INITIAL_COUNT;
+
+  const displayedProducts = isCompact
+    ? showAllMobile
+      ? products
+      : products.slice(0, MOBILE_INITIAL_COUNT + 2)
+    : visibleProducts;
 
   const movePrevious = () => {
     if (products.length <= 3) {
@@ -77,60 +103,85 @@ function BestSellerSection({ products = [], isLoading = false, error = null }) {
       </div>
 
       <div className="best-seller__inner">
-        <div className="best-seller__products">
-          {isLoading &&
-            Array.from({ length: 3 }, (_, index) => (
-              <BestSellerSkeleton key={`loading-${index}`} />
-            ))}
+        <div
+          className={`best-seller__products-shell ${
+            !showAllMobile && hasMoreForMobile ? 'best-seller__products-shell--collapsed' : ''
+          }`}
+        >
+          <div className="best-seller__products">
+            {isLoading &&
+              Array.from({ length: 3 }, (_, index) => (
+                <BestSellerSkeleton key={`loading-${index}`} />
+              ))}
 
-          {!isLoading &&
-            !error &&
-            visibleProducts.map((product) => (
-              <Link className="best-seller-card" to={`/products/${product.id}`} key={product.id}>
-                <div className="best-seller-card__image-wrap">
-                  {product.imageUrl ? (
-                    <img
-                      className="best-seller-card__image"
-                      src={product.imageUrl}
-                      alt={product.name}
-                    />
-                  ) : (
-                    <div className="best-seller-card__image-fallback">이미지가 없습니다.</div>
-                  )}
-                </div>
+            {!isLoading &&
+              !error &&
+              displayedProducts.map((product, index) => (
+                <Link
+                  className={`best-seller-card ${
+                    isCompact && !showAllMobile && index >= MOBILE_INITIAL_COUNT
+                      ? 'best-seller-card--peek'
+                      : ''
+                  }`}
+                  to={`/products/${product.id}`}
+                  key={product.id}
+                >
+                  <div className="best-seller-card__image-wrap">
+                    {product.imageUrl ? (
+                      <img
+                        className="best-seller-card__image"
+                        src={product.imageUrl}
+                        alt={product.name}
+                      />
+                    ) : (
+                      <div className="best-seller-card__image-fallback">이미지가 없습니다.</div>
+                    )}
+                    <div className="best-seller-card__scrim" />
 
-                <div className="best-seller-card__content">
-                  <h3 className="best-seller-card__name">{product.name}</h3>
+                    <div className="best-seller-card__overlay">
+                      <span className="best-seller-card__handle">{product.name}</span>
+                      <span className="best-seller-card__mini-rating">
+                        ★ {Number(product.rating ?? 0).toFixed(1)}
+                      </span>
+                      <p className="best-seller-card__mini-review">{product.description}</p>
+                    </div>
+                  </div>
 
-                  <StarRating rating={product.rating} reviewCount={product.reviewCount} />
+                  <div className="best-seller-card__content">
+                    <h3 className="best-seller-card__name">{product.name}</h3>
 
-                  <p className="best-seller-card__review">{product.description}</p>
-                </div>
-              </Link>
-            ))}
+                    <StarRating rating={product.rating} reviewCount={product.reviewCount} />
 
-          {!isLoading && !error && products.length === 0 && (
-            <div className="best-seller__empty">등록된 베스트 상품이 없습니다.</div>
-          )}
+                    <p className="best-seller-card__review">{product.description}</p>
+                  </div>
+                </Link>
+              ))}
 
-          {!isLoading && error && (
-            <div className="best-seller__error">
-              <p>베스트 상품을 불러오지 못했습니다.</p>
-              <span>잠시 후 다시 시도해주세요.</span>
-            </div>
+            {!isLoading && !error && products.length === 0 && (
+              <div className="best-seller__empty">등록된 베스트 상품이 없습니다.</div>
+            )}
+
+            {!isLoading && error && (
+              <div className="best-seller__error">
+                <p>베스트 상품을 불러오지 못했습니다.</p>
+                <span>잠시 후 다시 시도해주세요.</span>
+              </div>
+            )}
+          </div>
+
+          {!isLoading && !error && !showAllMobile && hasMoreForMobile && (
+            <button
+              type="button"
+              onClick={() => setShowAllMobile(true)}
+              className="best-seller__more"
+            >
+              더보기
+            </button>
           )}
         </div>
 
         <aside className="best-seller__statement">
-          <p className="best-seller__eyebrow">BEST SELLERS</p>
-
-          <h2 className="best-seller__title">
-            TRUSTED
-            <br />
-            BY
-            <br />
-            ATHLETES
-          </h2>
+          <h2 className="best-seller__title">STYLE REVIEWS</h2>
 
           <div className="best-seller__controls">
             <button

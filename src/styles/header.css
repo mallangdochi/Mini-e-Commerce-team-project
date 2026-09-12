@@ -232,12 +232,13 @@
   align-items: center;
   justify-content: center;
   height: auto;
-  padding: 6px 16px;
+  padding: 4px 14px;
   background-color: #ffffff;
   color: #000000;
   font-size: 14px;
   font-weight: 600;
-  border-radius: 100px;
+  white-space: nowrap;
+  border-radius: 50px;
   text-decoration: none;
   transition: opacity 0.2s ease;
   width: auto;
@@ -284,16 +285,23 @@
   }
 
   .site-header-inner {
-    display: flex;
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     padding: 0 16px;
   }
 
+  .site-header-action--mypage {
+    display: none;
+  }
+
   .site-logo {
+    grid-column: 3;
+    grid-row: 1;
+    justify-self: end;
     width: 80px;
     height: 36px;
-    margin-right: auto;
   }
 
   .site-nav,
@@ -302,15 +310,21 @@
   }
 
   .site-nav-toggle {
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: start;
     display: flex;
   }
 
   .site-header-actions {
+    grid-column: 4;
+    grid-row: 1;
+    justify-self: end;
     gap: 12px;
   }
 
   .header-login-btn {
-    padding: 5px 12px;
+    padding: 4px 12px;
     font-size: 13px;
   }
 

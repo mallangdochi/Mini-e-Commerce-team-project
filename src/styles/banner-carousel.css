@@ -208,3 +208,56 @@
   height: 12px;
   transform: rotate(-90deg);
 }
+
+/* 모바일 (320~768px) */
+@media (max-width: 768px) {
+  .banner-carousel__eyebrow {
+    left: 16px;
+    top: 14px;
+    font-size: 10px;
+    letter-spacing: 1px;
+  }
+
+  .banner-carousel__caption {
+    right: 16px;
+    top: 14px;
+    font-size: 10px;
+    max-width: 55%;
+  }
+
+  .banner-carousel__title {
+    font-size: clamp(28px, 8vw, 40px);
+    letter-spacing: 3px;
+  }
+
+  .banner-carousel__bottom {
+    left: 16px;
+    bottom: 16px;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .banner-carousel__bottom-sub {
+    font-size: 11px;
+  }
+
+  .banner-carousel__arrow {
+    width: 34px;
+    height: 34px;
+    font-size: 16px;
+  }
+
+  .banner-carousel__arrow--prev {
+    left: 10px;
+  }
+
+  .banner-carousel__arrow--next {
+    right: 10px;
+  }
+
+  .banner-carousel__dots {
+    bottom: 14px;
+    right: 16px;
+    gap: 8px;
+  }
+}
