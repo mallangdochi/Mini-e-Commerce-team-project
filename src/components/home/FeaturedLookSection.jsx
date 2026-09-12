@@ -356,18 +356,14 @@ function FeaturedLookSection() {
               </div>
             )}
           </div>
-
-          <div className="arc-stage-caption">
-            <span>{String(currentModel + 1).padStart(2, '0')}</span>
-            <span className="arc-stage-line" />
-            <span>{VIEW_LABELS[selectedView]}</span>
-          </div>
         </section>
       </section>
 
       {/* 모바일 전용 레이아웃 — 데스크톱 그리드/호버 인터랙션 대신 라벨 핫스팟 + 요약 카드 */}
       {isCompact && (
         <div className="arc-mobile-look">
+          <h2 className="arc-mobile-look__title">Collections</h2>
+
           <div className="arc-mobile-hero-wrap">
             <div
               className="arc-mobile-hero"

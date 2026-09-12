@@ -1,7 +1,7 @@
 .custom-carousel {
   width: 100%;
   margin: 0 auto;
-  padding: 64px 0;
+  padding: 80px 0;
   background: #fff;
   display: flex;
   flex-direction: column;
@@ -267,12 +267,12 @@
     width: 100%;
     padding: 0 20px;
     align-items: flex-start;
-    justify-content: space-between;
-    gap: 12px;
+    justify-content: center;
+    gap: 50px;
   }
 
   .custom-carousel__meta {
-    flex: 1;
+    flex: none;
     min-width: 0;
   }
 
