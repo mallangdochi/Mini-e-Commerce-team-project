@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import '@/styles/product-page.css';
@@ -12,110 +13,54 @@ const CATEGORY_NAV = [
 
 const ACTIVE_CATEGORY = 'TOP';
 
-// TODO: 활성 필터는 쿼리스트링/상태에서. color 없으면 색 점 미표시
 const ACTIVE_FILTERS = [
-  { id: 'color-pink', label: '핑크', color: '#e8aeb7' },
-  { id: 'price-1', label: '100,000~150,000원' },
+  {
+    id: 'color-pink',
+    label: '핑크',
+    color: '#e8aeb7',
+  },
+  {
+    id: 'price-1',
+    label: '100,000~150,000원',
+  },
 ];
 
-const products = [
-  {
-    id: 1,
-    name: 'LOVE YOU SO MUCH',
-    category: 'LOVE YOU',
-    price: '₩ 49,000',
-    image: '/images/products/product01.jpg',
-    colors: ['black', 'blue', null],
-  },
-  {
-    id: 2,
-    name: 'LOVE YOU SO MUCH',
-    category: 'LOVE YOU',
-    price: '₩ 40,000',
-    image: '/images/products/product02.jpg',
-    colors: ['black', 'blue', null],
-  },
-  {
-    id: 3,
-    name: 'LOVE YOU SO MUCH',
-    category: 'LOVE YOU',
-    price: '₩ 40,000',
-    image: '/images/products/product03.jpg',
-    colors: ['blue', null],
-  },
-  {
-    id: 4,
-    name: 'LOVE YOU SO MUCH',
-    category: 'LOVE YOU',
-    price: '₩ 40,000',
-    image: '/images/products/product04.jpg',
-    colors: ['black', 'blue', null],
-  },
-  {
-    id: 5,
-    name: 'LOVE YOU SO MUCH',
-    category: 'LOVE YOU',
-    price: '₩ 40,000',
-    image: '',
-    colors: ['black', 'blue', null],
-  },
-  {
-    id: 6,
-    name: 'LOVE YOU SO MUCH',
-    category: 'LOVE YOU',
-    price: '₩ 40,000',
-    image: '',
-    colors: ['black', 'blue', null],
-  },
-  {
-    id: 7,
-    name: 'LOVE YOU SO MUCH',
-    category: 'LOVE YOU',
-    price: '₩ 40,000',
-    image: '',
-    colors: ['black', 'blue', null],
-  },
-  {
-    id: 8,
-    name: 'LOVE YOU SO MUCH',
-    category: 'LOVE YOU',
-    price: '₩ 40,000',
-    image: '',
-    colors: ['black', 'blue', null],
-  },
-  {
-    id: 9,
-    name: 'LOVE YOU SO MUCH',
-    category: 'LOVE YOU',
-    price: '₩ 40,000',
-    image: '/images/products/product09.jpg',
-    colors: ['black', 'blue', null],
-  },
-  {
-    id: 10,
-    name: 'LOVE YOU SO MUCH',
-    category: 'LOVE YOU',
-    price: '₩ 40,000',
-    image: '/images/products/product10.jpg',
-    colors: ['black', 'blue', null],
-  },
-  {
-    id: 11,
-    name: 'LOVE YOU SO MUCH',
-    category: 'LOVE YOU',
-    price: '₩ 40,000',
-    image: '/images/products/product11.jpg',
-    colors: ['black', 'blue', null],
-  },
-  {
-    id: 12,
-    name: 'LOVE YOU SO MUCH',
-    category: 'LOVE YOU',
-    price: '₩ 40,000',
-    image: '/images/products/product12.jpg',
-    colors: ['black', 'blue', null],
-  },
+/* ================================
+   테스트용 상품 30개
+================================ */
+
+const PRODUCT_IMAGES = [
+  '/images/products/product01.jpg',
+  '/images/products/product02.jpg',
+  '/images/products/product03.jpg',
+  '/images/products/product04.jpg',
+  '/images/products/product09.jpg',
+  '/images/products/product10.jpg',
+  '/images/products/product11.jpg',
+  '/images/products/product12.jpg',
 ];
+
+const products = Array.from({ length: 30 }, (_, index) => {
+  const id = index + 1;
+
+  return {
+    id,
+    name: `LOVE YOU SO MUCH ${id}`,
+    category: 'LOVE YOU',
+    price: id === 1 ? '₩ 49,000' : '₩ 40,000',
+
+    image: PRODUCT_IMAGES[index % PRODUCT_IMAGES.length],
+
+    colors: id % 3 === 0 ? ['blue', null] : ['black', 'blue', null],
+  };
+});
+
+/* 처음에는 4개씩 추가 */
+const PRODUCTS_PER_LOAD = 4;
+
+/* ================================
+   아이콘
+================================ */
 
 function IconChevronDown() {
   return (
@@ -148,6 +93,7 @@ function IconSearch() {
   return (
     <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
       <circle cx="6.5" cy="6.5" r="4.75" stroke="#90959D" strokeWidth="1.125" />
+
       <path d="M12.81 12.81 10 10" stroke="#90959D" strokeWidth="1.125" strokeLinecap="round" />
     </svg>
   );
@@ -161,18 +107,36 @@ function IconClose() {
   );
 }
 
+/* ================================
+   컬러
+================================ */
+
 function ColorSwatch({ color }) {
   if (!color) {
     return <span className="product-color product-color--empty" />;
   }
+
   return <span className={`product-color color-${color}`} />;
 }
+
+/* ================================
+   필터 태그
+================================ */
 
 function FilterTag({ label, color }) {
   return (
     <span className="filter-tag">
-      {color && <span className="filter-tag-dot" style={{ backgroundColor: color }} />}
+      {color && (
+        <span
+          className="filter-tag-dot"
+          style={{
+            backgroundColor: color,
+          }}
+        />
+      )}
+
       <span className="filter-tag-label">{label}</span>
+
       <button type="button" className="filter-tag-remove" aria-label={`${label} 필터 제거`}>
         <IconClose />
       </button>
@@ -180,10 +144,74 @@ function FilterTag({ label, color }) {
   );
 }
 
+/* ================================
+   Product Page
+================================ */
+
 function ProductPage() {
+  /* 현재 몇 개까지 보여줄지 */
+  const [visibleCount, setVisibleCount] = useState(PRODUCTS_PER_LOAD);
+
+  /* 무한스크롤 감지 DIV */
+  const loadMoreRef = useRef(null);
+
+  /* 현재 보여주는 상품 */
+  const visibleProducts = products.slice(0, visibleCount);
+
+  /* 아직 불러올 상품이 남았는지 */
+  const hasMore = visibleCount < products.length;
+
+  /* ================================
+     무한 스크롤
+  ================================ */
+
+  useEffect(() => {
+    const target = loadMoreRef.current;
+
+    if (!target) {
+      return;
+    }
+
+    if (!hasMore) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) {
+          return;
+        }
+
+        setVisibleCount((prev) => {
+          return Math.min(prev + PRODUCTS_PER_LOAD, products.length);
+        });
+      },
+      {
+        root: null,
+
+        /*
+            화면 끝까지 정확히 내려가기 전에
+            다음 상품을 미리 추가
+          */
+        rootMargin: '150px 0px',
+
+        threshold: 0,
+      }
+    );
+
+    observer.observe(target);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [visibleCount, hasMore]);
+
   return (
     <main className="product-page">
-      {/* 상단 배너 */}
+      {/* ================================
+          상단 배너
+      ================================ */}
+
       <section className="product-hero">
         <div className="product-hero-content">
           <span className="hero-small-text">NEW COLLECTION</span>
@@ -193,20 +221,21 @@ function ProductPage() {
             <br />
             PURSUIT
           </h1>
-
-          <Link to="/products" className="hero-link">
-            SHOP NOW
-            <span>→</span>
-          </Link>
         </div>
       </section>
 
-      {/* 사이드바 + 본문 */}
+      {/* ================================
+          사이드바 + 상품
+      ================================ */}
+
       <div className="product-layout">
+        {/* 사이드바 */}
+
         <aside className="product-sidebar">
           <nav className="product-sidebar-nav" aria-label="카테고리">
             {CATEGORY_NAV.map((item) => {
               const active = item.label === ACTIVE_CATEGORY;
+
               return (
                 <Link
                   key={item.label}
@@ -221,62 +250,91 @@ function ProductPage() {
           </nav>
         </aside>
 
+        {/* ================================
+            본문
+        ================================ */}
+
         <div className="product-main">
           {/* breadcrumb */}
+
           <nav className="product-breadcrumb" aria-label="위치">
             <span>WOMAN</span>
+
             <span className="product-breadcrumb-sep">›</span>
+
             <span className="is-current">TOPS</span>
           </nav>
 
           {/* 제목 */}
+
           <div className="category-heading">
             <h2>여성복</h2>
           </div>
 
-          {/* 필터 바 */}
+          {/* ================================
+              필터
+          ================================ */}
+
           <div className="product-filter-bar">
             <div className="product-filter-bar-left">
               <button type="button" className="filter-btn">
                 <span>인기순</span>
+
                 <IconChevronDown />
               </button>
 
               <button type="button" className="filter-btn">
                 <IconFilter />
+
                 <span>전체 필터</span>
+
                 <span className="filter-btn-count">2</span>
               </button>
             </div>
 
+            {/* 검색 */}
+
             <div className="product-search-box">
               <IconSearch />
+
               <span>상품 검색</span>
             </div>
           </div>
 
-          {/* 활성 필터 + 품절 제외 토글 */}
+          {/* ================================
+              활성 필터
+          ================================ */}
+
           <div className="product-active-filters">
             <div className="product-active-filters-list">
-              {ACTIVE_FILTERS.map((f) => (
-                <FilterTag key={f.id} label={f.label} color={f.color} />
+              {ACTIVE_FILTERS.map((filter) => (
+                <FilterTag key={filter.id} label={filter.label} color={filter.color} />
               ))}
+
               <button type="button" className="product-filter-clear">
                 전체 해제
               </button>
             </div>
 
+            {/* 품절 제외 */}
+
             <label className="product-stock-toggle">
               <input type="checkbox" defaultChecked />
+
               <span className="product-stock-toggle-track" aria-hidden="true" />
-              <span>품절 상품 지우기</span>
+              <span>품절 제외</span>
             </label>
           </div>
 
-          {/* 상품 그리드 */}
+          {/* ================================
+              상품 그리드
+          ================================ */}
+
           <div className="product-grid">
-            {products.map((product) => (
+            {visibleProducts.map((product) => (
               <article className="product-card" key={product.id}>
+                {/* 이미지 */}
+
                 <Link to={`/products/${product.id}`} className="product-image-link">
                   <div className="product-image">
                     {product.image ? (
@@ -287,13 +345,15 @@ function ProductPage() {
                   </div>
                 </Link>
 
+                {/* 상품 정보 */}
+
                 <div className="product-card-info">
                   <div className="product-card-top">
                     <h4>{product.name}</h4>
 
                     <div className="product-colors">
-                      {product.colors.map((color, i) => (
-                        <ColorSwatch key={color ?? `empty-${i}`} color={color} />
+                      {product.colors.map((color, index) => (
+                        <ColorSwatch key={color ?? `empty-${index}`} color={color} />
                       ))}
                     </div>
                   </div>
@@ -305,6 +365,22 @@ function ProductPage() {
               </article>
             ))}
           </div>
+
+          {/* ================================
+              무한스크롤 감지 영역
+          ================================ */}
+
+          {hasMore && (
+            <div ref={loadMoreRef} className="product-scroll-trigger">
+              <span>상품 불러오는 중...</span>
+            </div>
+          )}
+
+          {/* ================================
+              끝
+          ================================ */}
+
+          {!hasMore && <div className="product-scroll-end">모든 상품을 불러왔습니다.</div>}
         </div>
       </div>
     </main>

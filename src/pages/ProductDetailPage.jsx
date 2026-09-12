@@ -466,7 +466,26 @@ function ProductDetailPage() {
           </div>
         </div>
       </section>
-      {cartMessage && <div className="cart-toast">장바구니에 들어갔습니다.</div>}
+      {cartMessage && (
+        <div className="cart-alert-overlay">
+          <div className="cart-alert">
+            <button
+              type="button"
+              className="cart-alert-close"
+              onClick={() => setCartMessage(false)}
+              aria-label="알림 닫기"
+            >
+              ×
+            </button>
+
+            <span className="cart-alert-label">CART</span>
+
+            <strong className="cart-alert-message">장바구니에 상품을 담았습니다.</strong>
+
+            <div className="cart-alert-progress" />
+          </div>
+        </div>
+      )}
     </main>
   );
 }
