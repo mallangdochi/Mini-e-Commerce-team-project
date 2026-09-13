@@ -831,6 +831,53 @@
 .product-page .color-filter-name {
   line-height: 1;
 }
+
+/* =================================
+   전체 선택
+================================= */
+
+.product-page .filter-select-all {
+  display: flex;
+  align-items: center;
+
+  gap: 9px;
+
+  width: fit-content;
+
+  margin-bottom: 16px;
+
+  color: #555;
+
+  font-size: 14px;
+  font-weight: 500;
+
+  cursor: pointer;
+}
+
+.product-page .filter-select-all input[type='checkbox'] {
+  width: 14px;
+  height: 14px;
+
+  margin: 0;
+
+  accent-color: #111;
+
+  cursor: pointer;
+}
+
+/* 컬러 목록 */
+.product-page .color-filter-list {
+  display: flex;
+  flex-direction: column;
+
+  gap: 12px;
+}
+
+/* 사이즈 전체 선택 */
+.product-page .size-select-all {
+  margin-top: 4px;
+  margin-bottom: 18px;
+}
 /* =================================
    필터 섹션 접기 / 펼치기
 ================================= */
