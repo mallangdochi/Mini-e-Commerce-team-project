@@ -285,8 +285,9 @@
   }
 
   .site-header-inner {
+    position: relative;
     display: grid;
-    grid-template-columns: auto 1fr auto auto;
+    grid-template-columns: auto 1fr auto;
     align-items: center;
     gap: 10px;
     padding: 0 16px;
@@ -297,9 +298,10 @@
   }
 
   .site-logo {
-    grid-column: 3;
-    grid-row: 1;
-    justify-self: end;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
     width: 80px;
     height: 36px;
   }
@@ -317,7 +319,7 @@
   }
 
   .site-header-actions {
-    grid-column: 4;
+    grid-column: 3;
     grid-row: 1;
     justify-self: end;
     gap: 12px;
