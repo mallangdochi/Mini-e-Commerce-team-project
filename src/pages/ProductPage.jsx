@@ -13,18 +13,6 @@ const CATEGORY_NAV = [
 
 const ACTIVE_CATEGORY = 'TOP';
 
-const ACTIVE_FILTERS = [
-  {
-    id: 'color-pink',
-    label: '핑크',
-    color: '#e8aeb7',
-  },
-  {
-    id: 'price-1',
-    label: '100,000~150,000원',
-  },
-];
-
 /* ================================
    테스트용 상품 
 ================================ */
@@ -57,6 +45,17 @@ const products = Array.from({ length: 30 }, (_, index) => {
 
 /* 처음에는 4개씩 추가 */
 const PRODUCTS_PER_LOAD = 4;
+
+/* 필터 옵션 */
+const COLOR_OPTIONS = [
+  {
+    name: 'Black',
+    color: '#111111',
+    count: 12,
+  },
+];
+
+const SIZE_OPTIONS = [230, 235, 240, 245, 250, 255, 260, 265, 270, 275, 280];
 
 /* ================================
    아이콘
@@ -123,7 +122,7 @@ function ColorSwatch({ color }) {
    필터 태그
 ================================ */
 
-function FilterTag({ label, color }) {
+function FilterTag({ label, color, onRemove }) {
   return (
     <span className="filter-tag">
       {color && (
@@ -137,13 +136,17 @@ function FilterTag({ label, color }) {
 
       <span className="filter-tag-label">{label}</span>
 
-      <button type="button" className="filter-tag-remove" aria-label={`${label} 필터 제거`}>
+      <button
+        type="button"
+        className="filter-tag-remove"
+        aria-label={`${label} 필터 제거`}
+        onClick={onRemove}
+      >
         <IconClose />
       </button>
     </span>
   );
 }
-
 /* ================================
    Product Page
 ================================ */
@@ -154,12 +157,28 @@ function ProductPage() {
 
   const [isColorOpen, setIsColorOpen] = useState(true);
 
+  /* 필터에서 현재 선택 중인 값 */
+  const [selectedColors, setSelectedColors] = useState([]);
+  const [selectedMaterials, setSelectedMaterials] = useState([]);
+  const [selectedSleeves, setSelectedSleeves] = useState([]);
+  const [selectedSizes, setSelectedSizes] = useState([]);
+
   /* 가격 필터 */
   const PRICE_MIN = 34300;
   const PRICE_MAX = 59000;
 
   const [minPrice, setMinPrice] = useState(PRICE_MIN);
   const [maxPrice, setMaxPrice] = useState(PRICE_MAX);
+
+  /* '적용하기'를 눌렀을 때 실제로 적용된 필터 */
+  const [appliedFilters, setAppliedFilters] = useState({
+    colors: [],
+    materials: [],
+    sleeves: [],
+    sizes: [],
+    minPrice: PRICE_MIN,
+    maxPrice: PRICE_MAX,
+  });
 
   /* 현재 몇 개까지 보여줄지 */
   const [visibleCount, setVisibleCount] = useState(PRODUCTS_PER_LOAD);
@@ -184,9 +203,135 @@ function ProductPage() {
   const resetFilters = () => {
     filterFormRef.current?.reset();
 
+    setSelectedColors([]);
+    setSelectedMaterials([]);
+    setSelectedSleeves([]);
+    setSelectedSizes([]);
     setMinPrice(PRICE_MIN);
     setMaxPrice(PRICE_MAX);
+
+    setAppliedFilters({
+      colors: [],
+      materials: [],
+      sleeves: [],
+      sizes: [],
+      minPrice: PRICE_MIN,
+      maxPrice: PRICE_MAX,
+    });
   };
+
+  const applyFilters = () => {
+    setAppliedFilters({
+      colors: [...selectedColors],
+      materials: [...selectedMaterials],
+      sleeves: [...selectedSleeves],
+      sizes: [...selectedSizes],
+      minPrice,
+      maxPrice,
+    });
+
+    setIsFilterOpen(false);
+  };
+
+  const removeActiveFilter = (filter) => {
+    if (filter.type === 'color') {
+      setSelectedColors((prev) => prev.filter((item) => item !== filter.value));
+
+      setAppliedFilters((prev) => ({
+        ...prev,
+        colors: prev.colors.filter((item) => item !== filter.value),
+      }));
+    }
+
+    if (filter.type === 'material') {
+      setSelectedMaterials((prev) => prev.filter((item) => item !== filter.value));
+
+      setAppliedFilters((prev) => ({
+        ...prev,
+        materials: prev.materials.filter((item) => item !== filter.value),
+      }));
+    }
+
+    if (filter.type === 'sleeve') {
+      setSelectedSleeves((prev) => prev.filter((item) => item !== filter.value));
+
+      setAppliedFilters((prev) => ({
+        ...prev,
+        sleeves: prev.sleeves.filter((item) => item !== filter.value),
+      }));
+    }
+
+    if (filter.type === 'size') {
+      setSelectedSizes((prev) => prev.filter((item) => item !== filter.value));
+
+      setAppliedFilters((prev) => ({
+        ...prev,
+        sizes: prev.sizes.filter((item) => item !== filter.value),
+      }));
+    }
+
+    if (filter.type === 'price') {
+      setMinPrice(PRICE_MIN);
+      setMaxPrice(PRICE_MAX);
+
+      setAppliedFilters((prev) => ({
+        ...prev,
+        minPrice: PRICE_MIN,
+        maxPrice: PRICE_MAX,
+      }));
+    }
+  };
+
+  const activeFilters = [];
+
+  appliedFilters.colors.forEach((colorName) => {
+    const colorOption = COLOR_OPTIONS.find((color) => color.name === colorName);
+
+    if (colorOption) {
+      activeFilters.push({
+        id: `color-${colorName}`,
+        type: 'color',
+        value: colorName,
+        label: colorOption.name,
+        color: colorOption.color,
+      });
+    }
+  });
+
+  appliedFilters.materials.forEach((material) => {
+    activeFilters.push({
+      id: `material-${material}`,
+      type: 'material',
+      value: material,
+      label: material,
+    });
+  });
+
+  appliedFilters.sleeves.forEach((sleeve) => {
+    activeFilters.push({
+      id: `sleeve-${sleeve}`,
+      type: 'sleeve',
+      value: sleeve,
+      label: sleeve,
+    });
+  });
+
+  appliedFilters.sizes.forEach((size) => {
+    activeFilters.push({
+      id: `size-${size}`,
+      type: 'size',
+      value: size,
+      label: `${size}`,
+    });
+  });
+
+  if (appliedFilters.minPrice !== PRICE_MIN || appliedFilters.maxPrice !== PRICE_MAX) {
+    activeFilters.push({
+      id: 'price',
+      type: 'price',
+      label: `${appliedFilters.minPrice.toLocaleString()}~${appliedFilters.maxPrice.toLocaleString()}원`,
+    });
+  }
 
   /* ================================
      무한 스크롤
@@ -340,7 +485,9 @@ function ProductPage() {
 
                 <span>전체 필터</span>
 
-                <span className="filter-btn-count">2</span>
+                {activeFilters.length > 0 && (
+                  <span className="filter-btn-count">{activeFilters.length}</span>
+                )}
               </button>
             </div>
 
@@ -420,18 +567,58 @@ function ProductPage() {
 
                 {isColorOpen && (
                   <div className="filter-section-content">
-                    <label className="color-filter-item">
-                      <input type="checkbox" />
-
-                      <span
-                        className="color-filter-swatch"
-                        style={{ backgroundColor: '#111111' }}
+                    {/* 전체 선택 */}
+                    <label className="filter-select-all">
+                      <input
+                        type="checkbox"
+                        checked={
+                          COLOR_OPTIONS.length > 0 && selectedColors.length === COLOR_OPTIONS.length
+                        }
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedColors(COLOR_OPTIONS.map((color) => color.name));
+                          } else {
+                            setSelectedColors([]);
+                          }
+                        }}
                       />
 
-                      <span className="color-filter-name">Black</span>
-
-                      <span className="color-filter-count">(12)</span>
+                      <span>전체 선택</span>
                     </label>
+
+                    {/* 컬러 목록 */}
+                    <div className="color-filter-list">
+                      {COLOR_OPTIONS.map((color) => {
+                        const isSelected = selectedColors.includes(color.name);
+
+                        return (
+                          <label className="color-filter-item" key={color.name}>
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => {
+                                setSelectedColors((prev) =>
+                                  prev.includes(color.name)
+                                    ? prev.filter((item) => item !== color.name)
+                                    : [...prev, color.name]
+                                );
+                              }}
+                            />
+
+                            <span
+                              className="color-filter-swatch"
+                              style={{
+                                backgroundColor: color.color,
+                              }}
+                            />
+
+                            <span className="color-filter-name">{color.name}</span>
+
+                            <span className="color-filter-count">({color.count})</span>
+                          </label>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </section>
@@ -445,13 +632,33 @@ function ProductPage() {
 
                 <div className="filter-check-list">
                   <label>
-                    <input type="checkbox" />
+                    <input
+                      type="checkbox"
+                      checked={selectedMaterials.includes('코튼')}
+                      onChange={() => {
+                        setSelectedMaterials((prev) =>
+                          prev.includes('코튼')
+                            ? prev.filter((item) => item !== '코튼')
+                            : [...prev, '코튼']
+                        );
+                      }}
+                    />
                     <span className="custom-check" />
                     코튼
                   </label>
 
                   <label>
-                    <input type="checkbox" />
+                    <input
+                      type="checkbox"
+                      checked={selectedMaterials.includes('폴리에스터')}
+                      onChange={() => {
+                        setSelectedMaterials((prev) =>
+                          prev.includes('폴리에스터')
+                            ? prev.filter((item) => item !== '폴리에스터')
+                            : [...prev, '폴리에스터']
+                        );
+                      }}
+                    />
                     <span className="custom-check" />
                     폴리에스터
                   </label>
@@ -467,13 +674,33 @@ function ProductPage() {
 
                 <div className="filter-check-list">
                   <label>
-                    <input type="checkbox" />
+                    <input
+                      type="checkbox"
+                      checked={selectedSleeves.includes('긴팔')}
+                      onChange={() => {
+                        setSelectedSleeves((prev) =>
+                          prev.includes('긴팔')
+                            ? prev.filter((item) => item !== '긴팔')
+                            : [...prev, '긴팔']
+                        );
+                      }}
+                    />
                     <span className="custom-check" />
                     긴팔
                   </label>
 
                   <label>
-                    <input type="checkbox" />
+                    <input
+                      type="checkbox"
+                      checked={selectedSleeves.includes('반팔')}
+                      onChange={() => {
+                        setSelectedSleeves((prev) =>
+                          prev.includes('반팔')
+                            ? prev.filter((item) => item !== '반팔')
+                            : [...prev, '반팔']
+                        );
+                      }}
+                    />
                     <span className="custom-check" />
                     반팔
                   </label>
@@ -576,12 +803,46 @@ function ProductPage() {
               <section className="filter-section">
                 <h3>사이즈</h3>
 
+                {/* 전체 선택 */}
+                <label className="filter-select-all size-select-all">
+                  <input
+                    type="checkbox"
+                    checked={
+                      SIZE_OPTIONS.length > 0 && selectedSizes.length === SIZE_OPTIONS.length
+                    }
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedSizes(SIZE_OPTIONS);
+                      } else {
+                        setSelectedSizes([]);
+                      }
+                    }}
+                  />
+
+                  <span>전체 선택</span>
+                </label>
+
                 <div className="shoe-size-grid">
-                  {[230, 235, 240, 245, 250, 255, 260, 265, 270, 275, 280].map((size) => (
-                    <button type="button" key={size}>
-                      {size}
-                    </button>
-                  ))}
+                  {SIZE_OPTIONS.map((size) => {
+                    const isSelected = selectedSizes.includes(size);
+
+                    return (
+                      <button
+                        type="button"
+                        key={size}
+                        className={isSelected ? 'is-selected' : ''}
+                        onClick={() => {
+                          setSelectedSizes((prev) =>
+                            prev.includes(size)
+                              ? prev.filter((item) => item !== size)
+                              : [...prev, size]
+                          );
+                        }}
+                      >
+                        {size}
+                      </button>
+                    );
+                  })}
                 </div>
               </section>
             </form>
@@ -591,11 +852,7 @@ function ProductPage() {
   ================================ */}
 
             <div className="filter-drawer-footer">
-              <button
-                type="button"
-                className="filter-apply-btn"
-                onClick={() => setIsFilterOpen(false)}
-              >
+              <button type="button" className="filter-apply-btn" onClick={applyFilters}>
                 적용하기
               </button>
             </div>
@@ -606,13 +863,20 @@ function ProductPage() {
 
           <div className="product-active-filters">
             <div className="product-active-filters-list">
-              {ACTIVE_FILTERS.map((filter) => (
-                <FilterTag key={filter.id} label={filter.label} color={filter.color} />
+              {activeFilters.map((filter) => (
+                <FilterTag
+                  key={filter.id}
+                  label={filter.label}
+                  color={filter.color}
+                  onRemove={() => removeActiveFilter(filter)}
+                />
               ))}
 
-              <button type="button" className="product-filter-clear">
-                전체 해제
-              </button>
+              {activeFilters.length > 0 && (
+                <button type="button" className="product-filter-clear" onClick={resetFilters}>
+                  전체 해제
+                </button>
+              )}
             </div>
 
             {/* 품절 제외 */}
