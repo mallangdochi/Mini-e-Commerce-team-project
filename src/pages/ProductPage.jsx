@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import '@/styles/product-page.css';
 
 const CATEGORY_NAV = [
+  { label: 'ALL', to: '/products?category=ALL' },
   { label: 'OUTER', to: '/products?category=outer' },
   { label: 'TOP', to: '/products?category=top' },
   { label: 'BOTTOM', to: '/products?category=bottom' },
@@ -439,8 +440,12 @@ function ProductPage() {
 
           {/* 제목 */}
 
-          <div className="category-heading">
-            <h2>여성복</h2>
+          <div className="mobile-category-row">
+            <div className="category-heading">
+              <h2>여성복</h2>
+            </div>
+
+            <div className="mobile-category-actions"></div>
           </div>
 
           {/* ================================
@@ -888,6 +893,25 @@ function ProductPage() {
               <span>품절 제외</span>
             </label>
           </div>
+          {/* ================================
+    태블릿 / 모바일 카테고리
+================================ */}
+          <nav className="responsive-category-nav" aria-label="카테고리">
+            {CATEGORY_NAV.map((item) => {
+              const active = item.label === ACTIVE_CATEGORY;
+
+              return (
+                <Link
+                  key={`responsive-${item.label}`}
+                  to={item.to}
+                  className={`responsive-category-link${active ? ' is-active' : ''}`}
+                  aria-current={active ? 'page' : undefined}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
 
           {/* ================================
               상품 그리드
@@ -938,10 +962,6 @@ function ProductPage() {
               <span>상품 불러오는 중...</span>
             </div>
           )}
-
-          {/* ================================
-              끝
-          ================================ */}
 
           {!hasMore && <div className="product-scroll-end">모든 상품을 불러왔습니다.</div>}
         </div>
