@@ -798,8 +798,12 @@ function ProductPage() {
 
           {/* 제목 */}
 
-          <div className="category-heading">
-            <h2>{gender === 'men' ? '남성복' : '여성복'}</h2>
+          <div className="mobile-category-row">
+            <div className="category-heading">
+              <h2>{gender === 'men' ? '남성복' : '여성복'}</h2>
+            </div>
+
+            <div className="mobile-category-actions" />
           </div>
 
           {/* ================================
@@ -1149,6 +1153,26 @@ function ProductPage() {
               <span>품절 제외</span>
             </label>
           </div>
+
+          {/* ================================
+    태블릿 / 모바일 카테고리
+================================ */}
+          <nav className="responsive-category-nav" aria-label="카테고리">
+            {CATEGORY_NAV.map((item) => {
+              const active = item.value === activeCategory.sidebarValue;
+
+              return (
+                <Link
+                  key={`responsive-${item.label}`}
+                  to={`${item.to}&gender=${gender}`}
+                  className={`responsive-category-link${active ? ' is-active' : ''}`}
+                  aria-current={active ? 'page' : undefined}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
 
           {/* ================================
               상품 그리드

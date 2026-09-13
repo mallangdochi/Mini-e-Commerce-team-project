@@ -194,6 +194,7 @@
   .newsletter-section__panel {
     width: min(420px, 100%);
     min-height: 400px;
+    margin: 0 auto;
     padding: 46px 28px 16px;
   }
 

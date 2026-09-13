@@ -6,7 +6,7 @@
   position: relative;
   background:
     radial-gradient(
-      circle at 58% 42%,
+      circle at 64% 45%,
       rgba(255, 255, 255, 0.95) 0%,
       rgba(255, 255, 255, 0.55) 26%,
       rgba(255, 255, 255, 0) 58%
@@ -36,24 +36,23 @@
 .arc-look-shell {
   position: relative;
   z-index: 2;
+  display: block;
   width: min(100%, 1680px);
   height: calc(100dvh - 64px);
   min-height: 760px;
   max-height: 860px;
   margin: 0 auto;
-  padding: 44px 50px 38px;
-  display: grid;
-  grid-template-columns: 360px minmax(0, 1fr);
-  gap: clamp(24px, 3vw, 52px);
+  padding: 0;
   overflow: hidden;
 }
 
 .arc-info-rail {
-  align-self: center;
-  width: 360px;
-  position: relative;
+  position: absolute;
+  left: clamp(190px, 7vw, 150px);
+  top: 50%;
   z-index: 30;
-  transform: translateX(120px);
+  width: 360px;
+  transform: translateY(-50%);
 }
 
 .arc-view-switcher {
@@ -88,14 +87,12 @@
 .arc-product-card {
   width: 100%;
   padding: 22px;
-  background: var(--arc-panel);
+  background: rgba(255, 255, 255, 0.7);
   border: 1px solid rgba(255, 255, 255, 0.78);
   border-radius: 18px;
-  box-shadow:
-    0 18px 42px rgba(31, 31, 28, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 28px 64px rgba(20, 20, 18, 0.2);
+  backdrop-filter: blur(24px) saturate(1.3);
+  -webkit-backdrop-filter: blur(24px) saturate(1.3);
 }
 
 .arc-product-image {
@@ -105,7 +102,7 @@
   overflow: hidden;
   display: grid;
   place-items: center;
-  background: rgba(255, 255, 255, 0.68);
+  background: rgba(255, 255, 255, 0.92);
   border-radius: 12px;
 }
 
@@ -237,16 +234,21 @@
 }
 
 .arc-model-stage {
-  position: relative;
-  min-width: 0;
-  height: 100%;
+  --recenter: 0px;
+  --view-x: -50%;
+  --view-y: -50%;
+  --view-scale: 1;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
   overflow: hidden;
+  container-type: inline-size;
 }
 
 .arc-model-stage::before {
   content: 'TRACK SET-UP';
   position: absolute;
-  left: 3%;
+  right: 3%;
   bottom: 2.5%;
   z-index: 0;
   font-size: clamp(82px, 10vw, 172px);
@@ -294,7 +296,7 @@
 
 .arc-model-track {
   position: absolute;
-  left: 43%;
+  left: 55%;
   top: 50%;
   width: clamp(390px, 36vw, 560px);
   height: min(79vh, 790px);
@@ -317,6 +319,8 @@
   left: 0;
   z-index: 4;
   opacity: 1;
+  transform: translate3d(var(--recenter), 0, 0);
+  transition: transform 900ms cubic-bezier(0.22, 0.76, 0.22, 1);
 }
 
 .arc-track-model--next,
@@ -342,23 +346,33 @@
   position: absolute;
   left: 50%;
   top: 50%;
-  height: 96%;
+  height: 90%;
   aspect-ratio: 1637 / 2048;
   transform: translate3d(-50%, -50%, 0) scale(1);
   transform-origin: center center;
   transition: transform 900ms cubic-bezier(0.22, 0.76, 0.22, 1);
 }
 
-.arc-model-stage--top .arc-track-model--current .arc-model-canvas {
-  transform: translate3d(-50%, calc(-50% + 132px), 0) scale(1.72);
+.arc-model-stage--top {
+  --recenter: -0cqw;
+  --view-y: calc(-50% + 118px);
+  --view-scale: 1.5;
 }
 
-.arc-model-stage--bottom .arc-track-model--current .arc-model-canvas {
-  transform: translate3d(-50%, calc(-50% - 126px), 0) scale(1.58);
+.arc-model-stage--bottom {
+  --recenter: -0 cqw;
+  --view-y: calc(-50% - 126px);
+  --view-scale: 1.55;
 }
 
-.arc-model-stage--shoes .arc-track-model--current .arc-model-canvas {
-  transform: translate3d(-50%, -158%, 0) scale(2.55);
+.arc-model-stage--shoes {
+  --recenter: -0cqw;
+  --view-y: -130%;
+  --view-scale: 2;
+}
+
+.arc-track-model--current .arc-model-canvas {
+  transform: translate3d(var(--view-x), var(--view-y), 0) scale(var(--view-scale));
 }
 
 .arc-model-canvas--preview {
@@ -711,21 +725,32 @@
   반응형 — 큰 화면 → 작은 화면 순서로 배치 (아래로 갈수록 좁은 화면 대상)
    ========================================================================== */
 
+/* 데스크톱 축소 (~1440px): 신발 뷰 확대 배율만 축소 (스테이지 폭이 좁아질수록 캔버스가 더 많이 잘리는 것 방지) */
+@media (max-width: 1440px) {
+  .arc-model-stage--shoes {
+    --view-scale: 1.85;
+  }
+}
+
 /* 데스크톱 축소 (~1200px): 사이드 레일·모델 트랙 폭만 조정 */
 @media (max-width: 1200px) {
   .arc-look-shell {
-    grid-template-columns: 320px minmax(0, 1fr);
-    gap: 34px;
-    padding: 0 0 0 50px;
+    padding: 0;
   }
 
   .arc-info-rail {
+    left: 55px;
     width: 320px;
-    transform: translateX(28px);
+    transform: translateY(-50%);
   }
 
   .arc-model-track {
+    left: 66%;
     width: clamp(350px, 39vw, 500px);
+  }
+
+  .arc-model-stage--shoes {
+    --view-scale: 1.6;
   }
 }
 
@@ -736,9 +761,14 @@
   }
 
   .arc-model-stage::before {
-    left: 2%;
+    right: 2%;
     bottom: 1%;
     font-size: clamp(64px, 16vw, 110px);
+  }
+
+  .arc-product-card {
+    transform: scale(0.8);
+    transform-origin: top left;
   }
 }
 
@@ -779,7 +809,6 @@
     aspect-ratio: 1637 / 2048;
     min-height: 60vh;
     max-height: 88vh;
-    padding: 20px 0;
     overflow: hidden;
     border-radius: 10px;
     background: #e9e9e9;
@@ -796,8 +825,8 @@
     position: absolute;
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
+    gap: clamp(8px, 5.15px + 0.89vw, 12px);
+    padding: clamp(8px, 5.15px + 0.89vw, 12px) clamp(12px, 7.71px + 1.34vw, 18px);
     border: 0;
     border-radius: 9999px;
     background: rgba(255, 255, 255, 0.92);
@@ -810,8 +839,8 @@
     flex-shrink: 0;
     align-items: center;
     justify-content: center;
-    width: 20px;
-    height: 20px;
+    width: clamp(20px, 14.27px + 1.79vw, 28px);
+    height: clamp(20px, 14.27px + 1.79vw, 28px);
     color: #111111;
   }
 
@@ -823,7 +852,7 @@
 
   .arc-hotspot-pill-label {
     color: #111111;
-    font-size: 12px;
+    font-size: clamp(12px, 9.15px + 0.89vw, 16px);
     font-weight: 700;
     letter-spacing: 0.06em;
     white-space: nowrap;
@@ -831,7 +860,7 @@
 
   .arc-hotspot-pill-arrow {
     color: #999999;
-    font-size: 13px;
+    font-size: clamp(13px, 10.15px + 0.89vw, 17px);
   }
 
   .arc-hotspot-pill--top {

@@ -279,7 +279,6 @@ function FeaturedLookSection() {
               <div>
                 <p className="arc-product-eyebrow">{activeInfo.eyebrow}</p>
                 <h1>{activeInfo.title}</h1>
-                <p className="arc-product-subtitle">{activeInfo.subtitle}</p>
               </div>
 
               <div className="arc-color-list">
