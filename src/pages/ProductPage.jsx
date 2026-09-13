@@ -1,62 +1,213 @@
-import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 
+import { getProductFilters, getProducts, getSets } from '@/api/products';
 import '@/styles/product-page.css';
 
 const CATEGORY_NAV = [
-  { label: 'OUTER', to: '/products?category=outer' },
-  { label: 'TOP', to: '/products?category=top' },
-  { label: 'BOTTOM', to: '/products?category=bottom' },
-  { label: 'SETS', to: '/products?category=sets' },
-  { label: 'SHOES', to: '/products?category=shoes' },
+  { label: 'OUTER', to: '/products?category=outer', value: 'outer' },
+  { label: 'TOP', to: '/products?category=top', value: 'top' },
+  { label: 'BOTTOM', to: '/products?category=bottom', value: 'bottom' },
+  { label: 'SETS', to: '/products?category=sets', value: 'sets' },
+  { label: 'SHOES', to: '/products?category=shoes', value: 'shoes' },
 ];
 
-const ACTIVE_CATEGORY = 'TOP';
-
-const ACTIVE_FILTERS = [
-  {
-    id: 'color-pink',
-    label: '핑크',
-    color: '#e8aeb7',
+const CATEGORY_CONFIG = {
+  outer: {
+    categoryId: 'outer',
+    subCategoryId: null,
+    label: 'OUTER',
+    sidebarValue: 'outer',
   },
-  {
-    id: 'price-1',
-    label: '100,000~150,000원',
+  jacket: {
+    categoryId: 'outer',
+    subCategoryId: 'jacket',
+    label: 'JACKET',
+    sidebarValue: 'outer',
   },
-];
+  windbreaker: {
+    categoryId: 'outer',
+    subCategoryId: 'windbreaker',
+    label: 'WINDBREAKER',
+    sidebarValue: 'outer',
+  },
+  top: {
+    categoryId: 'top',
+    subCategoryId: null,
+    label: 'TOP',
+    sidebarValue: 'top',
+  },
+  tshirt: {
+    categoryId: 'top',
+    subCategoryId: 'tshirt',
+    label: 'T-SHIRT',
+    sidebarValue: 'top',
+  },
+  'long-sleeve': {
+    categoryId: 'top',
+    subCategoryId: 'tshirt',
+    label: 'TOP',
+    sidebarValue: 'top',
+  },
+  'hoodie-sweat': {
+    categoryId: 'top',
+    subCategoryId: null,
+    label: 'TOP',
+    sidebarValue: 'top',
+  },
+  bottom: {
+    categoryId: 'bottom',
+    subCategoryId: null,
+    label: 'BOTTOM',
+    sidebarValue: 'bottom',
+  },
+  pants: {
+    categoryId: 'bottom',
+    subCategoryId: 'pants',
+    label: 'PANTS',
+    sidebarValue: 'bottom',
+  },
+  shorts: {
+    categoryId: 'bottom',
+    subCategoryId: 'shorts',
+    label: 'SHORTS',
+    sidebarValue: 'bottom',
+  },
+  shoes: {
+    categoryId: 'shoes',
+    subCategoryId: null,
+    label: 'SHOES',
+    sidebarValue: 'shoes',
+  },
+  'running-shoes': {
+    categoryId: 'shoes',
+    subCategoryId: 'running',
+    label: 'RUNNING',
+    sidebarValue: 'shoes',
+  },
+  'training-shoes': {
+    categoryId: 'shoes',
+    subCategoryId: 'training',
+    label: 'TRAINING',
+    sidebarValue: 'shoes',
+  },
+  sets: {
+    categoryId: 'sets',
+    subCategoryId: null,
+    label: 'SETS',
+    sidebarValue: 'sets',
+  },
+  accessories: {
+    categoryId: 'accessories',
+    subCategoryId: null,
+    label: 'ACCESSORIES',
+    sidebarValue: null,
+  },
+  sunglasses: {
+    categoryId: 'accessories',
+    subCategoryId: 'sunglasses',
+    label: 'SUNGLASSES',
+    sidebarValue: null,
+  },
+  cap: {
+    categoryId: 'accessories',
+    subCategoryId: 'hat',
+    label: 'HAT',
+    sidebarValue: null,
+  },
+  hat: {
+    categoryId: 'accessories',
+    subCategoryId: 'hat',
+    label: 'HAT',
+    sidebarValue: null,
+  },
+};
 
 /* ================================
    테스트용 상품 
 ================================ */
 
-const PRODUCT_IMAGES = [
-  '/images/products/product01.jpg',
-  '/images/products/product02.jpg',
-  '/images/products/product03.jpg',
-  '/images/products/product04.jpg',
-  '/images/products/product09.jpg',
-  '/images/products/product10.jpg',
-  '/images/products/product11.jpg',
-  '/images/products/product12.jpg',
+const SORT_OPTIONS = [
+  { label: '인기순', value: 'popular' },
+  { label: '신상품', value: 'new' },
+  { label: '낮은 가격순', value: 'priceAsc' },
+  { label: '높은 가격순', value: 'priceDesc' },
 ];
 
-const products = Array.from({ length: 30 }, (_, index) => {
-  const id = index + 1;
+const COLOR_MAP = {
+  black: '#111111',
+  white: '#ffffff',
+  gray: '#9ca3af',
+  navy: '#1f2a44',
+  blue: '#5875bf',
+  green: '#657a5a',
+  khaki: '#7b8062',
+  brown: '#7a5541',
+  beige: '#d8c6a5',
+  pink: '#e8aeb7',
+  red: '#b94b4b',
+  orange: '#d98245',
+  yellow: '#d6b74c',
+  purple: '#80649a',
+  silver: '#c3c7cc',
+};
 
-  return {
-    id,
-    name: `LOVE YOU SO MUCH ${id}`,
-    category: 'LOVE YOU',
-    price: id === 1 ? '₩ 49,000' : '₩ 40,000',
-
-    image: PRODUCT_IMAGES[index % PRODUCT_IMAGES.length],
-
-    colors: id % 3 === 0 ? ['blue', null] : ['black', 'blue', null],
-  };
-});
+const COLOR_LABELS = {
+  black: '블랙',
+  white: '화이트',
+  gray: '그레이',
+  navy: '네이비',
+  blue: '블루',
+  green: '그린',
+  khaki: '카키',
+  brown: '브라운',
+  beige: '베이지',
+  pink: '핑크',
+  red: '레드',
+  orange: '오렌지',
+  yellow: '옐로우',
+  purple: '퍼플',
+  silver: '실버',
+};
 
 /* 처음에는 4개씩 추가 */
 const PRODUCTS_PER_LOAD = 4;
+
+const PRICE_MIN = 0;
+const PRICE_MAX = 300000;
+
+const EMPTY_APPLIED_FILTERS = {
+  color: null,
+  size: null,
+  lengthType: null,
+  minPrice: null,
+  maxPrice: null,
+};
+
+const LENGTH_LABELS = {
+  long: '롱',
+  short: '숏',
+};
+
+function normalizeColorOption(color) {
+  if (typeof color === 'string') {
+    return {
+      value: color,
+      label: COLOR_LABELS[color] ?? color,
+      filterGroup: color,
+    };
+  }
+
+  return color;
+}
+
+function toggleSingleValue(currentValue, nextValue) {
+  if (currentValue === nextValue) {
+    return null;
+  }
+
+  return nextValue;
+}
 
 /* ================================
    아이콘
@@ -111,19 +262,11 @@ function IconClose() {
    컬러
 ================================ */
 
-function ColorSwatch({ color }) {
-  if (!color) {
-    return <span className="product-color product-color--empty" />;
-  }
-
-  return <span className={`product-color color-${color}`} />;
-}
-
 /* ================================
    필터 태그
 ================================ */
 
-function FilterTag({ label, color }) {
+function FilterTag({ label, color, onRemove }) {
   return (
     <span className="filter-tag">
       {color && (
@@ -137,7 +280,12 @@ function FilterTag({ label, color }) {
 
       <span className="filter-tag-label">{label}</span>
 
-      <button type="button" className="filter-tag-remove" aria-label={`${label} 필터 제거`}>
+      <button
+        type="button"
+        className="filter-tag-remove"
+        aria-label={`${label} 필터 제거`}
+        onClick={onRemove}
+      >
         <IconClose />
       </button>
     </span>
@@ -149,44 +297,342 @@ function FilterTag({ label, color }) {
 ================================ */
 
 function ProductPage() {
+  const [searchParams] = useSearchParams();
+
+  const categoryParam = searchParams.get('categoryId') ?? searchParams.get('category') ?? 'top';
+
+  const gender = searchParams.get('gender') ?? 'women';
+
+  const activeCategory = CATEGORY_CONFIG[categoryParam] ?? CATEGORY_CONFIG.top;
+
   /* 필터 열림 / 닫힘 */
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const [isColorOpen, setIsColorOpen] = useState(true);
 
   /* 가격 필터 */
-  const PRICE_MIN = 34300;
-  const PRICE_MAX = 59000;
-
   const [minPrice, setMinPrice] = useState(PRICE_MIN);
   const [maxPrice, setMaxPrice] = useState(PRICE_MAX);
 
+  const [filterOptions, setFilterOptions] = useState({
+    colors: [],
+    sizes: [],
+    lengthTypes: [],
+  });
+
+  const [selectedColor, setSelectedColor] = useState(null);
+  const [selectedSize, setSelectedSize] = useState(null);
+  const [selectedLengthType, setSelectedLengthType] = useState(null);
+
+  const [appliedFilters, setAppliedFilters] = useState(EMPTY_APPLIED_FILTERS);
+
   /* 현재 몇 개까지 보여줄지 */
-  const [visibleCount, setVisibleCount] = useState(PRODUCTS_PER_LOAD);
+  const [page, setPage] = useState(1);
 
   /* 무한스크롤 감지 DIV */
   const loadMoreRef = useRef(null);
+  const requestIdRef = useRef(0);
+  const requestInFlightRef = useRef(false);
+  const filterRequestIdRef = useRef(0);
 
   /* 현재 보여주는 상품 */
-  const visibleProducts = products.slice(0, visibleCount);
+  const [productItems, setProductItems] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState('');
 
   /* 아직 불러올 상품이 남았는지 */
-  const hasMore = visibleCount < products.length;
+  const [hasMore, setHasMore] = useState(true);
 
   /* 정렬 메뉴 */
   const [isSortOpen, setIsSortOpen] = useState(false);
-  const [sortType, setSortType] = useState('인기순');
+  const [sortType, setSortType] = useState('popular');
 
-  const SORT_OPTIONS = ['인기순', '신상품', '낮은 가격순', '높은 가격순'];
-
-  const filterFormRef = useRef(null);
+  const [excludeSoldOut, setExcludeSoldOut] = useState(true);
 
   const resetFilters = () => {
-    filterFormRef.current?.reset();
+    setSelectedColor(null);
+    setSelectedSize(null);
+    setSelectedLengthType(null);
 
     setMinPrice(PRICE_MIN);
     setMaxPrice(PRICE_MAX);
+
+    setAppliedFilters(EMPTY_APPLIED_FILTERS);
   };
+
+  const applyFilters = () => {
+    const hasPriceFilter = minPrice !== PRICE_MIN || maxPrice !== PRICE_MAX;
+
+    setAppliedFilters({
+      color: selectedColor,
+      size: selectedSize,
+      lengthType: selectedLengthType,
+      minPrice: hasPriceFilter ? minPrice : null,
+      maxPrice: hasPriceFilter ? maxPrice : null,
+    });
+
+    setIsFilterOpen(false);
+  };
+
+  const clearAllFilters = () => {
+    resetFilters();
+  };
+
+  const removeAppliedFilter = (type) => {
+    if (type === 'color') {
+      setSelectedColor(null);
+
+      setAppliedFilters((prev) => ({
+        ...prev,
+        color: null,
+      }));
+
+      return;
+    }
+
+    if (type === 'size') {
+      setSelectedSize(null);
+
+      setAppliedFilters((prev) => ({
+        ...prev,
+        size: null,
+      }));
+
+      return;
+    }
+
+    if (type === 'lengthType') {
+      setSelectedLengthType(null);
+
+      setAppliedFilters((prev) => ({
+        ...prev,
+        lengthType: null,
+      }));
+
+      return;
+    }
+
+    if (type === 'price') {
+      setMinPrice(PRICE_MIN);
+      setMaxPrice(PRICE_MAX);
+
+      setAppliedFilters((prev) => ({
+        ...prev,
+        minPrice: null,
+        maxPrice: null,
+      }));
+    }
+  };
+
+  useEffect(() => {
+    const requestId = filterRequestIdRef.current + 1;
+
+    filterRequestIdRef.current = requestId;
+
+    const fetchFilterOptions = async () => {
+      if (activeCategory.categoryId === 'sets' && gender === 'men') {
+        setFilterOptions({
+          colors: [],
+          sizes: [],
+          lengthTypes: [],
+        });
+
+        setMinPrice(PRICE_MIN);
+        setMaxPrice(PRICE_MAX);
+        setSelectedColor(null);
+        setSelectedSize(null);
+        setSelectedLengthType(null);
+        setAppliedFilters(EMPTY_APPLIED_FILTERS);
+
+        return;
+      }
+
+      try {
+        const params = {
+          categoryId: activeCategory.categoryId,
+          gender,
+        };
+
+        if (activeCategory.subCategoryId) {
+          params.subCategoryId = activeCategory.subCategoryId;
+        }
+
+        const response = await getProductFilters(params);
+
+        if (requestId !== filterRequestIdRef.current) {
+          return;
+        }
+
+        const data = response?.data ?? {};
+
+        const colors = (data.colors ?? []).map(normalizeColorOption);
+
+        const sizes = (data.sizes ?? []).map((size) => String(size));
+
+        const lengthTypes = (data.lengthTypes ?? []).map((type) => String(type));
+
+        setFilterOptions({
+          colors,
+          sizes,
+          lengthTypes,
+        });
+
+        setMinPrice(PRICE_MIN);
+        setMaxPrice(PRICE_MAX);
+
+        setSelectedColor(null);
+        setSelectedSize(null);
+        setSelectedLengthType(null);
+
+        setAppliedFilters(EMPTY_APPLIED_FILTERS);
+      } catch {
+        if (requestId !== filterRequestIdRef.current) {
+          return;
+        }
+
+        setFilterOptions({
+          colors: [],
+          sizes: [],
+          lengthTypes: [],
+        });
+
+        setMinPrice(PRICE_MIN);
+        setMaxPrice(PRICE_MAX);
+
+        setSelectedColor(null);
+        setSelectedSize(null);
+        setSelectedLengthType(null);
+
+        setAppliedFilters(EMPTY_APPLIED_FILTERS);
+      }
+    };
+
+    fetchFilterOptions();
+  }, [activeCategory.categoryId, activeCategory.subCategoryId, gender]);
+
+  const fetchProductsPage = useCallback(
+    async (targetPage, replace = false) => {
+      const requestId = requestIdRef.current + 1;
+
+      requestIdRef.current = requestId;
+      requestInFlightRef.current = true;
+
+      if (activeCategory.categoryId === 'sets' && gender === 'men') {
+        if (replace) {
+          setPage(1);
+        }
+
+        setProductItems([]);
+        setHasMore(false);
+        setLoadError('');
+        setIsLoading(false);
+        requestInFlightRef.current = false;
+
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        setLoadError('');
+
+        const params = {
+          gender,
+          sort: sortType,
+          page: targetPage,
+          limit: PRODUCTS_PER_LOAD,
+        };
+
+        if (activeCategory.subCategoryId) {
+          params.subCategoryId = activeCategory.subCategoryId;
+        }
+
+        if (appliedFilters.color) {
+          params.color = appliedFilters.color;
+        }
+
+        if (appliedFilters.size) {
+          params.size = appliedFilters.size;
+        }
+
+        if (appliedFilters.lengthType) {
+          params.lengthType = appliedFilters.lengthType;
+        }
+
+        if (appliedFilters.minPrice !== null) {
+          params.minPrice = appliedFilters.minPrice;
+        }
+
+        if (appliedFilters.maxPrice !== null) {
+          params.maxPrice = appliedFilters.maxPrice;
+        }
+
+        const response =
+          activeCategory.categoryId === 'sets'
+            ? await getSets(params)
+            : await getProducts({
+                ...params,
+                categoryId: activeCategory.categoryId,
+              });
+
+        if (requestId !== requestIdRef.current) {
+          return;
+        }
+
+        const data = response?.data ?? {};
+
+        const nextProducts = data.products ?? data.sets ?? [];
+
+        const pagination = data.pagination ?? data.pageInfo ?? {};
+
+        if (replace) {
+          setPage(1);
+        }
+
+        setProductItems((prev) => {
+          if (replace) {
+            return nextProducts;
+          }
+
+          const existingIds = new Set(prev.map((product) => product.productId));
+
+          return [
+            ...prev,
+            ...nextProducts.filter((product) => !existingIds.has(product.productId)),
+          ];
+        });
+
+        if (typeof pagination.hasNextPage === 'boolean') {
+          setHasMore(pagination.hasNextPage);
+        } else {
+          setHasMore(nextProducts.length === PRODUCTS_PER_LOAD);
+        }
+      } catch {
+        if (requestId !== requestIdRef.current) {
+          return;
+        }
+
+        setLoadError('상품 정보를 불러오지 못했습니다.');
+
+        setHasMore(false);
+      } finally {
+        if (requestId === requestIdRef.current) {
+          requestInFlightRef.current = false;
+          setIsLoading(false);
+        }
+      }
+    },
+    [activeCategory.categoryId, activeCategory.subCategoryId, appliedFilters, gender, sortType]
+  );
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      fetchProductsPage(1, true);
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [fetchProductsPage]);
 
   /* ================================
      무한 스크롤
@@ -209,9 +655,14 @@ function ProductPage() {
           return;
         }
 
-        setVisibleCount((prev) => {
-          return Math.min(prev + PRODUCTS_PER_LOAD, products.length);
-        });
+        if (requestInFlightRef.current) {
+          return;
+        }
+
+        const nextPage = page + 1;
+
+        setPage(nextPage);
+        fetchProductsPage(nextPage);
       },
       {
         root: null,
@@ -231,7 +682,60 @@ function ProductPage() {
     return () => {
       observer.disconnect();
     };
-  }, [visibleCount, hasMore]);
+  }, [fetchProductsPage, hasMore, page]);
+
+  const activeFilterTags = [
+    ...(appliedFilters.color
+      ? [
+          {
+            id: `color-${appliedFilters.color}`,
+            type: 'color',
+            label:
+              filterOptions.colors.find((item) => item.filterGroup === appliedFilters.color)
+                ?.label ?? appliedFilters.color,
+            color: COLOR_MAP[appliedFilters.color] ?? '#d9d9d9',
+          },
+        ]
+      : []),
+
+    ...(appliedFilters.size
+      ? [
+          {
+            id: `size-${appliedFilters.size}`,
+            type: 'size',
+            label: appliedFilters.size,
+          },
+        ]
+      : []),
+
+    ...(appliedFilters.lengthType
+      ? [
+          {
+            id: `length-${appliedFilters.lengthType}`,
+            type: 'lengthType',
+            label: LENGTH_LABELS[appliedFilters.lengthType] ?? appliedFilters.lengthType,
+          },
+        ]
+      : []),
+
+    ...(appliedFilters.minPrice !== null || appliedFilters.maxPrice !== null
+      ? [
+          {
+            id: 'price',
+            type: 'price',
+            label: `${Number(appliedFilters.minPrice ?? PRICE_MIN).toLocaleString()}~${Number(
+              appliedFilters.maxPrice ?? PRICE_MAX
+            ).toLocaleString()}원`,
+          },
+        ]
+      : []),
+  ];
+
+  const displayedProducts = excludeSoldOut
+    ? productItems.filter((product) => !product.isSoldOut)
+    : productItems;
+
+  const priceRangeSpan = PRICE_MAX - PRICE_MIN;
 
   return (
     <main className="product-page">
@@ -261,12 +765,12 @@ function ProductPage() {
         <aside className="product-sidebar">
           <nav className="product-sidebar-nav" aria-label="카테고리">
             {CATEGORY_NAV.map((item) => {
-              const active = item.label === ACTIVE_CATEGORY;
+              const active = item.value === activeCategory.sidebarValue;
 
               return (
                 <Link
                   key={item.label}
-                  to={item.to}
+                  to={`${item.to}&gender=${gender}`}
                   className={`product-sidebar-link${active ? ' is-active' : ''}`}
                   aria-current={active ? 'page' : undefined}
                 >
@@ -285,17 +789,17 @@ function ProductPage() {
           {/* breadcrumb */}
 
           <nav className="product-breadcrumb" aria-label="위치">
-            <span>WOMAN</span>
+            <span>{gender.toUpperCase()}</span>
 
             <span className="product-breadcrumb-sep">›</span>
 
-            <span className="is-current">TOPS</span>
+            <span className="is-current">{activeCategory.label}</span>
           </nav>
 
           {/* 제목 */}
 
           <div className="category-heading">
-            <h2>여성복</h2>
+            <h2>{gender === 'men' ? '남성복' : '여성복'}</h2>
           </div>
 
           {/* ================================
@@ -311,7 +815,7 @@ function ProductPage() {
                   onClick={() => setIsSortOpen((prev) => !prev)}
                   aria-expanded={isSortOpen}
                 >
-                  <span>{sortType}</span>
+                  <span>{SORT_OPTIONS.find((option) => option.value === sortType)?.label}</span>
 
                   <IconChevronDown />
                 </button>
@@ -321,14 +825,16 @@ function ProductPage() {
                     {SORT_OPTIONS.map((option) => (
                       <button
                         type="button"
-                        key={option}
-                        className={`product-sort-option ${sortType === option ? 'is-active' : ''}`}
+                        key={option.value}
+                        className={`product-sort-option ${
+                          sortType === option.value ? 'is-active' : ''
+                        }`}
                         onClick={() => {
-                          setSortType(option);
+                          setSortType(option.value);
                           setIsSortOpen(false);
                         }}
                       >
-                        {option}
+                        {option.label}
                       </button>
                     ))}
                   </div>
@@ -340,7 +846,9 @@ function ProductPage() {
 
                 <span>전체 필터</span>
 
-                <span className="filter-btn-count">2</span>
+                {activeFilterTags.length > 0 && (
+                  <span className="filter-btn-count">{activeFilterTags.length}</span>
+                )}
               </button>
             </div>
 
@@ -390,95 +898,98 @@ function ProductPage() {
       필터 본문
   ================================ */}
 
-            <form
-              ref={filterFormRef}
-              className="filter-drawer-body"
-              onSubmit={(e) => e.preventDefault()}
-            >
+            <form className="filter-drawer-body" onSubmit={(e) => e.preventDefault()}>
               {/* ================================
         컬러
     ================================ */}
 
-              <section
-                className={`filter-section color-filter-section ${
-                  !isColorOpen ? 'is-collapsed' : ''
-                }`}
-              >
-                <div className="filter-section-header">
-                  <h3>컬러</h3>
+              {filterOptions.colors.length > 0 && (
+                <section
+                  className={`filter-section color-filter-section ${
+                    !isColorOpen ? 'is-collapsed' : ''
+                  }`}
+                >
+                  <div className="filter-section-header">
+                    <h3>컬러</h3>
 
-                  <button
-                    type="button"
-                    className={`filter-section-toggle ${isColorOpen ? 'is-open' : ''}`}
-                    onClick={() => setIsColorOpen((prev) => !prev)}
-                    aria-expanded={isColorOpen}
-                    aria-label="컬러 필터 열기/닫기"
-                  >
-                    <IconChevronDown />
-                  </button>
-                </div>
-
-                {isColorOpen && (
-                  <div className="filter-section-content">
-                    <label className="color-filter-item">
-                      <input type="checkbox" />
-
-                      <span
-                        className="color-filter-swatch"
-                        style={{ backgroundColor: '#111111' }}
-                      />
-
-                      <span className="color-filter-name">Black</span>
-
-                      <span className="color-filter-count">(12)</span>
-                    </label>
+                    <button
+                      type="button"
+                      className={`filter-section-toggle ${isColorOpen ? 'is-open' : ''}`}
+                      onClick={() => setIsColorOpen((prev) => !prev)}
+                      aria-expanded={isColorOpen}
+                      aria-label="컬러 필터 열기/닫기"
+                    >
+                      <IconChevronDown />
+                    </button>
                   </div>
-                )}
-              </section>
+
+                  {isColorOpen && (
+                    <div className="filter-section-content">
+                      {filterOptions.colors.map((color) => {
+                        const value = color.filterGroup;
+
+                        const checked = selectedColor === value;
+
+                        const backgroundColor = COLOR_MAP[value] ?? '#d9d9d9';
+
+                        return (
+                          <label className="color-filter-item" key={value}>
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => {
+                                setSelectedColor((prev) => toggleSingleValue(prev, value));
+                              }}
+                            />
+
+                            <span
+                              className="color-filter-swatch"
+                              style={{
+                                backgroundColor,
+                                border: value === 'white' ? '1px solid #d1d1d1' : undefined,
+                              }}
+                            />
+
+                            <span className="color-filter-name">{color.label}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                </section>
+              )}
 
               {/* ================================
         소재
     ================================ */}
 
-              <section className="filter-section">
-                <h3>소재</h3>
-
-                <div className="filter-check-list">
-                  <label>
-                    <input type="checkbox" />
-                    <span className="custom-check" />
-                    코튼
-                  </label>
-
-                  <label>
-                    <input type="checkbox" />
-                    <span className="custom-check" />
-                    폴리에스터
-                  </label>
-                </div>
-              </section>
-
               {/* ================================
         긴팔 / 반팔
     ================================ */}
 
-              <section className="filter-section">
-                <h3>긴팔 / 반팔</h3>
+              {activeCategory.categoryId === 'bottom' && filterOptions.lengthTypes.length > 0 && (
+                <section className="filter-section">
+                  <h3>길이</h3>
 
-                <div className="filter-check-list">
-                  <label>
-                    <input type="checkbox" />
-                    <span className="custom-check" />
-                    긴팔
-                  </label>
+                  <div className="filter-check-list">
+                    {filterOptions.lengthTypes.map((lengthType) => (
+                      <label key={lengthType}>
+                        <input
+                          type="checkbox"
+                          checked={selectedLengthType === lengthType}
+                          onChange={() => {
+                            setSelectedLengthType((prev) => toggleSingleValue(prev, lengthType));
+                          }}
+                        />
 
-                  <label>
-                    <input type="checkbox" />
-                    <span className="custom-check" />
-                    반팔
-                  </label>
-                </div>
-              </section>
+                        <span className="custom-check" />
+
+                        {LENGTH_LABELS[lengthType] ?? lengthType}
+                      </label>
+                    ))}
+                  </div>
+                </section>
+              )}
 
               {/* ================================
         가격
@@ -492,13 +1003,9 @@ function ProductPage() {
                 <div
                   className="price-range"
                   style={{
-                    '--min-position': `${
-                      ((minPrice - PRICE_MIN) / (PRICE_MAX - PRICE_MIN)) * 100
-                    }%`,
+                    '--min-position': `${((minPrice - PRICE_MIN) / priceRangeSpan) * 100}%`,
 
-                    '--max-position': `${
-                      ((maxPrice - PRICE_MIN) / (PRICE_MAX - PRICE_MIN)) * 100
-                    }%`,
+                    '--max-position': `${((maxPrice - PRICE_MIN) / priceRangeSpan) * 100}%`,
                   }}
                 >
                   <div className="price-range-track" />
@@ -508,12 +1015,12 @@ function ProductPage() {
                     className="price-range-input price-range-min"
                     min={PRICE_MIN}
                     max={PRICE_MAX}
-                    step="100"
+                    step="1000"
                     value={minPrice}
                     onChange={(e) => {
-                      const value = Math.min(Number(e.target.value), maxPrice - 100);
+                      const value = Math.min(Number(e.target.value), maxPrice - 1000);
 
-                      setMinPrice(value);
+                      setMinPrice(Math.max(PRICE_MIN, value));
                     }}
                   />
 
@@ -522,12 +1029,12 @@ function ProductPage() {
                     className="price-range-input price-range-max"
                     min={PRICE_MIN}
                     max={PRICE_MAX}
-                    step="100"
+                    step="1000"
                     value={maxPrice}
                     onChange={(e) => {
-                      const value = Math.max(Number(e.target.value), minPrice + 100);
+                      const value = Math.max(Number(e.target.value), minPrice + 1000);
 
-                      setMaxPrice(value);
+                      setMaxPrice(Math.min(PRICE_MAX, value));
                     }}
                   />
                 </div>
@@ -548,7 +1055,7 @@ function ProductPage() {
                       onChange={(e) => {
                         const value = Number(e.target.value);
 
-                        setMinPrice(Math.max(PRICE_MIN, Math.min(value, maxPrice - 100)));
+                        setMinPrice(Math.max(PRICE_MIN, Math.min(value, maxPrice - 1000)));
                       }}
                     />
                   </label>
@@ -562,7 +1069,7 @@ function ProductPage() {
                       onChange={(e) => {
                         const value = Number(e.target.value);
 
-                        setMaxPrice(Math.min(PRICE_MAX, Math.max(value, minPrice + 100)));
+                        setMaxPrice(Math.min(PRICE_MAX, Math.max(value, minPrice + 1000)));
                       }}
                     />
                   </label>
@@ -573,17 +1080,26 @@ function ProductPage() {
         사이즈
     ================================ */}
 
-              <section className="filter-section">
-                <h3>사이즈</h3>
+              {filterOptions.sizes.length > 0 && (
+                <section className="filter-section">
+                  <h3>사이즈</h3>
 
-                <div className="shoe-size-grid">
-                  {[230, 235, 240, 245, 250, 255, 260, 265, 270, 275, 280].map((size) => (
-                    <button type="button" key={size}>
-                      {size}
-                    </button>
-                  ))}
-                </div>
-              </section>
+                  <div className="shoe-size-grid">
+                    {filterOptions.sizes.map((size) => (
+                      <button
+                        type="button"
+                        key={size}
+                        className={selectedSize === size ? 'is-selected' : ''}
+                        onClick={() => {
+                          setSelectedSize((prev) => toggleSingleValue(prev, size));
+                        }}
+                      >
+                        {size}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              )}
             </form>
 
             {/* ================================
@@ -591,36 +1107,45 @@ function ProductPage() {
   ================================ */}
 
             <div className="filter-drawer-footer">
-              <button
-                type="button"
-                className="filter-apply-btn"
-                onClick={() => setIsFilterOpen(false)}
-              >
+              <button type="button" className="filter-apply-btn" onClick={applyFilters}>
                 적용하기
               </button>
             </div>
           </aside>
+
           {/* ================================
               활성 필터
           ================================ */}
 
           <div className="product-active-filters">
             <div className="product-active-filters-list">
-              {ACTIVE_FILTERS.map((filter) => (
-                <FilterTag key={filter.id} label={filter.label} color={filter.color} />
+              {activeFilterTags.map((filter) => (
+                <FilterTag
+                  key={filter.id}
+                  label={filter.label}
+                  color={filter.color}
+                  onRemove={() => removeAppliedFilter(filter.type)}
+                />
               ))}
 
-              <button type="button" className="product-filter-clear">
-                전체 해제
-              </button>
+              {activeFilterTags.length > 0 && (
+                <button type="button" className="product-filter-clear" onClick={clearAllFilters}>
+                  전체 해제
+                </button>
+              )}
             </div>
 
             {/* 품절 제외 */}
 
             <label className="product-stock-toggle">
-              <input type="checkbox" defaultChecked />
+              <input
+                type="checkbox"
+                checked={excludeSoldOut}
+                onChange={(e) => setExcludeSoldOut(e.target.checked)}
+              />
 
               <span className="product-stock-toggle-track" aria-hidden="true" />
+
               <span>품절 제외</span>
             </label>
           </div>
@@ -630,48 +1155,73 @@ function ProductPage() {
           ================================ */}
 
           <div className="product-grid">
-            {visibleProducts.map((product) => (
-              <article className="product-card" key={product.id}>
-                {/* 이미지 */}
+            {displayedProducts.map((product) => {
+              const price = Number(product.price ?? 0);
 
-                <Link to={`/products/${product.id}`} className="product-image-link">
-                  <div className="product-image">
-                    {product.image ? (
-                      <img src={product.image} alt={product.name} />
-                    ) : (
-                      <div className="product-image-placeholder" />
-                    )}
-                  </div>
-                </Link>
+              const originalPrice =
+                product.originalPrice === null || product.originalPrice === undefined
+                  ? null
+                  : Number(product.originalPrice);
 
-                {/* 상품 정보 */}
+              const discountRate =
+                originalPrice && originalPrice > price
+                  ? Math.round((1 - price / originalPrice) * 100)
+                  : null;
 
-                <div className="product-card-info">
-                  <div className="product-card-top">
-                    <h4>{product.name}</h4>
+              const detailPath =
+                product.productType === 'set'
+                  ? `/products/${product.productId}?type=set`
+                  : `/products/${product.productId}`;
 
-                    <div className="product-colors">
-                      {product.colors.map((color, index) => (
-                        <ColorSwatch key={color ?? `empty-${index}`} color={color} />
-                      ))}
+              return (
+                <article className="product-card" key={product.productId}>
+                  {/* 이미지 */}
+
+                  <Link to={detailPath} className="product-image-link">
+                    <div className="product-image">
+                      {product.imageUrl ? (
+                        <img src={product.imageUrl} alt={product.name} />
+                      ) : (
+                        <div className="product-image-placeholder" />
+                      )}
+                    </div>
+                  </Link>
+
+                  {/* 상품 정보 */}
+
+                  <div className="product-card-info">
+                    <div className="product-card-top">
+                      <h4>{product.name}</h4>
+                    </div>
+
+                    <p className="product-card-category">{product.subCategoryId?.toUpperCase()}</p>
+
+                    <div className="product-card-price-wrap">
+                      {discountRate !== null && (
+                        <span className="product-card-discount">{discountRate}%</span>
+                      )}
+
+                      <strong className="product-card-price">₩ {price.toLocaleString()}</strong>
+
+                      {originalPrice !== null && originalPrice > price && (
+                        <del className="product-card-original-price">
+                          ₩ {originalPrice.toLocaleString()}
+                        </del>
+                      )}
                     </div>
                   </div>
-
-                  <p className="product-card-category">{product.category}</p>
-
-                  <strong className="product-card-price">{product.price}</strong>
-                </div>
-              </article>
-            ))}
+                </article>
+              );
+            })}
           </div>
 
           {/* ================================
               무한스크롤 감지 영역
           ================================ */}
 
-          {hasMore && (
+          {hasMore && !loadError && (
             <div ref={loadMoreRef} className="product-scroll-trigger">
-              <span>상품 불러오는 중...</span>
+              {isLoading && <span>상품 불러오는 중...</span>}
             </div>
           )}
 
@@ -679,7 +1229,15 @@ function ProductPage() {
               끝
           ================================ */}
 
-          {!hasMore && <div className="product-scroll-end">모든 상품을 불러왔습니다.</div>}
+          {loadError && <div className="product-scroll-end">{loadError}</div>}
+
+          {!hasMore && !isLoading && !loadError && displayedProducts.length > 0 && (
+            <div className="product-scroll-end">모든 상품을 불러왔습니다.</div>
+          )}
+
+          {!isLoading && !loadError && !hasMore && displayedProducts.length === 0 && (
+            <div className="product-scroll-end">등록된 상품이 없습니다.</div>
+          )}
         </div>
       </div>
     </main>
