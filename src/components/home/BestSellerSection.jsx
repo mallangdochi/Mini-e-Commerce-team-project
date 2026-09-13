@@ -3,20 +3,67 @@ import { Link } from 'react-router-dom';
 
 import '@/styles/best-seller.css';
 
+function ChevronLeft({ size = 20, className }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="m15 18-6-6 6-6" />
+    </svg>
+  );
+}
+
+function ChevronRight({ size = 20, className }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="m9 18 6-6-6-6" />
+    </svg>
+  );
+}
+
 const COMPACT_QUERY = '(max-width: 767px)';
+const TABLET_QUERY = '(min-width: 768px) and (max-width: 1024px)';
 const MOBILE_INITIAL_COUNT = 4;
 
-function useIsCompact() {
-  const [compact, setCompact] = useState(() => window.matchMedia(COMPACT_QUERY).matches);
+function useMatchMedia(query) {
+  const [matches, setMatches] = useState(() => window.matchMedia(query).matches);
 
   useEffect(() => {
-    const mql = window.matchMedia(COMPACT_QUERY);
-    const onChange = (e) => setCompact(e.matches);
+    const mql = window.matchMedia(query);
+    const onChange = (e) => setMatches(e.matches);
     mql.addEventListener('change', onChange);
     return () => mql.removeEventListener('change', onChange);
-  }, []);
+  }, [query]);
 
-  return compact;
+  return matches;
+}
+
+function useIsCompact() {
+  return useMatchMedia(COMPACT_QUERY);
+}
+
+function useIsTablet() {
+  return useMatchMedia(TABLET_QUERY);
 }
 
 function StarRating({ rating = 0, reviewCount = 0 }) {
@@ -25,13 +72,15 @@ function StarRating({ rating = 0, reviewCount = 0 }) {
 
   return (
     <div className="best-seller-card__rating">
-      <div className="best-seller-card__stars" aria-label={`평점 ${safeRating}점`}>
-        {Array.from({ length: 5 }, (_, index) => (
-          <span key={index}>{index < roundedRating ? '★' : '☆'}</span>
-        ))}
-      </div>
+      <div className="best-seller-card__rating-main">
+        <div className="best-seller-card__stars" aria-label={`평점 ${safeRating}점`}>
+          {Array.from({ length: 1 }, (_, index) => (
+            <span key={index}>{index < roundedRating ? '★' : '☆'}</span>
+          ))}
+        </div>
 
-      <span className="best-seller-card__rating-number">{safeRating.toFixed(1)}</span>
+        <span className="best-seller-card__rating-number">{safeRating.toFixed(1)}</span>
+      </div>
 
       {reviewCount > 0 && (
         <span className="best-seller-card__review-count">리뷰 {reviewCount}</span>
@@ -60,17 +109,19 @@ function BestSellerSection({ products = [], isLoading = false, error = null }) {
   const [startIndex, setStartIndex] = useState(0);
   const [showAllMobile, setShowAllMobile] = useState(false);
   const isCompact = useIsCompact();
+  const isTablet = useIsTablet();
+  const visibleCount = isTablet ? 2 : 3;
 
   const visibleProducts = useMemo(() => {
-    if (products.length <= 3) {
+    if (products.length <= visibleCount) {
       return products;
     }
 
-    return Array.from({ length: 3 }, (_, offset) => {
+    return Array.from({ length: visibleCount }, (_, offset) => {
       const index = (startIndex + offset) % products.length;
       return products[index];
     });
-  }, [products, startIndex]);
+  }, [products, startIndex, visibleCount]);
 
   const hasMoreForMobile = products.length > MOBILE_INITIAL_COUNT;
 
@@ -81,7 +132,7 @@ function BestSellerSection({ products = [], isLoading = false, error = null }) {
     : visibleProducts;
 
   const movePrevious = () => {
-    if (products.length <= 3) {
+    if (products.length <= visibleCount) {
       return;
     }
 
@@ -89,7 +140,7 @@ function BestSellerSection({ products = [], isLoading = false, error = null }) {
   };
 
   const moveNext = () => {
-    if (products.length <= 3) {
+    if (products.length <= visibleCount) {
       return;
     }
 
@@ -187,19 +238,19 @@ function BestSellerSection({ products = [], isLoading = false, error = null }) {
             <button
               type="button"
               onClick={movePrevious}
-              disabled={isLoading || Boolean(error) || products.length <= 3}
+              disabled={isLoading || Boolean(error) || products.length <= visibleCount}
               aria-label="이전 베스트셀러 보기"
             >
-              ‹
+              <ChevronLeft />
             </button>
 
             <button
               type="button"
               onClick={moveNext}
-              disabled={isLoading || Boolean(error) || products.length <= 3}
+              disabled={isLoading || Boolean(error) || products.length <= visibleCount}
               aria-label="다음 베스트셀러 보기"
             >
-              ›
+              <ChevronRight />
             </button>
           </div>
         </aside>

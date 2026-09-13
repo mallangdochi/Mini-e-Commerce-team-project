@@ -35,7 +35,7 @@
 .trending-card__image-wrap {
   position: relative;
   width: 100%;
-  aspect-ratio: 0.79;
+  aspect-ratio: 0.73;
   overflow: hidden;
   background: #ededed;
 }
@@ -160,7 +160,7 @@
     grid-template-columns: repeat(3, minmax(280px, 78vw));
     gap: 12px;
     overflow-x: auto;
-    padding-bottom: 8px;
+    padding-bottom: 40px;
     scroll-snap-type: x mandatory;
     scrollbar-width: none;
   }
@@ -176,6 +176,13 @@
   .trending-section__empty,
   .trending-section__error {
     min-height: 360px;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 900px) {
+  .trending-section__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    overflow-x: visible;
   }
 }
 

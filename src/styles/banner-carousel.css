@@ -209,8 +209,12 @@
   transform: rotate(-90deg);
 }
 
-/* 모바일 (320~768px) */
-@media (max-width: 768px) {
+/* 모바일 (320~767px) */
+@media (max-width: 767px) {
+  .banner-carousel {
+    aspect-ratio: 320 / 512;
+  }
+
   .banner-carousel__eyebrow {
     left: 16px;
     top: 14px;
