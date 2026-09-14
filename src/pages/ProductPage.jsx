@@ -5,6 +5,7 @@ import { getProductFilters, getProducts, getSets } from '@/api/products';
 import '@/styles/product-page.css';
 
 const CATEGORY_NAV = [
+  { label: 'ALL', to: '/products?category=ALL', value: 'all' },
   { label: 'OUTER', to: '/products?category=outer', value: 'outer' },
   { label: 'TOP', to: '/products?category=top', value: 'top' },
   { label: 'BOTTOM', to: '/products?category=bottom', value: 'bottom' },
@@ -13,6 +14,12 @@ const CATEGORY_NAV = [
 ];
 
 const CATEGORY_CONFIG = {
+  all: {
+    categoryId: null,
+    subCategoryId: null,
+    label: 'ALL',
+    sidebarValue: 'all',
+  },
   outer: {
     categoryId: 'outer',
     subCategoryId: null,
@@ -299,7 +306,11 @@ function FilterTag({ label, color, onRemove }) {
 function ProductPage() {
   const [searchParams] = useSearchParams();
 
-  const categoryParam = searchParams.get('categoryId') ?? searchParams.get('category') ?? 'top';
+  const categoryParam = (
+    searchParams.get('categoryId') ??
+    searchParams.get('category') ??
+    'top'
+  ).toLowerCase();
 
   const gender = searchParams.get('gender') ?? 'women';
 
@@ -430,7 +441,10 @@ function ProductPage() {
     filterRequestIdRef.current = requestId;
 
     const fetchFilterOptions = async () => {
-      if (activeCategory.categoryId === 'sets' && gender === 'men') {
+      if (
+        !activeCategory.categoryId ||
+        (activeCategory.categoryId === 'sets' && gender === 'men')
+      ) {
         setFilterOptions({
           colors: [],
           sizes: [],
@@ -566,13 +580,18 @@ function ProductPage() {
           params.maxPrice = appliedFilters.maxPrice;
         }
 
-        const response =
-          activeCategory.categoryId === 'sets'
-            ? await getSets(params)
-            : await getProducts({
-                ...params,
-                categoryId: activeCategory.categoryId,
-              });
+        let response;
+
+        if (activeCategory.categoryId === 'sets') {
+          response = await getSets(params);
+        } else if (activeCategory.categoryId) {
+          response = await getProducts({
+            ...params,
+            categoryId: activeCategory.categoryId,
+          });
+        } else {
+          response = await getProducts(params);
+        }
 
         if (requestId !== requestIdRef.current) {
           return;
