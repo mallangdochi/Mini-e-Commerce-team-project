@@ -217,19 +217,18 @@
   background: #333;
 }
 
-/* --- X 지우기 버튼 --- */
 .login-field {
   position: relative;
 }
 
 .login-input {
-  padding-right: 40px; /* 글자 깔림 여백 추가 */
+  padding-right: 40px;
 }
 
 .clear-btn {
   position: absolute;
   right: 12px;
-  bottom: 12px; /* input 높이에 맞춰 위치 조절 */
+  bottom: 12px;
   background: transparent;
   border: none;
   font-size: 14px;

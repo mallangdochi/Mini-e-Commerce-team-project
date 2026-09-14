@@ -92,6 +92,11 @@
   height: fit-content;
 }
 
+.product-page .product-main {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
 .product-page .product-sidebar-nav {
   display: flex;
   flex-direction: column;
@@ -544,9 +549,54 @@
   font-weight: 500;
 }
 
+/* =================================
+   태블릿 / 모바일 카테고리
+================================= */
+
+.product-page .responsive-category-nav {
+  display: none;
+}
+
+.product-page .responsive-category-link {
+  color: #aeb5c0;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  text-decoration: none;
+
+  white-space: nowrap;
+}
+
+.product-page .responsive-category-link.is-active {
+  color: #111;
+}
+
 /* ===== 반응형: 좁은 화면에서 사이드바/검색 숨김 ===== */
 
 @media (max-width: 900px) {
+  .product-page .responsive-category-nav {
+    display: flex;
+    align-items: center;
+
+    width: 100%;
+
+    margin: 0 0 28px;
+    padding: 0 0 12px;
+
+    gap: 24px;
+
+    overflow-x: auto;
+
+    border-bottom: 1px solid #eceef1;
+
+    scrollbar-width: none;
+  }
+
+  .product-page .responsive-category-nav::-webkit-scrollbar {
+    display: none;
+  }
+
   .product-page .product-layout {
     flex-direction: column;
     gap: 0;
@@ -830,53 +880,6 @@
 
 .product-page .color-filter-name {
   line-height: 1;
-}
-
-/* =================================
-   전체 선택
-================================= */
-
-.product-page .filter-select-all {
-  display: flex;
-  align-items: center;
-
-  gap: 9px;
-
-  width: fit-content;
-
-  margin-bottom: 16px;
-
-  color: #555;
-
-  font-size: 14px;
-  font-weight: 500;
-
-  cursor: pointer;
-}
-
-.product-page .filter-select-all input[type='checkbox'] {
-  width: 14px;
-  height: 14px;
-
-  margin: 0;
-
-  accent-color: #111;
-
-  cursor: pointer;
-}
-
-/* 컬러 목록 */
-.product-page .color-filter-list {
-  display: flex;
-  flex-direction: column;
-
-  gap: 12px;
-}
-
-/* 사이즈 전체 선택 */
-.product-page .size-select-all {
-  margin-top: 4px;
-  margin-bottom: 18px;
 }
 /* =================================
    필터 섹션 접기 / 펼치기
@@ -1406,4 +1409,131 @@
 
 .product-page .filter-reset-btn:hover {
   color: #111;
+}
+
+/* =================================
+   상품 로딩 모션
+================================= */
+
+.product-page .product-card-skeleton {
+  pointer-events: none;
+}
+
+.product-page .product-skeleton-image,
+.product-page .product-skeleton-line {
+  position: relative;
+
+  overflow: hidden;
+
+  background: #f1f2f4;
+}
+
+.product-page .product-skeleton-image::after,
+.product-page .product-skeleton-line::after {
+  position: absolute;
+
+  inset: 0;
+
+  background: linear-gradient(
+    100deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.8) 50%,
+    transparent 80%
+  );
+
+  content: '';
+
+  transform: translateX(-100%);
+
+  animation: product-skeleton-shimmer 1.25s ease-in-out infinite;
+}
+
+.product-page .product-skeleton-line {
+  height: 12px;
+
+  border-radius: 999px;
+}
+
+.product-page .product-skeleton-name {
+  width: 72%;
+
+  margin-bottom: 12px;
+}
+
+.product-page .product-skeleton-category {
+  width: 34%;
+
+  margin-bottom: 16px;
+}
+
+.product-page .product-skeleton-price {
+  width: 48%;
+}
+
+.product-page .product-loading-motion {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 72px;
+
+  gap: 6px;
+}
+
+.product-page .product-loading-dot {
+  width: 6px;
+  height: 6px;
+
+  border-radius: 50%;
+
+  background: #2b2f36;
+
+  animation: product-loading-bounce 0.9s ease-in-out infinite;
+}
+
+.product-page .product-loading-dot:nth-child(2) {
+  animation-delay: 0.12s;
+}
+
+.product-page .product-loading-dot:nth-child(3) {
+  animation-delay: 0.24s;
+}
+
+.product-page .product-loading-text {
+  margin-left: 8px;
+
+  color: #90959d;
+
+  font-size: 12px;
+  font-weight: 500;
+}
+
+@keyframes product-skeleton-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes product-loading-bounce {
+  0%,
+  60%,
+  100% {
+    opacity: 0.35;
+
+    transform: translateY(0);
+  }
+
+  30% {
+    opacity: 1;
+
+    transform: translateY(-5px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .product-page .product-skeleton-image::after,
+  .product-page .product-skeleton-line::after,
+  .product-page .product-loading-dot {
+    animation: none;
+  }
 }

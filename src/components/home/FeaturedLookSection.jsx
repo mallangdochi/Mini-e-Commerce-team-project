@@ -141,6 +141,8 @@ function FeaturedLookSection() {
   const [selectedColor, setSelectedColor] = useState('black');
   const [isSliding, setIsSliding] = useState(false);
   const [isViewTransitioning, setIsViewTransitioning] = useState(false);
+  const viewTransitionTimerRef = useRef(null);
+  const modelSlideTimerRef = useRef(null);
   const touchStartX = useRef(0);
 
   const current = MODELS[currentModel];
@@ -150,7 +152,40 @@ function FeaturedLookSection() {
   const afterNext = MODELS[afterNextModelIndex];
   const activeInfo = PRODUCT_INFO[selectedView];
 
-  // 모바일: 모델(LOOK 01/02/03) 스와이프/탭 전환 — 데스크톱 스테이지 슬라이드 애니메이션과는 별개
+  const clearViewTransitionTimer = () => {
+    if (viewTransitionTimerRef.current) {
+      window.clearTimeout(viewTransitionTimerRef.current);
+      viewTransitionTimerRef.current = null;
+    }
+  };
+
+  const clearModelSlideTimer = () => {
+    if (modelSlideTimerRef.current) {
+      window.clearTimeout(modelSlideTimerRef.current);
+      modelSlideTimerRef.current = null;
+    }
+  };
+
+  const finishViewTransition = () => {
+    clearViewTransitionTimer();
+    setHoveredPart(null);
+    setIsModelHovered(false);
+    setIsViewTransitioning(false);
+  };
+
+  const finishModelSlide = () => {
+    clearModelSlideTimer();
+    setCurrentModel((currentIndex) => (currentIndex + 1) % MODELS.length);
+    setIsSliding(false);
+  };
+
+  useEffect(() => {
+    return () => {
+      clearViewTransitionTimer();
+      clearModelSlideTimer();
+    };
+  }, []);
+
   const goToNextModel = () => {
     setCurrentModel((i) => (i + 1) % MODELS.length);
   };
@@ -161,24 +196,31 @@ function FeaturedLookSection() {
 
   const handleHeroTouchEnd = (event) => {
     const diff = event.changedTouches[0].screenX - touchStartX.current;
-    if (diff < -SWIPE_THRESHOLD) goToNextModel();
+
+    if (diff < -SWIPE_THRESHOLD) {
+      goToNextModel();
+    }
   };
 
   const changeView = (view) => {
     if (isSliding || view === selectedView) return;
 
+    clearViewTransitionTimer();
     setHoveredPart(null);
     setIsModelHovered(false);
+    setIsViewTransitioning(true);
     setSelectedView(view);
-    setIsViewTransitioning(view !== 'full');
+
+    viewTransitionTimerRef.current = window.setTimeout(() => {
+      finishViewTransition();
+    }, 1000);
   };
 
   const handleViewTransitionEnd = (event) => {
     if (event.currentTarget !== event.target) return;
     if (event.propertyName !== 'transform') return;
-    setHoveredPart(null);
-    setIsModelHovered(false);
-    setIsViewTransitioning(false);
+
+    finishViewTransition();
   };
 
   const handleNextModel = () => {
@@ -187,6 +229,12 @@ function FeaturedLookSection() {
     setHoveredPart(null);
     setIsModelHovered(false);
     setIsSliding(true);
+
+    clearModelSlideTimer();
+
+    modelSlideTimerRef.current = window.setTimeout(() => {
+      finishModelSlide();
+    }, 750);
   };
 
   const handleNextModelAnimationEnd = (event) => {
@@ -194,8 +242,7 @@ function FeaturedLookSection() {
     if (event.animationName !== 'arc-next-to-center') return;
     if (!isSliding) return;
 
-    setCurrentModel(nextModelIndex);
-    setIsSliding(false);
+    finishModelSlide();
   };
 
   return (
@@ -303,6 +350,7 @@ function FeaturedLookSection() {
                         alt=""
                         draggable="false"
                       />
+
                       <span className="arc-part-metal-fill" />
                     </div>
                   ))}

@@ -1,42 +1,19 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { useCartStore } from '@/store/cartStore';
 import '@/styles/cart.css';
-
-const initialCartItems = [
-  {
-    id: 1,
-    name: 'ARC Product Name',
-    option: 'BLACK / L',
-    price: 49000,
-    quantity: 1,
-    imageUrl: '',
-  },
-  {
-    id: 2,
-    name: 'ARC Product Name',
-    option: 'BLACK / L',
-    price: 49000,
-    quantity: 1,
-    imageUrl: '',
-  },
-  {
-    id: 3,
-    name: 'ARC Product Name',
-    option: 'BLACK / L',
-    price: 49000,
-    quantity: 1,
-    imageUrl: '',
-  },
-];
 
 function CartPage() {
   const navigate = useNavigate();
 
-  const [cartItems, setCartItems] = useState(initialCartItems);
+  const cartItems = useCartStore((state) => state.items);
+  const updateQuantity = useCartStore((state) => state.updateQuantity);
+  const removeItem = useCartStore((state) => state.removeItem);
+  const removeItems = useCartStore((state) => state.removeItems);
 
   // 기본적으로 모든 상품이 선택된 상태로 시작
-  const [selectedIds, setSelectedIds] = useState(initialCartItems.map((item) => item.id));
+  const [selectedIds, setSelectedIds] = useState(() => cartItems.map((item) => item.id));
 
   // 전체 선택 / 해제 핸들러
   const handleSelectAll = (e) => {
@@ -58,31 +35,22 @@ function CartPage() {
 
   // 선택 삭제 기능
   const handleDeleteSelected = () => {
-    const nextItems = cartItems.filter((item) => !selectedIds.includes(item.id));
-    setCartItems(nextItems);
+    removeItems(selectedIds);
     setSelectedIds([]);
   };
 
-  const handleUpdateQuantity = (itemId, delta) => {
-    setCartItems((currentItems) =>
-      currentItems.map((item) =>
-        item.id === itemId
-          ? {
-              ...item,
-              quantity: Math.max(1, item.quantity + delta),
-            }
-          : item
-      )
-    );
+  const handleUpdateQuantity = (itemId, nextQuantity) => {
+    updateQuantity(itemId, nextQuantity);
   };
 
   const handleRemoveItem = (itemId) => {
-    setCartItems((currentItems) => currentItems.filter((item) => item.id !== itemId));
+    removeItem(itemId);
     setSelectedIds((currentIds) => currentIds.filter((id) => id !== itemId));
   };
 
   // 선택된 상품들만 필터링하여 총금액 계산
   const selectedItems = cartItems.filter((item) => selectedIds.includes(item.id));
+
   const totalPrice = selectedItems.reduce((total, item) => total + item.price * item.quantity, 0);
 
   const isAllSelected = cartItems.length > 0 && selectedIds.length === cartItems.length;
@@ -96,6 +64,7 @@ function CartPage() {
       alert('주문할 상품을 선택해주세요.');
       return;
     }
+
     // 선택된 상품들(orderItems)과 총 금액(finalPrice)을 state로 전달
     navigate('/checkout', {
       state: {
@@ -121,7 +90,13 @@ function CartPage() {
             />
             <span>전체선택</span>
           </label>
-          <button type="button" className="cart-btn-delete-selected" onClick={handleDeleteSelected}>
+
+          <button
+            type="button"
+            className="cart-btn-delete-selected"
+            onClick={handleDeleteSelected}
+            disabled={selectedIds.length === 0}
+          >
             선택삭제
           </button>
         </div>
@@ -137,68 +112,77 @@ function CartPage() {
 
         <div className="cart-item-list">
           {cartItems.length > 0 ? (
-            cartItems.map((item) => (
-              <div className="cart-item-row" key={item.id}>
-                {/* 개별 체크박스 */}
-                <div className="cart-checkbox-cell">
-                  <input
-                    type="checkbox"
-                    className="cart-custom-checkbox"
-                    checked={selectedIds.includes(item.id)}
-                    onChange={() => handleToggleOne(item.id)}
-                    aria-label={`${item.name} 선택`}
-                  />
-                </div>
+            cartItems.map((item) => {
+              const stock = Number(item.stock);
+              const hasStockLimit = Number.isFinite(stock) && stock > 0;
+              const canIncrease = !hasStockLimit || item.quantity < stock;
 
-                <div className="cart-product-cell">
-                  {item.imageUrl ? (
-                    <img className="cart-item-img" src={item.imageUrl} alt={item.name} />
-                  ) : (
-                    <div className="cart-item-img-placeholder">IMAGE</div>
-                  )}
-
-                  <div className="cart-item-info">
-                    <div className="cart-item-name">{item.name}</div>
-                    <div className="cart-item-sub">{item.option}</div>
+              return (
+                <div className="cart-item-row" key={item.id}>
+                  {/* 개별 체크박스 */}
+                  <div className="cart-checkbox-cell">
+                    <input
+                      type="checkbox"
+                      className="cart-custom-checkbox"
+                      checked={selectedIds.includes(item.id)}
+                      onChange={() => handleToggleOne(item.id)}
+                      aria-label={`${item.name} 선택`}
+                    />
                   </div>
-                </div>
 
-                <div className="cart-item-price">₩ {item.price.toLocaleString()}</div>
+                  <div className="cart-product-cell">
+                    {item.imageUrl ? (
+                      <img className="cart-item-img" src={item.imageUrl} alt={item.name} />
+                    ) : (
+                      <div className="cart-item-img-placeholder">IMAGE</div>
+                    )}
 
-                <div className="cart-quantity-box">
+                    <div className="cart-item-info">
+                      <div className="cart-item-name">{item.name}</div>
+
+                      {item.option && <div className="cart-item-sub">{item.option}</div>}
+                    </div>
+                  </div>
+
+                  <div className="cart-item-price">₩ {item.price.toLocaleString()}</div>
+
+                  <div className="cart-quantity-box">
+                    <button
+                      type="button"
+                      onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
+                      disabled={item.quantity <= 1}
+                      aria-label={`${item.name} 수량 감소`}
+                    >
+                      −
+                    </button>
+
+                    <span className="cart-qty">{item.quantity}</span>
+
+                    <button
+                      type="button"
+                      onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
+                      disabled={!canIncrease}
+                      aria-label={`${item.name} 수량 증가`}
+                    >
+                      +
+                    </button>
+                  </div>
+
+                  <div className="cart-item-total">
+                    ₩ {(item.price * item.quantity).toLocaleString()}
+                  </div>
+
                   <button
                     type="button"
-                    onClick={() => handleUpdateQuantity(item.id, -1)}
-                    aria-label={`${item.name} 수량 감소`}
+                    className="cart-remove-btn"
+                    onClick={() => handleRemoveItem(item.id)}
+                    aria-label={`${item.name} 장바구니에서 삭제`}
                   >
-                    −
-                  </button>
-
-                  <span className="cart-qty">{item.quantity}</span>
-
-                  <button
-                    type="button"
-                    onClick={() => handleUpdateQuantity(item.id, 1)}
-                    aria-label={`${item.name} 수량 증가`}
-                  >
-                    +
+                    ✕
                   </button>
                 </div>
-
-                <div className="cart-item-total">
-                  ₩ {(item.price * item.quantity).toLocaleString()}
-                </div>
-
-                <button
-                  type="button"
-                  className="cart-remove-btn"
-                  onClick={() => handleRemoveItem(item.id)}
-                  aria-label={`${item.name} 장바구니에서 삭제`}
-                >
-                  ✕
-                </button>
-              </div>
-            ))
+              );
+            })
           ) : (
             <div className="cart-empty">장바구니에 담긴 상품이 없습니다.</div>
           )}
