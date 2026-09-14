@@ -6,12 +6,6 @@ export const getHomeData = async () => {
   return response.data;
 };
 
-export const getBanners = async () => {
-  const response = await apiClient.get('/home/banners');
-
-  return response.data;
-};
-
 export const getNewProducts = async () => {
   const response = await apiClient.get('/home/new-products');
 
