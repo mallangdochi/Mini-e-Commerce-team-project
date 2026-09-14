@@ -602,9 +602,11 @@ function CheckoutPage() {
                 </div>
               </div>
 
-              <button type="button" className="checkout-btn-action" onClick={handleNextStep}>
-                결제 수단으로 이동
-              </button>
+              <div className="checkout-btn-action-bar">
+                <button type="button" className="checkout-btn-action" onClick={handleNextStep}>
+                  결제 수단으로 이동
+                </button>
+              </div>
             </section>
           </div>
         </div>
