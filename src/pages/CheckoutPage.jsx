@@ -3,6 +3,51 @@ import { useLocation, useNavigate } from 'react-router-dom';
 
 import '@/styles/checkout2.css';
 
+function getStoredAddresses() {
+  try {
+    const parsedAddresses = JSON.parse(localStorage.getItem('arc-addresses') ?? '[]');
+
+    return Array.isArray(parsedAddresses) ? parsedAddresses : [];
+  } catch {
+    return [];
+  }
+}
+
+function getStoredShippingInfo(savedShippingInfo) {
+  if (savedShippingInfo) {
+    return savedShippingInfo;
+  }
+
+  let savedAddresses = getStoredAddresses();
+  let savedProfile = {};
+  let userInfo = {};
+
+  try {
+    savedProfile = JSON.parse(localStorage.getItem('arc-profile-overrides') ?? '{}');
+  } catch {
+    savedProfile = {};
+  }
+
+  try {
+    userInfo = JSON.parse(localStorage.getItem('userInfo') ?? '{}');
+  } catch {
+    userInfo = {};
+  }
+
+  const defaultAddress =
+    savedAddresses.find((address) => address.isDefault) ?? savedAddresses[0] ?? null;
+
+  return {
+    name: defaultAddress?.receiverName ?? savedProfile.name ?? userInfo.name ?? '',
+    phone:
+      defaultAddress?.phone ?? savedProfile.phone ?? userInfo.phone ?? userInfo.phoneNumber ?? '',
+    zonecode: defaultAddress?.postcode ?? defaultAddress?.zonecode ?? '',
+    address: defaultAddress?.address ?? '',
+    detailAddress: defaultAddress?.detailAddress ?? '',
+    memo: '',
+  };
+}
+
 function CheckoutPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -16,20 +61,13 @@ function CheckoutPage() {
 
   const addressDialog = useRef(null);
   const addressContainer = useRef(null);
+  const savedAddressDialog = useRef(null);
 
   const [addressLoading, setAddressLoading] = useState(false);
   const [addressError, setAddressError] = useState('');
+  const [savedAddresses, setSavedAddresses] = useState(() => getStoredAddresses());
 
-  const [shippingInfo, setShippingInfo] = useState(
-    savedShippingInfo || {
-      name: '',
-      phone: '',
-      zonecode: '',
-      address: '',
-      detailAddress: '',
-      memo: '',
-    }
-  );
+  const [shippingInfo, setShippingInfo] = useState(() => getStoredShippingInfo(savedShippingInfo));
 
   const [activeErrorField, setActiveErrorField] = useState(null);
 
@@ -50,6 +88,17 @@ function CheckoutPage() {
   const handleChange = (event) => {
     const { name, value } = event.target;
 
+    if (name === 'name') {
+      const filteredValue = value.replace(/[^가-힣a-zA-Z\s]/g, '').slice(0, 10);
+
+      setShippingInfo((prev) => ({
+        ...prev,
+        name: filteredValue,
+      }));
+
+      return;
+    }
+
     if (name === 'phone') {
       setShippingInfo((prev) => ({
         ...prev,
@@ -60,7 +109,7 @@ function CheckoutPage() {
     }
 
     if (name === 'detailAddress') {
-      const filteredValue = value.replace(/[^ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9\s(),#.-]/g, '').slice(0, 50);
+      const filteredValue = value.replace(/[^가-힣a-zA-Z0-9\s(),#.-]/g, '').slice(0, 50);
 
       setShippingInfo((prev) => ({
         ...prev,
@@ -74,6 +123,26 @@ function CheckoutPage() {
       ...prev,
       [name]: value,
     }));
+  };
+
+  const handleSavedAddressOpen = () => {
+    setSavedAddresses(getStoredAddresses());
+    savedAddressDialog.current?.showModal();
+  };
+
+  const handleSavedAddressSelect = (addressItem) => {
+    setShippingInfo((prev) => ({
+      ...prev,
+      name: addressItem.receiverName ?? '',
+      phone: formatPhoneNumber(addressItem.phone ?? ''),
+      zonecode: addressItem.postcode ?? addressItem.zonecode ?? '',
+      address: addressItem.address ?? '',
+      detailAddress: addressItem.detailAddress ?? '',
+    }));
+
+    setActiveErrorField(null);
+    setAddressError('');
+    savedAddressDialog.current?.close();
   };
 
   const handleAddressSearch = async () => {
@@ -148,11 +217,11 @@ function CheckoutPage() {
   };
 
   const getFirstEmptyField = () => {
-    if (shippingInfo.name.trim() === '') {
+    if (shippingInfo.name.trim() === '' || !/^[가-힣a-zA-Z\s]+$/.test(shippingInfo.name.trim())) {
       return 'name';
     }
 
-    if (shippingInfo.phone.trim() === '') {
+    if (shippingInfo.phone.replace(/[^\d]/g, '').length < 10) {
       return 'phone';
     }
 
@@ -172,7 +241,7 @@ function CheckoutPage() {
   };
 
   const getFieldError = (fieldName) => {
-    return activeErrorField === fieldName && shippingInfo[fieldName].trim() === '';
+    return activeErrorField === fieldName;
   };
 
   const handleNextStep = () => {
@@ -207,6 +276,82 @@ function CheckoutPage() {
 
   return (
     <section className="checkout-page">
+      <dialog
+        ref={savedAddressDialog}
+        className="checkout-saved-address-dialog"
+        aria-labelledby="checkoutSavedAddressTitle"
+      >
+        <div className="checkout-saved-address-header">
+          <div>
+            <h2 id="checkoutSavedAddressTitle">저장된 배송지</h2>
+            <p>미리 저장해둔 배송지를 선택해주세요.</p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => savedAddressDialog.current?.close()}
+            aria-label="저장된 배송지 닫기"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="checkout-saved-address-list">
+          {savedAddresses.length > 0 ? (
+            savedAddresses.map((addressItem) => (
+              <article className="checkout-saved-address-card" key={addressItem.id}>
+                <div className="checkout-saved-address-card-head">
+                  <div>
+                    <strong>{addressItem.label || '배송지'}</strong>
+
+                    {addressItem.isDefault && <span>기본 배송지</span>}
+                  </div>
+
+                  <button type="button" onClick={() => handleSavedAddressSelect(addressItem)}>
+                    선택
+                  </button>
+                </div>
+
+                <dl className="checkout-saved-address-info">
+                  <div>
+                    <dt>받는 사람</dt>
+                    <dd>{addressItem.receiverName || '-'}</dd>
+                  </div>
+
+                  <div>
+                    <dt>연락처</dt>
+                    <dd>{addressItem.phone || '-'}</dd>
+                  </div>
+
+                  <div>
+                    <dt>주소</dt>
+                    <dd>
+                      {[addressItem.postcode, addressItem.address, addressItem.detailAddress]
+                        .filter(Boolean)
+                        .join(' ')}
+                    </dd>
+                  </div>
+                </dl>
+              </article>
+            ))
+          ) : (
+            <div className="checkout-saved-address-empty">
+              <p>저장된 배송지가 없습니다.</p>
+
+              <button
+                type="button"
+                onClick={() => {
+                  savedAddressDialog.current?.close();
+                  navigate('/mypage/addresses');
+                }}
+              >
+                배송지 관리로 이동
+              </button>
+            </div>
+          )}
+        </div>
+      </dialog>
+
       <dialog
         ref={addressDialog}
         className="checkout-address-dialog"
@@ -252,7 +397,17 @@ function CheckoutPage() {
         <div className="checkout-grid">
           <div className="checkout-left">
             <section className="checkout-box-section">
-              <div className="checkout-box-title">배송지 정보</div>
+              <div className="checkout-box-title checkout-shipping-title">
+                <span>배송지 정보</span>
+
+                <button
+                  type="button"
+                  className="checkout-saved-address-button"
+                  onClick={handleSavedAddressOpen}
+                >
+                  기본 배송지
+                </button>
+              </div>
 
               <div className="checkout-recipient-row">
                 <div className="checkout-form-row">
@@ -271,7 +426,9 @@ function CheckoutPage() {
                     onChange={handleChange}
                   />
 
-                  {getFieldError('name') && <p className="error-text">이름을 입력해 주세요.</p>}
+                  {getFieldError('name') && (
+                    <p className="error-text">이름은 한글 또는 영문으로 입력해 주세요.</p>
+                  )}
                 </div>
 
                 <div className="checkout-form-row">
@@ -291,7 +448,9 @@ function CheckoutPage() {
                     onChange={handleChange}
                   />
 
-                  {getFieldError('phone') && <p className="error-text">연락처를 입력해 주세요.</p>}
+                  {getFieldError('phone') && (
+                    <p className="error-text">올바른 연락처를 입력해 주세요.</p>
+                  )}
                 </div>
               </div>
 

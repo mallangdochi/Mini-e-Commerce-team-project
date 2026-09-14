@@ -1,13 +1,19 @@
 import apiClient from './client';
 
-export const login = async ({ id, password }) => {
+export const login = async ({ id, identifier, password }) => {
   try {
     const response = await apiClient.post('/auth/login', {
-      id,
+      identifier: identifier ?? id,
       password,
     });
 
-    return response.data;
+    const result = response.data;
+
+    return {
+      ...result,
+      token: result?.data?.token ?? result?.token,
+      userInfo: result?.data?.user ?? result?.userInfo,
+    };
   } catch (error) {
     const message =
       error.response?.data?.message || '로그인 중 오류가 발생했습니다. 다시 시도해주세요.';
