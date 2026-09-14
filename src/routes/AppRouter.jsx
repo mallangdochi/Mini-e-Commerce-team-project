@@ -15,6 +15,7 @@ import ProductDetailPage from '@/pages/ProductDetailPage';
 import ProductPage from '@/pages/ProductPage';
 import SignupPage from '@/pages/SignupPage';
 import TermsPage from '@/pages/TermsPage';
+import WishlistPage from '@/pages/WishlistPage';
 
 function AppRouter() {
   return (
@@ -37,6 +38,8 @@ function AppRouter() {
         <Route path="/mypage/orders" element={<OrderHistoryPage />} />
 
         <Route path="/mypage/claims" element={<ClaimHistoryPage />} />
+
+        <Route path="/mypage/wishlist" element={<WishlistPage />} />
 
         <Route path="/mypage/*" element={<MyPage />} />
       </Route>
