@@ -333,9 +333,11 @@ function CheckoutPage2() {
                 </div>
               </div>
 
-              <button type="button" className="checkout-btn-action" onClick={handlePayment}>
-                결제하기
-              </button>
+              <div className="checkout-btn-action-bar">
+                <button type="button" className="checkout-btn-action" onClick={handlePayment}>
+                  결제하기
+                </button>
+              </div>
             </section>
           </div>
         </div>
