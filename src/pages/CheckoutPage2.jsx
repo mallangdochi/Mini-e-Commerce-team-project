@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
+import { useCartStore } from '@/store/cartStore';
 import '@/styles/checkout.css';
 
 function CheckoutPage2() {
   const navigate = useNavigate();
   const location = useLocation();
+  const removeOrderedItems = useCartStore((state) => state.removeOrderedItems);
 
   const {
     orderItems = [],
@@ -85,6 +87,8 @@ function CheckoutPage2() {
 
       setTimeout(() => {
         setModalState('none');
+
+        removeOrderedItems(orderItems);
 
         navigate('/checkout/complete', {
           state: {

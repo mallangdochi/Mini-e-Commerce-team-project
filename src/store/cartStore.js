@@ -77,6 +77,25 @@ export const useCartStore = create(
         }));
       },
 
+      removeOrderedItems: (orderItems) => {
+        set((state) => ({
+          items: state.items.filter((cartItem) => {
+            return !orderItems.some((orderItem) => {
+              if (orderItem.id && cartItem.id === orderItem.id) {
+                return true;
+              }
+
+              return (
+                Number(cartItem.productId) === Number(orderItem.productId) &&
+                (cartItem.productType ?? 'product') === (orderItem.productType ?? 'product') &&
+                (cartItem.color || '') === (orderItem.color || '') &&
+                (cartItem.size || '') === (orderItem.size || '')
+              );
+            });
+          }),
+        }));
+      },
+
       clearCart: () => {
         set({
           items: [],

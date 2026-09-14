@@ -684,6 +684,30 @@ function ProductPage() {
     };
   }, [fetchProductsPage, hasMore, page]);
 
+  useEffect(() => {
+    if (isLoading || !hasMore || requestInFlightRef.current) {
+      return;
+    }
+
+    const target = loadMoreRef.current;
+
+    if (!target) {
+      return;
+    }
+
+    const targetTop = target.getBoundingClientRect().top;
+    const preloadBoundary = window.innerHeight + 150;
+
+    if (targetTop > preloadBoundary) {
+      return;
+    }
+
+    const nextPage = page + 1;
+
+    setPage(nextPage);
+    fetchProductsPage(nextPage);
+  }, [fetchProductsPage, hasMore, isLoading, page, productItems.length]);
+
   const activeFilterTags = [
     ...(appliedFilters.color
       ? [
@@ -1237,6 +1261,19 @@ function ProductPage() {
                 </article>
               );
             })}
+
+            {isLoading &&
+              Array.from({ length: 4 }).map((_, index) => (
+                <article className="product-card product-card-skeleton" key={`loading-${index}`}>
+                  <div className="product-image product-skeleton-image" />
+
+                  <div className="product-card-info">
+                    <div className="product-skeleton-line product-skeleton-name" />
+                    <div className="product-skeleton-line product-skeleton-category" />
+                    <div className="product-skeleton-line product-skeleton-price" />
+                  </div>
+                </article>
+              ))}
           </div>
 
           {/* ================================
@@ -1245,7 +1282,14 @@ function ProductPage() {
 
           {hasMore && !loadError && (
             <div ref={loadMoreRef} className="product-scroll-trigger">
-              {isLoading && <span>상품 불러오는 중...</span>}
+              {isLoading && (
+                <div className="product-loading-motion" aria-live="polite">
+                  <span className="product-loading-dot" />
+                  <span className="product-loading-dot" />
+                  <span className="product-loading-dot" />
+                  <span className="product-loading-text">상품 불러오는 중</span>
+                </div>
+              )}
             </div>
           )}
 

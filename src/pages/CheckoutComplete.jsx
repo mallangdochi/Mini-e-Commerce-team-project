@@ -1,8 +1,22 @@
-import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+
+import { useCartStore } from '@/store/cartStore';
 import '@/styles/checkoutComplete.css';
 
 function CheckoutComplete() {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const removeOrderedItems = useCartStore((state) => state.removeOrderedItems);
+
+  const { orderItems = [] } = location.state || {};
+
+  useEffect(() => {
+    if (orderItems.length > 0) {
+      removeOrderedItems(orderItems);
+    }
+  }, [orderItems, removeOrderedItems]);
 
   const handleGoHome = () => {
     navigate('/');
