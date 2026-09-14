@@ -687,3 +687,25 @@
     width: calc(100vw - 32px);
   }
 }
+
+.checkout-page .payment-spinner {
+  display: block;
+
+  transform-origin: 50% 50%;
+  will-change: transform;
+
+  animation-name: checkout-payment-spinner-rotate;
+  animation-duration: 0.75s;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@keyframes checkout-payment-spinner-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
