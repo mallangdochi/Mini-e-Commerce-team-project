@@ -13,26 +13,24 @@ function getStoredAddresses() {
   }
 }
 
+function getStoredObject(key) {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(key) ?? '{}');
+
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
 function getStoredShippingInfo(savedShippingInfo) {
   if (savedShippingInfo) {
     return savedShippingInfo;
   }
 
-  let savedAddresses = getStoredAddresses();
-  let savedProfile = {};
-  let userInfo = {};
-
-  try {
-    savedProfile = JSON.parse(localStorage.getItem('arc-profile-overrides') ?? '{}');
-  } catch {
-    savedProfile = {};
-  }
-
-  try {
-    userInfo = JSON.parse(localStorage.getItem('userInfo') ?? '{}');
-  } catch {
-    userInfo = {};
-  }
+  const savedAddresses = getStoredAddresses();
+  const savedProfile = getStoredObject('arc-profile-overrides');
+  const userInfo = getStoredObject('userInfo');
 
   const defaultAddress =
     savedAddresses.find((address) => address.isDefault) ?? savedAddresses[0] ?? null;

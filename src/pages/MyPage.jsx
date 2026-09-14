@@ -185,6 +185,20 @@ function getProfile(response) {
   return response?.data?.user ?? response?.data ?? response?.user ?? response?.userInfo ?? null;
 }
 
+function getInitialNoticeSetting(key, fallbackValue) {
+  try {
+    const settings = JSON.parse(localStorage.getItem('arc-notice-settings') ?? '{}');
+
+    if (settings[key] === undefined) {
+      return fallbackValue;
+    }
+
+    return Boolean(settings[key]);
+  } catch {
+    return fallbackValue;
+  }
+}
+
 function loadPostcodeScript() {
   return new Promise((resolve, reject) => {
     if (window.kakao?.Postcode || window.daum?.Postcode) {
@@ -238,9 +252,11 @@ function MyPage() {
   const [orderCount, setOrderCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
-  const [emailNotice, setEmailNotice] = useState(true);
-  const [smsNotice, setSmsNotice] = useState(true);
-  const [pushNotice, setPushNotice] = useState(false);
+  const [emailNotice, setEmailNotice] = useState(() =>
+    getInitialNoticeSetting('emailNotice', true)
+  );
+  const [smsNotice, setSmsNotice] = useState(() => getInitialNoticeSetting('smsNotice', true));
+  const [pushNotice, setPushNotice] = useState(() => getInitialNoticeSetting('pushNotice', false));
   const [profileForm, setProfileForm] = useState({
     name: '',
     loginId: '',
@@ -398,24 +414,6 @@ function MyPage() {
   useEffect(() => {
     localStorage.setItem('arc-addresses', JSON.stringify(addresses));
   }, [addresses]);
-
-  useEffect(() => {
-    const savedNoticeSettings = localStorage.getItem('arc-notice-settings');
-
-    if (!savedNoticeSettings) {
-      return;
-    }
-
-    try {
-      const settings = JSON.parse(savedNoticeSettings);
-
-      setEmailNotice(Boolean(settings.emailNotice));
-      setSmsNotice(Boolean(settings.smsNotice));
-      setPushNotice(Boolean(settings.pushNotice));
-    } catch {
-      localStorage.removeItem('arc-notice-settings');
-    }
-  }, []);
 
   useEffect(() => {
     if (location.pathname === '/mypage/addresses' && addressSectionRef.current) {
