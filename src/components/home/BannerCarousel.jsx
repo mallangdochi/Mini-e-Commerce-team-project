@@ -148,9 +148,7 @@ export default function BannerCarousel({ slides, isLoading = false, error = null
     step(diff < 0 ? 1 : -1);
   };
 
-  // DEV에서는 에러를 무시하고 fallback 데이터로 렌더링을 계속함 — data가 항상 안전하게
-  // fallback되는 것에 의존(위 61번 줄, slides가 없으면 SLIDES 사용). 배포 빌드에서만 에러 UI 노출.
-  if (isLoading || (error && !import.meta.env.DEV)) {
+  if (isLoading || error) {
     const message = isLoading ? '배너를 불러오는 중입니다…' : '배너를 불러오지 못했습니다.';
 
     return (
