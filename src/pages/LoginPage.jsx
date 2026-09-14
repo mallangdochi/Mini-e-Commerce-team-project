@@ -7,7 +7,7 @@ import '@/styles/login.css';
 function LoginPage() {
   const navigate = useNavigate();
 
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -20,7 +20,7 @@ function LoginPage() {
 
     try {
       const response = await login({
-        id: email,
+        identifier,
         password,
       });
 
@@ -79,20 +79,20 @@ function LoginPage() {
 
             <form className="login-form" onSubmit={handleSubmit}>
               <div className="login-field">
-                <span className="login-field-label">이메일</span>
+                <span className="login-field-label">아이디 또는 이메일</span>
 
                 <input
-                  type="email"
-                  value={email}
+                  type="text"
+                  value={identifier}
                   maxLength={50}
-                  onChange={(event) => setEmail(event.target.value)}
-                  placeholder="이메일"
+                  onChange={(event) => setIdentifier(event.target.value)}
+                  placeholder="아이디 또는 이메일"
                   className="login-input"
-                  autoComplete="email"
+                  autoComplete="username"
                   required
                 />
-                {email && (
-                  <button type="button" className="clear-btn" onClick={() => setEmail('')}>
+                {identifier && (
+                  <button type="button" className="clear-btn" onClick={() => setIdentifier('')}>
                     ✕
                   </button>
                 )}

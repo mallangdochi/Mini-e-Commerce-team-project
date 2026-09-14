@@ -1,8 +1,19 @@
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
+import { createOrder } from '@/api/orders';
 import { useCartStore } from '@/store/cartStore';
 import '@/styles/checkout.css';
+
+const COUPON_OPTIONS = [
+  {
+    id: 'WELCOME10',
+    label: '[10% 할인] 신규 회원 쿠폰',
+    discountRate: 0.1,
+  },
+];
+
+const VALID_COUPON_IDS = new Set(COUPON_OPTIONS.map((coupon) => coupon.id));
 
 function CheckoutPage2() {
   const navigate = useNavigate();
@@ -13,27 +24,28 @@ function CheckoutPage2() {
     orderItems = [],
     shippingInfo = {},
     paymentMethod: savedPaymentMethod = 'card',
-    selectedCoupon: savedSelectedCoupon = 'vip-50000',
+    selectedCoupon: savedSelectedCoupon = '',
   } = location.state || {};
 
+  const initialCoupon = VALID_COUPON_IDS.has(savedSelectedCoupon) ? savedSelectedCoupon : '';
+
   const [paymentMethod, setPaymentMethod] = useState(savedPaymentMethod);
-  const [selectedCoupon, setSelectedCoupon] = useState(savedSelectedCoupon);
+  const [selectedCoupon, setSelectedCoupon] = useState(initialCoupon);
   const [modalState, setModalState] = useState('none');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const productTotal = orderItems.reduce((total, item) => total + item.price * item.quantity, 0);
 
   const deliveryFee = 0;
 
-  const getDiscountAmount = (coupon) => {
-    if (coupon === 'open-20000') {
-      return 20000;
+  const getDiscountAmount = (couponId) => {
+    const coupon = COUPON_OPTIONS.find((item) => item.id === couponId);
+
+    if (!coupon) {
+      return 0;
     }
 
-    if (coupon === 'vip-50000') {
-      return 50000;
-    }
-
-    return 0;
+    return Math.floor(productTotal * coupon.discountRate);
   };
 
   const discountAmount = getDiscountAmount(selectedCoupon);
@@ -51,10 +63,55 @@ function CheckoutPage2() {
     });
   };
 
+  const getShippingMemo = (memo) => {
+    const memoMap = {
+      door: '문 앞에 놓아주세요',
+      guard: '경비실에 맡겨주세요',
+      call: '배송 전 연락주세요',
+    };
+
+    return memoMap[memo] ?? memo ?? '';
+  };
+
+  const getOrderItems = () => {
+    return orderItems.map((item) => {
+      const colorValue =
+        typeof item.color === 'string' ? item.color : (item.color?.value ?? item.colorValue ?? '');
+
+      const orderItem = {
+        productId: Number(item.productId),
+        productType: item.productType ?? 'product',
+        color: String(colorValue),
+        quantity: Number(item.quantity),
+      };
+
+      if (item.size !== undefined && item.size !== null && item.size !== '') {
+        orderItem.size = String(item.size);
+      }
+
+      return orderItem;
+    });
+  };
+
+  const getShippingPayload = () => {
+    return {
+      receiverName: shippingInfo.name?.trim() ?? '',
+      phone: shippingInfo.phone?.replace(/[^\d]/g, '') ?? '',
+      postcode: shippingInfo.zonecode?.trim() ?? '',
+      address: shippingInfo.address?.trim() ?? '',
+      detailAddress: shippingInfo.detailAddress?.trim() ?? '',
+      memo: getShippingMemo(shippingInfo.memo),
+    };
+  };
+
   const handlePayment = () => {
     if (orderItems.length === 0) {
       alert('주문할 상품이 없습니다.');
       navigate('/cart');
+      return;
+    }
+
+    if (isSubmitting) {
       return;
     }
 
@@ -79,29 +136,84 @@ function CheckoutPage2() {
     startPaymentFlow();
   };
 
-  const startPaymentFlow = () => {
+  const startPaymentFlow = async () => {
+    if (isSubmitting) {
+      return;
+    }
+
+    const apiItems = getOrderItems();
+    const shippingPayload = getShippingPayload();
+
+    const invalidItem = apiItems.find(
+      (item) =>
+        !Number.isInteger(item.productId) ||
+        item.productId <= 0 ||
+        !item.productType ||
+        !item.color ||
+        !Number.isInteger(item.quantity) ||
+        item.quantity <= 0
+    );
+
+    if (invalidItem) {
+      alert('상품 옵션 정보가 올바르지 않습니다. 장바구니에서 상품을 다시 확인해주세요.');
+      return;
+    }
+
+    if (
+      !shippingPayload.receiverName ||
+      !shippingPayload.phone ||
+      !shippingPayload.postcode ||
+      !shippingPayload.address ||
+      !shippingPayload.detailAddress
+    ) {
+      alert('배송지 정보를 모두 입력해주세요.');
+      handleBack();
+      return;
+    }
+
+    setIsSubmitting(true);
     setModalState('processing');
 
-    setTimeout(() => {
+    try {
+      const response = await createOrder({
+        items: apiItems,
+        shipping: shippingPayload,
+        paymentMethod,
+        couponId: selectedCoupon || undefined,
+        pointsUsed: 0,
+      });
+
+      const order = response?.data;
+
+      if (!response?.success || !order) {
+        throw new Error(response?.message || '주문을 완료하지 못했습니다.');
+      }
+
       setModalState('complete');
 
-      setTimeout(() => {
-        setModalState('none');
-
+      window.setTimeout(() => {
         removeOrderedItems(orderItems);
 
         navigate('/checkout/complete', {
           state: {
+            order,
             orderItems,
-            shippingInfo,
-            paymentMethod,
-            discountAmount,
-            selectedCoupon,
-            finalPrice,
           },
         });
       }, 1200);
-    }, 2000);
+    } catch (error) {
+      setModalState('none');
+
+      if (error.message?.includes('쿠폰')) {
+        setSelectedCoupon('');
+        alert('선택한 쿠폰을 현재 사용할 수 없습니다. 쿠폰 선택을 해제했으니 다시 결제해주세요.');
+        return;
+      }
+
+      alert(error.message || '주문을 완료하지 못했습니다.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -259,9 +371,11 @@ function CheckoutPage2() {
                   >
                     <option value="">쿠폰을 선택하세요</option>
 
-                    <option value="open-20000">[2만원 할인] 오픈 기념 쿠폰</option>
-
-                    <option value="vip-50000">[5만원 할인] VIP 고객 특별 쿠폰</option>
+                    {COUPON_OPTIONS.map((coupon) => (
+                      <option key={coupon.id} value={coupon.id}>
+                        {coupon.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -293,7 +407,7 @@ function CheckoutPage2() {
                         <div className="checkout-mini-name">{item.name}</div>
 
                         <div className="checkout-mini-sub">
-                          {item.option || `SIZE / ${item.size || 'L'}`}
+                          {item.option || (item.size ? `SIZE / ${item.size}` : '')}
                         </div>
                       </div>
 
@@ -333,7 +447,12 @@ function CheckoutPage2() {
                 </div>
               </div>
 
-              <button type="button" className="checkout-btn-action" onClick={handlePayment}>
+              <button
+                type="button"
+                className="checkout-btn-action"
+                onClick={handlePayment}
+                disabled={isSubmitting}
+              >
                 결제하기
               </button>
             </section>
