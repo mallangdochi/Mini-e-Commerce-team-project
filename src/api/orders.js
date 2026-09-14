@@ -37,7 +37,7 @@ export const createOrder = async ({ items, shipping, paymentMethod, couponId, po
 
     return response.data;
   } catch (error) {
-    throw new Error(getErrorMessage(error));
+    throw new Error(getErrorMessage(error), { cause: error });
   }
 };
 
@@ -53,7 +53,7 @@ export const getOrders = async ({ page = 1, limit = 10 } = {}) => {
 
     return response.data;
   } catch (error) {
-    throw new Error(getErrorMessage(error));
+    throw new Error(getErrorMessage(error), { cause: error });
   }
 };
 
@@ -63,7 +63,7 @@ export const getOrder = async (orderId) => {
 
     return response.data;
   } catch (error) {
-    throw new Error(getErrorMessage(error));
+    throw new Error(getErrorMessage(error), { cause: error });
   }
 };
 
@@ -73,6 +73,6 @@ export const cancelOrder = async (orderId) => {
 
     return response.data;
   } catch (error) {
-    throw new Error(getErrorMessage(error));
+    throw new Error(getErrorMessage(error), { cause: error });
   }
 };
