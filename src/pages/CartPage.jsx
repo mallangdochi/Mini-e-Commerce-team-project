@@ -88,7 +88,9 @@ function CartPage() {
               checked={isAllSelected}
               onChange={handleSelectAll}
             />
-            <span>전체선택</span>
+            <span>
+              전체선택 ({selectedIds.length}/{cartItems.length})
+            </span>
           </label>
 
           <button
@@ -217,7 +219,7 @@ function CartPage() {
                 onClick={handleOrder}
                 disabled={selectedItems.length === 0}
               >
-                총 {selectedItems.length}건 주문하기 &gt;
+                주문하기
               </button>
             </div>
           </div>

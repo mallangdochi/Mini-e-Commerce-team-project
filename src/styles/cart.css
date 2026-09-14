@@ -56,6 +56,14 @@
   padding-right: 6px;
 }
 
+@media (min-width: 901px) {
+  .cart-table-header span:nth-last-child(2) {
+    text-align: left;
+    padding-right: 0;
+    padding-left: 6px;
+  }
+}
+
 .cart-item-list {
   border-bottom: 1px solid #ddd;
 }
