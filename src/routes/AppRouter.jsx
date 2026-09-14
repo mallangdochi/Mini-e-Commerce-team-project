@@ -11,6 +11,7 @@ import NotFoundPage from '@/pages/NotFoundPage';
 import ProductDetailPage from '@/pages/ProductDetailPage';
 import ProductPage from '@/pages/ProductPage';
 import SignupPage from '@/pages/SignupPage';
+import TermsPage from '@/pages/TermsPage';
 
 function AppRouter() {
   return (
@@ -34,6 +35,8 @@ function AppRouter() {
       <Route path="/login" element={<LoginPage />} />
 
       <Route path="/signup" element={<SignupPage />} />
+
+      <Route path="/terms/:type" element={<TermsPage />} />
 
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

@@ -7,13 +7,6 @@ const CATEGORY_MENUS = {
   women: {
     groups: [
       {
-        title: 'NEW',
-        items: [
-          { label: '신제품', to: '/products?gender=women&category=new' },
-          { label: '베스트셀러', to: '/products?gender=women&category=best' },
-        ],
-      },
-      {
         title: 'OUTER',
         items: [
           { label: '전체보기', to: '/products?gender=women&category=outer' },
@@ -54,13 +47,6 @@ const CATEGORY_MENUS = {
   },
   men: {
     groups: [
-      {
-        title: 'NEW',
-        items: [
-          { label: '신제품', to: '/products?gender=men&category=new' },
-          { label: '베스트셀러', to: '/products?gender=men&category=best' },
-        ],
-      },
       {
         title: 'OUTER',
         items: [
@@ -115,10 +101,10 @@ const CATEGORY_MENUS = {
 };
 
 const NAV_ITEMS = [
-  { label: 'Home', to: '/' },
-  { label: 'Women', to: '/products?gender=women', menu: 'women' },
-  { label: 'Men', to: '/products?gender=men', menu: 'men' },
-  { label: 'Accessories', to: '/products?category=accessories', menu: 'accessories' },
+  { label: 'HOME', to: '/' },
+  { label: 'WOMEN', to: '/products?gender=women', menu: 'women' },
+  { label: 'MEN', to: '/products?gender=men', menu: 'men' },
+  { label: 'ACCESSORIES', to: '/products?category=accessories', menu: 'accessories' },
 ];
 
 // 스크롤이 이 값을 넘어간 뒤부터 스크롤 다운 시 헤더 숨김
