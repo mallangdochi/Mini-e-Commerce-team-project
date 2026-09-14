@@ -210,14 +210,16 @@ function CartPage() {
               <span>₩ {totalPrice.toLocaleString()}</span>
             </div>
 
-            <button
-              type="button"
-              className="cart-btn-action"
-              onClick={handleOrder}
-              disabled={selectedItems.length === 0}
-            >
-              주문하기 &gt;
-            </button>
+            <div className="cart-btn-action-bar">
+              <button
+                type="button"
+                className="cart-btn-action"
+                onClick={handleOrder}
+                disabled={selectedItems.length === 0}
+              >
+                총 {selectedItems.length}건 주문하기 &gt;
+              </button>
+            </div>
           </div>
         </div>
       </div>
