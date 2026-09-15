@@ -160,7 +160,9 @@ function FeaturedLookSection() {
   const afterNext = MODELS[afterNextModelIndex];
   const activeInfo = PRODUCT_INFO[selectedView];
   const activeDetailPath =
-    selectedView === 'full' ? FEATURED_LOOK_DETAIL_PATHS.set : FEATURED_LOOK_DETAIL_PATHS[selectedView];
+    selectedView === 'full'
+      ? FEATURED_LOOK_DETAIL_PATHS.set
+      : FEATURED_LOOK_DETAIL_PATHS[selectedView];
 
   const clearViewTransitionTimer = () => {
     if (viewTransitionTimerRef.current) {
