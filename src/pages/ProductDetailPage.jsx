@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { handleAddToCart } from '@/api/alert';
 import { getStoredUser, updateStoredSummary } from '@/api/authApi';
