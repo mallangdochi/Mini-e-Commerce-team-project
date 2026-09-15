@@ -600,9 +600,13 @@
 }
 
 .mypage-address-card {
-  position: relative;
-
-  padding: 18px 132px 18px 18px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 108px;
+  grid-template-areas:
+    'title actions'
+    'info actions';
+  column-gap: 20px;
+  padding: 18px;
 
   border: 1px solid #e6e6e6;
   border-radius: 6px;
@@ -611,6 +615,7 @@
 }
 
 .mypage-address-card-title {
+  grid-area: title;
   margin-bottom: 15px;
 }
 
@@ -645,8 +650,10 @@
 }
 
 .mypage-address-card-grid {
+  grid-area: info;
   display: grid;
-  grid-template-columns: 105px 120px 80px minmax(200px, 1fr) 120px;
+  grid-template-columns: 0.8fr 1fr 0.7fr minmax(260px, 2.6fr) 0.9fr;
+  width: 100%;
 
   gap: 0;
 }
@@ -679,26 +686,21 @@
 }
 
 .mypage-address-card-grid strong {
-  overflow: hidden;
-
   color: #3d3d3d;
 
   font-size: 11px;
   font-weight: 700;
-  text-overflow: ellipsis;
-
-  white-space: nowrap;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 
 .mypage-address-card-actions {
-  position: absolute;
-  top: 18px;
-  right: 18px;
-
+  grid-area: actions;
+  align-self: start;
   display: flex;
   flex-direction: column;
 
-  width: 98px;
+  width: 108px;
 
   gap: 6px;
 }
@@ -985,7 +987,12 @@
   }
 
   .mypage-address-card {
-    padding-right: 18px;
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      'title'
+      'info'
+      'actions';
+    row-gap: 14px;
   }
 
   .mypage-address-card-grid {
@@ -1005,12 +1012,9 @@
   }
 
   .mypage-address-card-actions {
-    position: static;
-
     flex-direction: row;
 
     width: auto;
-    margin-top: 16px;
   }
 
   .mypage-address-card-actions button {
@@ -1546,4 +1550,213 @@
     width: calc(100% - 40px);
     min-width: 0;
   }
+}
+
+.mypage-delete-address-backdrop {
+  position: fixed;
+  z-index: 1600;
+  inset: 0;
+
+  display: grid;
+
+  padding: 24px;
+
+  place-items: center;
+
+  background: rgba(0, 0, 0, 0.44);
+}
+
+.mypage-delete-address-modal {
+  width: min(430px, 100%);
+  padding: 32px 28px 26px;
+
+  border-radius: 10px;
+
+  background: #fff;
+  color: #111;
+
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.22);
+
+  text-align: center;
+}
+
+.mypage-delete-address-icon {
+  display: grid;
+
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 18px;
+
+  place-items: center;
+
+  border-radius: 50%;
+
+  background: #f3f3f3;
+}
+
+.mypage-delete-address-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.mypage-delete-address-modal h2 {
+  margin: 0;
+
+  font-size: 19px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+}
+
+.mypage-delete-address-modal > p {
+  margin: 10px 0 0;
+
+  color: #7f7f7f;
+
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+.mypage-delete-address-preview {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+
+  margin-top: 20px;
+  padding: 14px 15px;
+
+  border: 1px solid #e5e5e5;
+  border-radius: 6px;
+
+  background: #fafafa;
+
+  gap: 6px;
+
+  text-align: left;
+}
+
+.mypage-delete-address-preview strong {
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.mypage-delete-address-preview span {
+  color: #777;
+
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.mypage-delete-address-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+
+  margin-top: 22px;
+
+  gap: 8px;
+}
+
+.mypage-delete-address-actions button {
+  height: 42px;
+
+  border-radius: 5px;
+
+  font: inherit;
+  font-size: 11px;
+  font-weight: 800;
+
+  cursor: pointer;
+}
+
+.mypage-delete-address-actions .is-cancel {
+  border: 1px solid #c8c8c8;
+
+  background: #fff;
+  color: #333;
+}
+
+.mypage-delete-address-actions .is-delete {
+  border: 1px solid #111;
+
+  background: #111;
+  color: #fff;
+}
+
+.mypage-delete-address-actions button:hover {
+  opacity: 0.88;
+}
+
+@media (max-width: 480px) {
+  .mypage-delete-address-backdrop {
+    padding: 14px;
+  }
+
+  .mypage-delete-address-modal {
+    padding: 28px 20px 22px;
+  }
+}
+
+.mypage-inline-logout-backdrop {
+  position: fixed;
+  z-index: 2200;
+  inset: 0;
+  display: grid;
+  padding: 24px;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.44);
+}
+.mypage-inline-logout-modal {
+  width: min(420px, 100%);
+  padding: 34px 30px 28px;
+  border-radius: 10px;
+  background: #fff;
+  color: #111;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.22);
+  text-align: center;
+}
+.mypage-inline-logout-icon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 18px;
+  place-items: center;
+  border-radius: 50%;
+  background: #f3f3f3;
+}
+.mypage-inline-logout-icon svg {
+  width: 23px;
+  height: 23px;
+}
+.mypage-inline-logout-modal h2 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+}
+.mypage-inline-logout-modal p {
+  margin: 10px 0 0;
+  color: #7f7f7f;
+  font-size: 11px;
+  line-height: 1.7;
+}
+.mypage-inline-logout-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin-top: 26px;
+  gap: 8px;
+}
+.mypage-inline-logout-actions button {
+  height: 42px;
+  border: 1px solid #c8c8c8;
+  border-radius: 5px;
+  background: #fff;
+  color: #333;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.mypage-inline-logout-actions .is-confirm {
+  border-color: #111;
+  background: #111;
+  color: #fff;
 }
