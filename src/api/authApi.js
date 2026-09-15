@@ -63,3 +63,102 @@ export const getMe = async (token) => {
     });
   }
 };
+
+export const getStoredUser = () => {
+  try {
+    const userInfo = JSON.parse(localStorage.getItem('userInfo') ?? 'null');
+    const overrides = JSON.parse(localStorage.getItem('arc-profile-overrides') ?? '{}');
+    const summary = JSON.parse(localStorage.getItem('arc-mypage-summary') ?? '{}');
+
+    if (!userInfo && Object.keys(overrides).length === 0 && Object.keys(summary).length === 0) {
+      return null;
+    }
+
+    return {
+      ...(userInfo ?? {}),
+      ...overrides,
+      ...summary,
+    };
+  } catch {
+    return null;
+  }
+};
+
+export const clearAuthSession = () => {
+  localStorage.removeItem('accessToken');
+  localStorage.removeItem('userInfo');
+  window.dispatchEvent(new Event('auth-change'));
+};
+
+export const resolveUserProfile = (response) => {
+  const remote =
+    response?.data?.user ?? response?.data ?? response?.user ?? response?.userInfo ?? {};
+
+  return {
+    ...(remote ?? {}),
+    ...(getStoredUser() ?? {}),
+  };
+};
+
+export const updateStoredSummary = (partialSummary) => {
+  try {
+    const current = JSON.parse(localStorage.getItem('arc-mypage-summary') ?? '{}');
+    const next = {
+      ...current,
+      ...partialSummary,
+    };
+
+    localStorage.setItem('arc-mypage-summary', JSON.stringify(next));
+    return next;
+  } catch {
+    return partialSummary;
+  }
+};
+
+export const getStoredOrders = () => {
+  try {
+    const value = JSON.parse(localStorage.getItem('arc-orders-cache') ?? '[]');
+    return Array.isArray(value) ? value : [];
+  } catch {
+    return [];
+  }
+};
+
+export const setStoredOrders = (orders) => {
+  const nextOrders = Array.isArray(orders) ? orders : [];
+  localStorage.setItem('arc-orders-cache', JSON.stringify(nextOrders));
+  updateStoredSummary({ orderCount: nextOrders.length });
+  return nextOrders;
+};
+
+export const getStoredOrderDetails = () => {
+  try {
+    const value = JSON.parse(localStorage.getItem('arc-order-details-cache') ?? '{}');
+    return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+  } catch {
+    return {};
+  }
+};
+
+export const setStoredOrderDetails = (details) => {
+  const nextDetails =
+    details && typeof details === 'object' && !Array.isArray(details) ? details : {};
+  localStorage.setItem('arc-order-details-cache', JSON.stringify(nextDetails));
+  return nextDetails;
+};
+
+export const getStoredWishlistItems = () => {
+  try {
+    const value = JSON.parse(localStorage.getItem('arc-wishlist-cache') ?? '[]');
+    return Array.isArray(value) ? value : [];
+  } catch {
+    return [];
+  }
+};
+
+export const setStoredWishlistItems = (items) => {
+  const nextItems = Array.isArray(items) ? items : [];
+  localStorage.setItem('arc-wishlist-cache', JSON.stringify(nextItems));
+  updateStoredSummary({ wishlistCount: nextItems.length });
+  return nextItems;
+};

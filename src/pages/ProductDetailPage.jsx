@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { handleAddToCart } from '@/api/alert';
+import { getStoredUser, updateStoredSummary } from '@/api/authApi';
 import { useCartStore } from '@/store/cartStore';
 import { getProduct, getSet } from '@/api/products';
+import { addWishlist, getWishlist, removeWishlist } from '@/api/wishlist';
 import '@/styles/product-detail.css';
 
 const COLOR_MAP = {
@@ -57,6 +59,7 @@ function ProductImage({ src, alt, placeholder = 'PRODUCT IMAGE' }) {
 }
 
 function ProductDetailPage() {
+  const navigate = useNavigate();
   const { productId } = useParams();
   const [searchParams] = useSearchParams();
 
@@ -74,6 +77,9 @@ function ProductDetailPage() {
   const [quantity, setQuantity] = useState(1);
 
   const [cartMessage, setCartMessage] = useState(false);
+  const [wishlistId, setWishlistId] = useState(null);
+  const [isWishlisted, setIsWishlisted] = useState(false);
+  const [isWishlistLoading, setIsWishlistLoading] = useState(false);
 
   const [activeDetailTab, setActiveDetailTab] = useState('info');
 
@@ -129,9 +135,111 @@ function ProductDetailPage() {
     };
   }, [isSet, productId]);
 
+  useEffect(() => {
+    const accessToken = localStorage.getItem('accessToken');
+
+    if (!accessToken || !productId) {
+      return undefined;
+    }
+
+    let isMounted = true;
+
+    const syncWishlist = async () => {
+      try {
+        const response = await getWishlist();
+        const data = response?.data ?? response;
+        const items = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.items)
+            ? data.items
+            : Array.isArray(data?.wishlist)
+              ? data.wishlist
+              : [];
+        const matched = items.find(
+          (item) => Number(item.productId ?? item.product?.id) === Number(productId)
+        );
+
+        if (!isMounted) {
+          return;
+        }
+
+        setWishlistId(matched?.id ?? matched?.wishlistId ?? null);
+        setIsWishlisted(Boolean(matched));
+      } catch {
+        if (isMounted) {
+          setWishlistId(null);
+          setIsWishlisted(false);
+        }
+      }
+    };
+
+    syncWishlist();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [productId]);
+
   const imageList = useMemo(() => getImageList(product), [product]);
 
   const activeImage = imageList[activeImageIndex] ?? '';
+
+  const touchStartX = useRef(null);
+  const touchStartY = useRef(null);
+
+  const handlePreviousImage = () => {
+    if (imageList.length <= 1) {
+      return;
+    }
+
+    setActiveImageIndex((currentIndex) =>
+      currentIndex === 0 ? imageList.length - 1 : currentIndex - 1
+    );
+  };
+
+  const handleNextImage = () => {
+    if (imageList.length <= 1) {
+      return;
+    }
+
+    setActiveImageIndex((currentIndex) =>
+      currentIndex === imageList.length - 1 ? 0 : currentIndex + 1
+    );
+  };
+
+  const handleImageTouchStart = (event) => {
+    const touch = event.touches[0];
+
+    touchStartX.current = touch.clientX;
+    touchStartY.current = touch.clientY;
+  };
+
+  const handleImageTouchEnd = (event) => {
+    if (touchStartX.current === null || touchStartY.current === null || imageList.length <= 1) {
+      touchStartX.current = null;
+      touchStartY.current = null;
+      return;
+    }
+
+    const touch = event.changedTouches[0];
+    const distanceX = touchStartX.current - touch.clientX;
+    const distanceY = touchStartY.current - touch.clientY;
+
+    touchStartX.current = null;
+    touchStartY.current = null;
+
+    // 세로 스크롤은 그대로 두고, 가로로 충분히 밀었을 때만 이미지를 변경합니다.
+    if (Math.abs(distanceX) < 40 || Math.abs(distanceX) <= Math.abs(distanceY)) {
+      return;
+    }
+
+    if (distanceX > 0) {
+      handleNextImage();
+      return;
+    }
+
+    handlePreviousImage();
+  };
 
   const thumbnailImages = imageList
     .map((image, index) => ({
@@ -211,6 +319,82 @@ function ProductDetailPage() {
       behavior: 'smooth',
       block: 'start',
     });
+  };
+
+  const handleWishlistToggle = async () => {
+    if (isWishlistLoading || !product) {
+      return;
+    }
+
+    if (!localStorage.getItem('accessToken')) {
+      navigate('/login');
+      return;
+    }
+
+    setIsWishlistLoading(true);
+
+    try {
+      if (isWishlisted) {
+        let targetWishlistId = wishlistId;
+
+        if (!targetWishlistId) {
+          const wishlistResponse = await getWishlist();
+          const wishlistData = wishlistResponse?.data ?? wishlistResponse;
+          const wishlistItems = Array.isArray(wishlistData)
+            ? wishlistData
+            : Array.isArray(wishlistData?.items)
+              ? wishlistData.items
+              : Array.isArray(wishlistData?.wishlist)
+                ? wishlistData.wishlist
+                : [];
+          const matched = wishlistItems.find(
+            (item) => Number(item.productId ?? item.product?.id) === Number(product.id ?? productId)
+          );
+
+          targetWishlistId = matched?.id ?? matched?.wishlistId ?? null;
+        }
+
+        if (targetWishlistId) {
+          await removeWishlist(targetWishlistId);
+          const currentCount = Number(getStoredUser()?.wishlistCount ?? 0);
+          updateStoredSummary({ wishlistCount: Math.max(0, currentCount - 1) });
+        }
+
+        setWishlistId(null);
+        setIsWishlisted(false);
+        return;
+      }
+
+      const response = await addWishlist(Number(product.id ?? productId));
+      const data = response?.data ?? response;
+      let nextWishlistId = data?.id ?? data?.wishlistId ?? data?.data?.id ?? null;
+
+      if (!nextWishlistId) {
+        const wishlistResponse = await getWishlist();
+        const wishlistData = wishlistResponse?.data ?? wishlistResponse;
+        const wishlistItems = Array.isArray(wishlistData)
+          ? wishlistData
+          : Array.isArray(wishlistData?.items)
+            ? wishlistData.items
+            : Array.isArray(wishlistData?.wishlist)
+              ? wishlistData.wishlist
+              : [];
+        const matched = wishlistItems.find(
+          (item) => Number(item.productId ?? item.product?.id) === Number(product.id ?? productId)
+        );
+
+        nextWishlistId = matched?.id ?? matched?.wishlistId ?? null;
+      }
+
+      const currentCount = Number(getStoredUser()?.wishlistCount ?? 0);
+      updateStoredSummary({ wishlistCount: currentCount + 1 });
+      setWishlistId(nextWishlistId);
+      setIsWishlisted(true);
+    } catch (error) {
+      alert(error.message || '찜한 상품 상태를 변경하지 못했습니다.');
+    } finally {
+      setIsWishlistLoading(false);
+    }
   };
 
   const handleCartAdd = () => {
@@ -313,8 +497,18 @@ function ProductDetailPage() {
             ))}
           </div>
 
-          <div className="main-image">
-            <ProductImage src={activeImage} alt={product.name} />
+          <div
+            className="main-image"
+            onTouchStart={handleImageTouchStart}
+            onTouchEnd={handleImageTouchEnd}
+          >
+            <ProductImage src={activeImage} alt={`${product.name} ${activeImageIndex + 1}`} />
+
+            {imageList.length > 1 && (
+              <span className="mobile-image-count" aria-live="polite">
+                {activeImageIndex + 1} / {imageList.length}
+              </span>
+            )}
           </div>
         </div>
 
@@ -487,8 +681,15 @@ function ProductDetailPage() {
                 ADD TO CART
               </button>
 
-              <button type="button" className="wish-button" aria-label="위시리스트 추가">
-                ♡
+              <button
+                type="button"
+                className={`wish-button${isWishlisted ? ' is-active' : ''}`}
+                aria-label={isWishlisted ? '위시리스트에서 삭제' : '위시리스트에 추가'}
+                aria-pressed={isWishlisted}
+                disabled={isWishlistLoading}
+                onClick={handleWishlistToggle}
+              >
+                {isWishlisted ? '♥' : '♡'}
               </button>
             </div>
           </div>

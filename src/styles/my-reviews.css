@@ -1,0 +1,797 @@
+.my-reviews-overview {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+
+  margin-top: 22px;
+
+  gap: 12px;
+}
+
+.my-reviews-overview > div {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+
+  min-height: 92px;
+  padding: 18px 20px;
+
+  border: 1px solid #e7e7e7;
+  border-radius: 6px;
+
+  background: #fafafa;
+}
+
+.my-reviews-overview span {
+  color: #626262;
+
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.my-reviews-overview strong {
+  grid-row: 1 / 3;
+  grid-column: 2;
+
+  color: #111;
+
+  font-size: 30px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.my-reviews-overview small {
+  margin-top: 7px;
+
+  color: #a0a0a0;
+
+  font-size: 9px;
+}
+
+.my-reviews-toolbar {
+  padding-bottom: 2px;
+}
+
+.my-reviews-tab-count {
+  margin-left: 7px;
+
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.order-history-tabs button.is-active .my-reviews-tab-count {
+  color: #fff;
+}
+
+.my-reviews-list {
+  display: flex;
+  flex-direction: column;
+
+  margin-top: 14px;
+
+  gap: 12px;
+}
+
+.my-review-card {
+  overflow: hidden;
+
+  border: 1px solid #e5e5e5;
+  border-radius: 6px;
+
+  background: #fff;
+}
+
+.my-review-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  min-height: 44px;
+  padding: 0 15px;
+
+  border-bottom: 1px solid #ededed;
+}
+
+.my-review-card-head > div {
+  display: flex;
+  align-items: center;
+
+  gap: 9px;
+}
+
+.my-review-card-head strong {
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.my-review-card-head span {
+  color: #949494;
+
+  font-size: 9px;
+}
+
+.my-review-status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  height: 24px;
+  padding: 0 9px;
+
+  border-radius: 999px;
+
+  background: #f2f2f2;
+  color: #555 !important;
+
+  font-weight: 700;
+}
+
+.my-review-card-menu button {
+  padding: 0;
+
+  border: 0;
+
+  background: transparent;
+  color: #666;
+
+  font: inherit;
+  font-size: 9px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.my-review-card-menu button + button {
+  position: relative;
+
+  margin-left: 10px;
+  padding-left: 11px;
+}
+
+.my-review-card-menu button + button::before {
+  position: absolute;
+  top: 50%;
+  left: 0;
+
+  width: 1px;
+  height: 9px;
+
+  background: #ddd;
+
+  content: '';
+
+  transform: translateY(-50%);
+}
+
+.my-review-card-body {
+  display: grid;
+  grid-template-columns: 90px minmax(210px, 1.2fr) minmax(200px, 1fr) 112px;
+  align-items: center;
+
+  min-height: 128px;
+  padding: 16px;
+
+  gap: 16px;
+}
+
+.my-review-product-image {
+  display: grid;
+
+  width: 90px;
+  height: 90px;
+
+  place-items: center;
+
+  overflow: hidden;
+
+  background: #f4f4f4;
+  color: #aaa;
+
+  font-size: 9px;
+  text-decoration: none;
+}
+
+.my-review-product-image img {
+  width: 100%;
+  height: 100%;
+
+  object-fit: cover;
+}
+
+.my-review-product-info {
+  min-width: 0;
+}
+
+.my-review-product-info > a {
+  display: block;
+
+  overflow: hidden;
+
+  color: #171717;
+
+  font-size: 12px;
+  font-weight: 900;
+  text-decoration: none;
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
+}
+
+.my-review-product-info p {
+  margin: 7px 0 0;
+
+  color: #8b8b8b;
+
+  font-size: 9px;
+}
+
+.my-review-product-info > span {
+  display: block;
+
+  margin-top: 8px;
+
+  color: #777;
+
+  font-size: 9px;
+}
+
+.my-review-write-guide {
+  display: flex;
+  flex-direction: column;
+
+  min-height: 76px;
+  padding: 0 24px;
+
+  justify-content: center;
+
+  border-left: 1px solid #ededed;
+}
+
+.my-review-write-guide strong {
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.my-review-write-guide span {
+  margin-top: 6px;
+
+  color: #929292;
+
+  font-size: 9px;
+}
+
+.my-review-primary-button {
+  height: 38px;
+
+  border: 1px solid #111;
+  border-radius: 3px;
+
+  background: #111;
+  color: #fff;
+
+  font: inherit;
+  font-size: 10px;
+  font-weight: 800;
+
+  cursor: pointer;
+}
+
+.my-review-written-body {
+  display: grid;
+  grid-template-columns: minmax(300px, 0.85fr) minmax(0, 1.65fr);
+
+  min-height: 150px;
+  padding: 16px;
+
+  gap: 22px;
+}
+
+.my-review-written-product {
+  display: grid;
+  grid-template-columns: 90px minmax(0, 1fr);
+  align-items: center;
+
+  gap: 15px;
+}
+
+.my-review-record {
+  min-width: 0;
+  padding: 4px 0 4px 24px;
+
+  border-left: 1px solid #ededed;
+}
+
+.my-review-stars {
+  display: flex;
+  align-items: center;
+
+  gap: 2px;
+}
+
+.my-review-stars > span {
+  display: inline-flex;
+
+  color: #d6d6d6;
+}
+
+.my-review-stars > span.is-filled {
+  color: #111;
+}
+
+.my-review-stars svg {
+  width: 15px;
+  height: 15px;
+
+  stroke: currentColor;
+  stroke-width: 1.5;
+}
+
+.my-review-stars strong {
+  margin-left: 7px;
+
+  font-size: 11px;
+}
+
+.my-review-fit-row {
+  display: flex;
+  align-items: center;
+
+  margin-top: 12px;
+
+  gap: 12px;
+}
+
+.my-review-fit-row span {
+  color: #999;
+
+  font-size: 9px;
+}
+
+.my-review-fit-row strong {
+  font-size: 9px;
+}
+
+.my-review-record > p {
+  margin: 14px 0 0;
+
+  color: #444;
+
+  font-size: 10px;
+  line-height: 1.7;
+
+  white-space: pre-wrap;
+}
+
+.my-reviews-empty {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  justify-content: center;
+
+  min-height: 260px;
+  margin-top: 14px;
+
+  border: 1px solid #e7e7e7;
+  border-radius: 6px;
+
+  background: #fff;
+  color: #8b8b8b;
+
+  text-align: center;
+}
+
+.my-reviews-empty strong {
+  color: #333;
+
+  font-size: 13px;
+}
+
+.my-reviews-empty span {
+  margin-top: 8px;
+
+  font-size: 10px;
+}
+
+.my-review-modal-backdrop {
+  position: fixed;
+  z-index: 1450;
+  inset: 0;
+
+  display: grid;
+
+  padding: 24px;
+
+  place-items: center;
+
+  background: rgba(0, 0, 0, 0.46);
+}
+
+.my-review-modal {
+  width: min(640px, 100%);
+  max-height: calc(100vh - 48px);
+
+  overflow: auto;
+
+  border-radius: 8px;
+
+  background: #fff;
+
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.24);
+}
+
+.my-review-modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  padding: 22px 24px 18px;
+
+  border-bottom: 1px solid #ededed;
+}
+
+.my-review-modal-head h2 {
+  margin: 0;
+
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.my-review-modal-head p {
+  margin: 6px 0 0;
+
+  color: #8e8e8e;
+
+  font-size: 10px;
+}
+
+.my-review-modal-head > button {
+  padding: 0;
+
+  border: 0;
+
+  background: transparent;
+  color: #555;
+
+  font-size: 28px;
+  line-height: 1;
+
+  cursor: pointer;
+}
+
+.my-review-modal-product {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  align-items: center;
+
+  margin: 18px 24px 0;
+  padding: 12px;
+
+  background: #f8f8f8;
+
+  gap: 12px;
+}
+
+.my-review-modal-image {
+  display: grid;
+
+  width: 64px;
+  height: 64px;
+
+  place-items: center;
+
+  overflow: hidden;
+
+  background: #eee;
+  color: #aaa;
+
+  font-size: 8px;
+}
+
+.my-review-modal-image img {
+  width: 100%;
+  height: 100%;
+
+  object-fit: cover;
+}
+
+.my-review-modal-product > div:last-child {
+  display: flex;
+  flex-direction: column;
+}
+
+.my-review-modal-product strong {
+  font-size: 11px;
+}
+
+.my-review-modal-product span {
+  margin-top: 6px;
+
+  color: #888;
+
+  font-size: 9px;
+}
+
+.my-review-modal-body {
+  padding: 4px 24px 22px;
+}
+
+.my-review-form-section {
+  padding: 20px 0;
+
+  border-bottom: 1px solid #ededed;
+}
+
+.my-review-form-section:last-child {
+  padding-bottom: 0;
+
+  border-bottom: 0;
+}
+
+.my-review-form-section > label,
+.my-review-textarea-label label {
+  display: block;
+
+  color: #333;
+
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.my-review-rating-buttons {
+  display: flex;
+  align-items: center;
+
+  margin-top: 12px;
+
+  gap: 3px;
+}
+
+.my-review-rating-buttons button {
+  display: grid;
+
+  width: 30px;
+  height: 30px;
+  padding: 0;
+
+  place-items: center;
+
+  border: 0;
+
+  background: transparent;
+  color: #d0d0d0;
+
+  cursor: pointer;
+}
+
+.my-review-rating-buttons button.is-active {
+  color: #111;
+}
+
+.my-review-rating-buttons svg {
+  width: 24px;
+  height: 24px;
+
+  stroke: currentColor;
+  stroke-width: 1.4;
+}
+
+.my-review-rating-buttons > strong {
+  margin-left: 8px;
+
+  font-size: 12px;
+}
+
+.my-review-fit-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+
+  margin-top: 12px;
+
+  gap: 8px;
+}
+
+.my-review-fit-buttons button {
+  height: 38px;
+
+  border: 1px solid #ddd;
+  border-radius: 3px;
+
+  background: #fff;
+  color: #555;
+
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.my-review-fit-buttons button.is-active {
+  border-color: #111;
+
+  background: #111;
+  color: #fff;
+}
+
+.my-review-textarea-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.my-review-textarea-label span {
+  color: #aaa;
+
+  font-size: 9px;
+}
+
+.my-review-form-section textarea {
+  width: 100%;
+  min-height: 132px;
+  margin-top: 12px;
+  padding: 14px;
+
+  resize: vertical;
+
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  outline: 0;
+
+  font: inherit;
+  font-size: 10px;
+  line-height: 1.7;
+}
+
+.my-review-form-section textarea:focus {
+  border-color: #111;
+}
+
+.my-review-form-error {
+  margin: 7px 0 0;
+
+  color: #d33;
+
+  font-size: 9px;
+}
+
+.my-review-modal-actions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+
+  padding: 0 24px 24px;
+
+  gap: 8px;
+}
+
+.my-review-modal-actions button {
+  height: 44px;
+
+  border: 1px solid #bdbdbd;
+  border-radius: 3px;
+
+  background: #fff;
+  color: #333;
+
+  font: inherit;
+  font-size: 10px;
+  font-weight: 800;
+
+  cursor: pointer;
+}
+
+.my-review-modal-actions button.is-primary {
+  border-color: #111;
+
+  background: #111;
+  color: #fff;
+}
+
+.my-review-delete-modal {
+  width: min(430px, 100%);
+  padding: 28px;
+
+  border-radius: 8px;
+
+  background: #fff;
+
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.24);
+}
+
+.my-review-delete-modal h2 {
+  margin: 0;
+
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.my-review-delete-modal p {
+  margin: 9px 0 0;
+
+  color: #888;
+
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.my-review-delete-modal > div {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+
+  margin-top: 22px;
+
+  gap: 8px;
+}
+
+.my-review-delete-modal button {
+  height: 42px;
+
+  border: 1px solid #c5c5c5;
+  border-radius: 3px;
+
+  background: #fff;
+  color: #333;
+
+  font: inherit;
+  font-size: 10px;
+  font-weight: 800;
+
+  cursor: pointer;
+}
+
+.my-review-delete-modal button.is-danger {
+  border-color: #111;
+
+  background: #111;
+  color: #fff;
+}
+
+@media (max-width: 1050px) {
+  .my-review-card-body {
+    grid-template-columns: 90px minmax(190px, 1fr) 112px;
+  }
+
+  .my-review-write-guide {
+    display: none;
+  }
+
+  .my-review-written-body {
+    grid-template-columns: 1fr;
+  }
+
+  .my-review-record {
+    padding: 18px 0 0;
+
+    border-top: 1px solid #ededed;
+    border-left: 0;
+  }
+}
+
+@media (max-width: 720px) {
+  .my-reviews-overview {
+    grid-template-columns: 1fr;
+  }
+
+  .my-review-card-body {
+    grid-template-columns: 78px minmax(0, 1fr);
+  }
+
+  .my-review-product-image {
+    width: 78px;
+    height: 78px;
+  }
+
+  .my-review-primary-button {
+    grid-column: 1 / -1;
+  }
+
+  .my-review-written-product {
+    grid-template-columns: 78px minmax(0, 1fr);
+  }
+
+  .my-review-fit-buttons {
+    grid-template-columns: 1fr;
+  }
+
+  .my-review-modal-backdrop {
+    padding: 10px;
+  }
+}

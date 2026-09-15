@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 
-import { getMe } from '@/api/authApi';
+import {
+  clearAuthSession,
+  getMe,
+  getStoredUser,
+  resolveUserProfile,
+  updateStoredSummary,
+} from '@/api/authApi';
 import { getOrders } from '@/api/orders';
 import '@/styles/mypage.css';
 
@@ -12,7 +18,6 @@ const MY_PAGE_MENU = [
   { label: '내 리뷰', to: '/mypage/reviews' },
   { label: '쿠폰 및 혜택', to: '/mypage/coupons' },
   { label: '회원 정보 수정', to: '/mypage/profile' },
-  { label: '배송지 관리', to: '/mypage/addresses' },
   { label: '문의 내역', to: '/mypage/inquiries' },
   { label: '찜한 상품', to: '/mypage/wishlist' },
 ];
@@ -181,10 +186,6 @@ function maskDetailAddress(detailAddress) {
   return `${value.slice(0, Math.max(1, value.length - 1))}*`;
 }
 
-function getProfile(response) {
-  return response?.data?.user ?? response?.data ?? response?.user ?? response?.userInfo ?? null;
-}
-
 function getInitialNoticeSetting(key, fallbackValue) {
   try {
     const settings = JSON.parse(localStorage.getItem('arc-notice-settings') ?? '{}');
@@ -248,9 +249,9 @@ function MyPage() {
   const postcodeContainerRef = useRef(null);
   const saveToastTimerRef = useRef(null);
 
-  const [user, setUser] = useState(null);
-  const [orderCount, setOrderCount] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState(() => getStoredUser());
+  const [isLogoutPanelOpen, setIsLogoutPanelOpen] = useState(false);
+  const [orderCount, setOrderCount] = useState(() => Number(getStoredUser()?.orderCount ?? 0));
   const [errorMessage, setErrorMessage] = useState('');
   const [emailNotice, setEmailNotice] = useState(() =>
     getInitialNoticeSetting('emailNotice', true)
@@ -283,6 +284,7 @@ function MyPage() {
   const [isAddressEditorOpen, setIsAddressEditorOpen] = useState(false);
   const [editingAddressId, setEditingAddressId] = useState(null);
   const [addressForm, setAddressForm] = useState(EMPTY_ADDRESS_FORM);
+  const [deleteAddressId, setDeleteAddressId] = useState(null);
   const [saveMessage, setSaveMessage] = useState('');
   const [isSaveToastVisible, setIsSaveToastVisible] = useState(false);
 
@@ -295,7 +297,6 @@ function MyPage() {
     }
 
     const loadMyPage = async () => {
-      setIsLoading(true);
       setErrorMessage('');
 
       const [profileResult, ordersResult] = await Promise.allSettled([
@@ -311,11 +312,10 @@ function MyPage() {
         return;
       }
 
-      const profile = getProfile(profileResult.value);
+      const profile = resolveUserProfile(profileResult.value);
 
       if (!profile) {
         setErrorMessage('회원 정보를 불러오지 못했습니다.');
-        setIsLoading(false);
         return;
       }
 
@@ -394,18 +394,17 @@ function MyPage() {
 
       if (ordersResult.status === 'fulfilled') {
         const ordersData = ordersResult.value?.data ?? {};
-        setOrderCount(
-          Number(
-            ordersData.pagination?.totalCount ??
-              ordersData.pageInfo?.totalCount ??
-              ordersData.totalCount ??
-              ordersData.orders?.length ??
-              0
-          )
+        const nextOrderCount = Number(
+          ordersData.pagination?.totalCount ??
+            ordersData.pageInfo?.totalCount ??
+            ordersData.totalCount ??
+            ordersData.orders?.length ??
+            0
         );
-      }
 
-      setIsLoading(false);
+        setOrderCount(nextOrderCount);
+        updateStoredSummary({ orderCount: nextOrderCount });
+      }
     };
 
     loadMyPage();
@@ -414,17 +413,6 @@ function MyPage() {
   useEffect(() => {
     localStorage.setItem('arc-addresses', JSON.stringify(addresses));
   }, [addresses]);
-
-  useEffect(() => {
-    if (location.pathname === '/mypage/addresses' && addressSectionRef.current) {
-      window.setTimeout(() => {
-        addressSectionRef.current?.scrollIntoView({
-          behavior: 'smooth',
-          block: 'start',
-        });
-      }, 0);
-    }
-  }, [location.pathname]);
 
   const userName = user?.name ?? user?.nickname ?? user?.loginId ?? user?.id ?? '회원';
   const loginId = user?.loginId ?? user?.identifier ?? user?.id ?? '';
@@ -465,8 +453,7 @@ function MyPage() {
     [couponCount, orderCount, pointBalance, wishlistCount]
   );
 
-  const isProfileView =
-    location.pathname === '/mypage/profile' || location.pathname === '/mypage/addresses';
+  const isProfileView = location.pathname === '/mypage/profile';
 
   const handleProfileInputChange = (event) => {
     const { name, value } = event.target;
@@ -688,14 +675,22 @@ function MyPage() {
   };
 
   const handleAddressDelete = (addressId) => {
-    const target = addresses.find((item) => item.id === addressId);
+    setDeleteAddressId(addressId);
+  };
 
-    if (!window.confirm('이 배송지를 삭제하시겠습니까?')) {
+  const closeAddressDeletePanel = () => {
+    setDeleteAddressId(null);
+  };
+
+  const confirmAddressDelete = () => {
+    if (!deleteAddressId) {
       return;
     }
 
+    const target = addresses.find((item) => item.id === deleteAddressId);
+
     setAddresses((prev) => {
-      const nextItems = prev.filter((item) => item.id !== addressId);
+      const nextItems = prev.filter((item) => item.id !== deleteAddressId);
 
       if (target?.isDefault && nextItems.length > 0) {
         return nextItems.map((item, index) => ({
@@ -706,6 +701,8 @@ function MyPage() {
 
       return nextItems;
     });
+
+    setDeleteAddressId(null);
   };
 
   const handleSetDefaultAddress = (addressId) => {
@@ -766,20 +763,19 @@ function MyPage() {
     }, 2000);
   };
 
+  const deleteTargetAddress = deleteAddressId
+    ? addresses.find((item) => item.id === deleteAddressId)
+    : null;
+
   const handleLogout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('userInfo');
-    window.dispatchEvent(new Event('auth-change'));
-    navigate('/login');
+    setIsLogoutPanelOpen(true);
   };
 
-  if (isLoading) {
-    return (
-      <main className="mypage-page">
-        <div className="mypage-loading">회원 정보를 불러오는 중입니다.</div>
-      </main>
-    );
-  }
+  const confirmLogout = () => {
+    clearAuthSession();
+    setIsLogoutPanelOpen(false);
+    navigate('/login');
+  };
 
   return (
     <main className="mypage-page">
@@ -1377,6 +1373,107 @@ function MyPage() {
 
               <button type="button" className="is-save" onClick={handleAddressSave}>
                 {editingAddressId ? '수정 저장' : '배송지 추가'}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {deleteTargetAddress && (
+        <div className="mypage-delete-address-backdrop" onClick={closeAddressDeletePanel}>
+          <section
+            className="mypage-delete-address-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="mypageDeleteAddressTitle"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mypage-delete-address-icon" aria-hidden="true">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M3 6h18" />
+                <path d="M8 6V4h8v2" />
+                <path d="m19 6-1 14H6L5 6" />
+                <path d="M10 11v5" />
+                <path d="M14 11v5" />
+              </svg>
+            </div>
+
+            <h2 id="mypageDeleteAddressTitle">배송지를 삭제하시겠습니까?</h2>
+
+            <p>
+              삭제한 배송지는 다시 복구할 수 없습니다.
+              <br />
+              {deleteTargetAddress.label || '선택한 배송지'} 정보를 삭제할까요?
+            </p>
+
+            <div className="mypage-delete-address-preview">
+              <strong>{deleteTargetAddress.label || '배송지'}</strong>
+              <span>
+                {[
+                  deleteTargetAddress.postcode,
+                  deleteTargetAddress.address,
+                  deleteTargetAddress.detailAddress,
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+              </span>
+            </div>
+
+            <div className="mypage-delete-address-actions">
+              <button type="button" className="is-cancel" onClick={closeAddressDeletePanel}>
+                취소
+              </button>
+
+              <button type="button" className="is-delete" onClick={confirmAddressDelete}>
+                삭제
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {isLogoutPanelOpen && (
+        <div className="mypage-inline-logout-backdrop" onClick={() => setIsLogoutPanelOpen(false)}>
+          <section
+            className="mypage-inline-logout-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="mypageInlineLogoutTitle"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mypage-inline-logout-icon" aria-hidden="true">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M10 17l5-5-5-5" />
+                <path d="M15 12H3" />
+                <path d="M14 3h4a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3h-4" />
+              </svg>
+            </div>
+            <h2 id="mypageInlineLogoutTitle">로그아웃하시겠습니까?</h2>
+            <p>
+              현재 계정에서 로그아웃됩니다.
+              <br />
+              다시 이용하려면 로그인이 필요합니다.
+            </p>
+            <div className="mypage-inline-logout-actions">
+              <button type="button" onClick={() => setIsLogoutPanelOpen(false)}>
+                취소
+              </button>
+              <button type="button" className="is-confirm" onClick={confirmLogout}>
+                로그아웃
               </button>
             </div>
           </section>

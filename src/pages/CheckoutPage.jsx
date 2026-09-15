@@ -340,7 +340,7 @@ function CheckoutPage() {
                 type="button"
                 onClick={() => {
                   savedAddressDialog.current?.close();
-                  navigate('/mypage/addresses');
+                  navigate('/mypage/profile');
                 }}
               >
                 배송지 관리로 이동
