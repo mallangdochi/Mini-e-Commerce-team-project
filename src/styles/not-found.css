@@ -1,0 +1,251 @@
+.not-found-container {
+  min-height: 100vh;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow: hidden;
+  background-color: #0d0d0d;
+  color: #ffffff;
+  font-family: 'Pretendard', sans-serif;
+}
+
+.not-found-container * {
+  box-sizing: border-box;
+}
+
+.not-found-glow-circle {
+  position: relative;
+  z-index: 0;
+  width: 600px;
+  height: 600px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 60px 40px;
+  text-align: center;
+}
+
+.not-found-glow-circle::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle at center, #1a1a1a 0%, #080808 100%);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow:
+    0 0 50px rgba(255, 255, 255, 0.15),
+    inset 0 0 30px rgba(255, 255, 255, 0.05);
+}
+
+.not-found-error-code {
+  font-size: 88px;
+  font-weight: 300;
+  letter-spacing: -2px;
+  line-height: 1;
+  margin-top: 20px;
+}
+
+.not-found-error-sub {
+  font-size: 11px;
+  letter-spacing: 4px;
+  color: #888888;
+  margin-top: 8px;
+}
+
+.not-found-message-title {
+  font-size: 16px;
+  font-weight: 300;
+  margin-bottom: 12px;
+  color: #ffffff;
+  word-break: keep-all;
+}
+
+.not-found-message-desc {
+  font-size: 12px;
+  color: #999999;
+  line-height: 1.6;
+  font-weight: 300;
+  word-break: keep-all;
+}
+
+.not-found-button-group {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  max-width: 260px;
+}
+
+.not-found-btn {
+  flex: 1;
+  padding: 10px 0;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 4px;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    background-color 0.2s ease,
+    border-color 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.not-found-btn-primary {
+  background-color: #ffffff;
+  color: #000000;
+  border: 1px solid #ffffff;
+}
+
+.not-found-btn-primary:hover {
+  background-color: #e6e6e6;
+}
+
+.not-found-btn-secondary {
+  background-color: transparent;
+  color: #ffffff;
+  border: 1px solid #444444;
+}
+
+.not-found-btn-secondary:hover {
+  background-color: #1a1a1a;
+  border-color: #666666;
+}
+
+.not-found-logo-wrapper {
+  display: inline-block;
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+}
+
+.not-found-logo-wrapper:hover {
+  opacity: 1;
+}
+
+.not-found-app-logo {
+  width: auto;
+  height: 32px;
+  color: #ffffff;
+}
+
+/* ==========================================================================
+   반응형 — 큰 화면 → 작은 화면 순서로 배치
+   1) 1025~1440px 데스크톱: 위 기본 스타일
+   2) 768~1024px 태블릿
+   3) 320~767px 모바일
+   ========================================================================== */
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  .not-found-glow-circle {
+    width: 440px;
+    height: 440px;
+    padding: 44px 32px;
+  }
+
+  .not-found-error-code {
+    font-size: 64px;
+  }
+
+  .not-found-error-sub {
+    font-size: 10px;
+    letter-spacing: 3px;
+  }
+
+  .not-found-message-title {
+    font-size: 15px;
+  }
+
+  .not-found-message-desc {
+    font-size: 11.5px;
+  }
+
+  .not-found-button-group {
+    max-width: clamp(200px, 22vw, 240px);
+    gap: 10px;
+  }
+
+  .not-found-btn {
+    padding: clamp(9px, 1vw, 10px) 0;
+    font-size: clamp(11px, 1.2vw, 12px);
+  }
+
+  .not-found-app-logo {
+    height: 38px;
+  }
+}
+
+@media (max-width: 767px) {
+  .not-found-container {
+    padding: 16px;
+  }
+
+  .not-found-glow-circle {
+    width: clamp(240px, 62vw, 280px);
+    height: clamp(240px, 62vw, 280px);
+    padding: 0;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .not-found-glow-circle::before {
+    top: calc(50% - 100px);
+  }
+
+  .not-found-error-code {
+    margin-top: 70px;
+    font-size: clamp(56px, 15vh, 54px);
+  }
+
+  .not-found-error-sub {
+    font-size: 9px;
+    letter-spacing: 2px;
+  }
+
+  .not-found-error-message {
+    margin: 10px 0 0px;
+  }
+
+  .not-found-message-title {
+    max-width: 240px;
+    margin-right: auto;
+    margin-left: auto;
+    font-size: 12px;
+  }
+
+  .not-found-message-desc {
+    max-width: 240px;
+    margin-top: 110px;
+    margin-right: auto;
+    margin-left: auto;
+    font-size: 11px;
+  }
+
+  .not-found-button-group {
+    max-width: clamp(200px, 58vw, 260px);
+    margin-top: 28px;
+    gap: 10px;
+  }
+
+  .not-found-btn {
+    padding: clamp(8px, 2.2vw, 10px) 0;
+    font-size: clamp(11px, 3vw, 13px);
+  }
+
+  .not-found-logo-wrapper {
+    margin-top: 28px;
+  }
+
+  .not-found-app-logo {
+    height: clamp(20px, 18vw, 26px);
+  }
+}

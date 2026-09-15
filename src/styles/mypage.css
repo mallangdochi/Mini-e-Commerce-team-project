@@ -1,0 +1,1762 @@
+.mypage-page {
+  min-height: 100vh;
+  padding: 86px 0 72px;
+
+  background: #fff;
+  color: #171717;
+}
+
+.mypage-shell {
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr);
+
+  width: min(1240px, calc(100% - 64px));
+  min-height: 720px;
+  margin: 0 auto;
+}
+
+.mypage-sidebar {
+  padding: 32px 30px 40px 0;
+
+  border-right: 1px solid #e8e8e8;
+}
+
+.mypage-user-panel {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+
+  padding: 4px 0 20px;
+
+  text-align: center;
+}
+
+.mypage-profile-avatar {
+  display: grid;
+
+  width: 72px;
+  height: 72px;
+
+  place-items: center;
+
+  overflow: hidden;
+
+  border-radius: 50%;
+
+  background: #d9d9d9;
+}
+
+.mypage-profile-avatar svg {
+  width: 72px;
+  height: 72px;
+}
+
+.mypage-profile-avatar circle,
+.mypage-profile-avatar path {
+  fill: #969696;
+}
+
+.mypage-user-name {
+  margin-top: 14px;
+
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.mypage-user-email {
+  margin-top: 4px;
+
+  color: #7c7c7c;
+
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.mypage-sidebar-divider {
+  height: 1px;
+  margin: 0 0 18px;
+
+  background: #e8e8e8;
+}
+
+.mypage-nav {
+  display: flex;
+  flex-direction: column;
+
+  gap: 2px;
+}
+
+.mypage-nav-link {
+  display: flex;
+  align-items: center;
+
+  width: 100%;
+  min-height: 42px;
+  padding: 0 16px;
+
+  border: 0;
+  border-radius: 4px;
+
+  background: transparent;
+  color: #5d5d5d;
+
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  text-decoration: none;
+
+  cursor: pointer;
+
+  transition:
+    background 150ms ease,
+    color 150ms ease;
+}
+
+.mypage-nav-link:hover {
+  background: #f5f5f5;
+  color: #111;
+}
+
+.mypage-nav-link.is-active {
+  background: #0d0d0d;
+  color: #fff;
+}
+
+.mypage-logout-button {
+  margin-top: 2px;
+}
+
+.mypage-content {
+  min-width: 0;
+  padding: 0 0 0 30px;
+}
+
+.mypage-heading {
+  padding: 2px 0 34px;
+}
+
+.mypage-heading h1 {
+  margin: 0;
+
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: -0.045em;
+  line-height: 1;
+}
+
+.mypage-heading p {
+  margin: 8px 0 0;
+
+  color: #7f7f7f;
+
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.mypage-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+
+  gap: 16px;
+}
+
+.mypage-summary-card {
+  min-height: 126px;
+  padding: 18px 18px 16px;
+
+  border: 1px solid #e7e7e7;
+  border-radius: 6px;
+
+  background: #fff;
+  color: #171717;
+
+  text-decoration: none;
+
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    transform 150ms ease;
+}
+
+.mypage-summary-card:hover {
+  border-color: #cfcfcf;
+
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+
+  transform: translateY(-1px);
+}
+
+.mypage-summary-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  margin-bottom: 12px;
+}
+
+.mypage-summary-icon {
+  display: grid;
+
+  width: 24px;
+  height: 24px;
+
+  place-items: center;
+}
+
+.mypage-summary-icon svg {
+  width: 22px;
+  height: 22px;
+
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.75;
+}
+
+.mypage-summary-arrow {
+  font-size: 26px;
+  font-weight: 300;
+  line-height: 1;
+}
+
+.mypage-summary-label {
+  display: block;
+
+  color: #5e5e5e;
+
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.mypage-summary-value {
+  display: block;
+
+  margin-top: 5px;
+
+  color: #111;
+
+  font-size: 19px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+}
+
+.mypage-info-card {
+  margin-top: 18px;
+  padding: 16px 22px 10px;
+
+  border: 1px solid #e6e6e6;
+  border-radius: 6px;
+
+  background: #fff;
+
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.025);
+}
+
+.mypage-info-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  min-height: 38px;
+}
+
+.mypage-security-badge {
+  display: inline-flex;
+  align-items: center;
+
+  min-height: 28px;
+  padding: 0 10px;
+
+  border-radius: 4px;
+
+  background: #f5f5f5;
+  color: #6d6d6d;
+
+  gap: 6px;
+
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.mypage-security-icon {
+  display: grid;
+
+  width: 14px;
+  height: 14px;
+
+  place-items: center;
+}
+
+.mypage-security-icon svg {
+  width: 13px;
+  height: 13px;
+
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.mypage-edit-button {
+  display: inline-flex;
+  align-items: center;
+
+  min-height: 36px;
+  padding: 0 17px;
+
+  border-radius: 5px;
+
+  background: #111;
+  color: #fff;
+
+  gap: 8px;
+
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.mypage-edit-button svg {
+  width: 14px;
+  height: 14px;
+
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.mypage-info-section {
+  padding: 14px 0 18px;
+}
+
+.mypage-info-section h2 {
+  margin: 0;
+  padding: 0 0 13px;
+
+  border-bottom: 1px solid #ececec;
+
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: -0.035em;
+}
+
+.mypage-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.mypage-info-item {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  align-items: center;
+
+  min-height: 48px;
+  padding-right: 12px;
+}
+
+.mypage-info-item:nth-child(odd) {
+  border-right: 1px solid #eeeeee;
+}
+
+.mypage-info-item:nth-child(even) {
+  padding-left: 24px;
+}
+
+.mypage-info-label {
+  color: #9a9a9a;
+
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.mypage-info-item strong {
+  color: #4a4a4a;
+
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.mypage-address-section {
+  padding-top: 4px;
+}
+
+.mypage-profile-heading {
+  padding-bottom: 18px;
+}
+
+.mypage-edit-section {
+  margin-bottom: 16px;
+  padding: 18px 20px;
+
+  border: 1px solid #e7e7e7;
+  border-radius: 6px;
+
+  background: #fff;
+}
+
+.mypage-edit-section-header,
+.mypage-address-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: 20px;
+}
+
+.mypage-edit-section-header h2,
+.mypage-address-title-row h2 {
+  margin: 0;
+
+  font-size: 17px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+}
+
+.mypage-edit-section-header p,
+.mypage-address-title-row p {
+  margin: 5px 0 0;
+
+  color: #929292;
+
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.mypage-solid-button {
+  min-width: 94px;
+  height: 38px;
+  padding: 0 18px;
+
+  border: 0;
+  border-radius: 4px;
+
+  background: #111;
+  color: #fff;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.mypage-direct-form {
+  width: 100%;
+  margin-top: 14px;
+
+  border-top: 1px solid #ededed;
+}
+
+.mypage-direct-row {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  align-items: center;
+
+  min-height: 56px;
+
+  border-bottom: 1px solid #ededed;
+}
+
+.mypage-direct-row > span {
+  align-self: stretch;
+
+  display: flex;
+  align-items: center;
+
+  padding: 0 16px;
+
+  background: #fafafa;
+  color: #555;
+
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.mypage-direct-row input {
+  width: calc(100% - 24px);
+  height: 38px;
+  margin: 0 12px;
+  padding: 0 12px;
+
+  border: 1px solid #dddddd;
+  border-radius: 4px;
+
+  background: #fff;
+  color: #222;
+
+  outline: none;
+
+  font: inherit;
+  font-size: 11px;
+}
+
+.mypage-direct-row input:focus {
+  border-color: #111;
+}
+
+.mypage-inline-password {
+  margin-top: 22px;
+  padding-top: 20px;
+
+  border-top: 1px solid #e7e7e7;
+}
+
+.mypage-inline-password-heading h3 {
+  margin: 0;
+
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.mypage-inline-password-heading p {
+  margin: 5px 0 0;
+
+  color: #929292;
+
+  font-size: 10px;
+}
+
+.mypage-password-direct-form {
+  margin-top: 12px;
+}
+
+.mypage-notice-list {
+  margin-top: 14px;
+
+  border-top: 1px solid #ededed;
+}
+
+.mypage-notice-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  min-height: 58px;
+  padding: 0 14px;
+
+  border-bottom: 1px solid #ededed;
+
+  cursor: pointer;
+}
+
+.mypage-notice-row > span {
+  display: flex;
+  flex-direction: column;
+
+  gap: 4px;
+}
+
+.mypage-notice-row strong {
+  color: #444;
+
+  font-size: 11px;
+}
+
+.mypage-notice-row small {
+  color: #898989;
+
+  font-size: 10px;
+}
+
+.mypage-notice-row input {
+  width: 16px;
+  height: 16px;
+
+  accent-color: #111;
+}
+
+.mypage-address-management {
+  scroll-margin-top: 96px;
+}
+
+.mypage-address-empty {
+  display: grid;
+
+  min-height: 130px;
+  margin-top: 14px;
+
+  place-items: center;
+
+  border: 1px dashed #d8d8d8;
+  border-radius: 6px;
+
+  color: #8b8b8b;
+
+  font-size: 11px;
+}
+
+.mypage-address-list {
+  display: flex;
+  flex-direction: column;
+
+  margin-top: 14px;
+
+  gap: 12px;
+}
+
+.mypage-address-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 108px;
+  grid-template-areas:
+    'title actions'
+    'info actions';
+  column-gap: 20px;
+  padding: 18px;
+
+  border: 1px solid #e6e6e6;
+  border-radius: 6px;
+
+  background: #fff;
+}
+
+.mypage-address-card-title {
+  grid-area: title;
+  margin-bottom: 15px;
+}
+
+.mypage-address-card-title > div {
+  display: flex;
+  align-items: center;
+
+  gap: 10px;
+}
+
+.mypage-address-card-title h3 {
+  margin: 0;
+
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.mypage-address-card-title span {
+  display: inline-flex;
+  align-items: center;
+
+  height: 23px;
+  padding: 0 9px;
+
+  border-radius: 3px;
+
+  background: #111;
+  color: #fff;
+
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.mypage-address-card-grid {
+  grid-area: info;
+  display: grid;
+  grid-template-columns: 0.8fr 1fr 0.7fr minmax(260px, 2.6fr) 0.9fr;
+  width: 100%;
+
+  gap: 0;
+}
+
+.mypage-address-card-grid > div {
+  min-width: 0;
+  padding: 0 14px;
+
+  border-left: 1px solid #ececec;
+}
+
+.mypage-address-card-grid > div:first-child {
+  padding-left: 0;
+
+  border-left: 0;
+}
+
+.mypage-address-card-grid span,
+.mypage-address-card-grid strong {
+  display: block;
+}
+
+.mypage-address-card-grid span {
+  margin-bottom: 6px;
+
+  color: #989898;
+
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.mypage-address-card-grid strong {
+  color: #3d3d3d;
+
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.mypage-address-card-actions {
+  grid-area: actions;
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+
+  width: 108px;
+
+  gap: 6px;
+}
+
+.mypage-address-card-actions button {
+  height: 32px;
+
+  border: 1px solid #a9a9a9;
+  border-radius: 3px;
+
+  background: #fff;
+  color: #333;
+
+  font-size: 10px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.mypage-address-card-actions .is-primary {
+  border-color: #111;
+
+  background: #111;
+  color: #fff;
+}
+
+.mypage-all-save-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+
+  min-height: 74px;
+  padding: 14px 18px;
+  margin-top: 8px;
+
+  border: 1px solid #e7e7e7;
+  border-radius: 6px;
+
+  background: #fff;
+
+  gap: 16px;
+}
+
+.mypage-all-save-bar span {
+  color: #777;
+
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.mypage-all-save-button {
+  min-width: 118px;
+}
+
+.mypage-address-modal-backdrop {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+
+  display: grid;
+
+  padding: 24px;
+
+  place-items: center;
+
+  background: rgba(0, 0, 0, 0.42);
+}
+
+.mypage-address-modal {
+  width: min(560px, 100%);
+  max-height: calc(100vh - 48px);
+
+  overflow-y: auto;
+
+  border-radius: 8px;
+
+  background: #fff;
+
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.2);
+}
+
+.mypage-address-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  padding: 22px 24px 18px;
+
+  border-bottom: 1px solid #eeeeee;
+}
+
+.mypage-address-modal-header h2 {
+  margin: 0;
+
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.mypage-address-modal-header p {
+  margin: 6px 0 0;
+
+  color: #898989;
+
+  font-size: 10px;
+}
+
+.mypage-address-modal-close {
+  border: 0;
+
+  background: transparent;
+  color: #555;
+
+  font-size: 27px;
+  line-height: 1;
+
+  cursor: pointer;
+}
+
+.mypage-address-modal-form {
+  display: flex;
+  flex-direction: column;
+
+  padding: 20px 24px;
+
+  gap: 14px;
+}
+
+.mypage-address-modal-form > label {
+  display: flex;
+  flex-direction: column;
+
+  gap: 7px;
+}
+
+.mypage-address-modal-form label > span,
+.mypage-postcode-field > span {
+  color: #333;
+
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.mypage-address-modal-form input {
+  width: 100%;
+  height: 44px;
+  padding: 0 13px;
+
+  border: 1px solid #d5d5d5;
+  border-radius: 5px;
+
+  background: #fff;
+  color: #222;
+
+  outline: none;
+
+  font: inherit;
+  font-size: 12px;
+}
+
+.mypage-address-modal-form input:focus {
+  border-color: #111;
+}
+
+.mypage-postcode-field {
+  display: flex;
+  flex-direction: column;
+
+  gap: 10px;
+}
+
+.mypage-postcode-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 150px;
+
+  gap: 10px;
+}
+
+.mypage-postcode-row button {
+  border: 0;
+  border-radius: 5px;
+
+  background: #111;
+  color: #fff;
+
+  font-size: 11px;
+  font-weight: 800;
+
+  cursor: pointer;
+}
+
+.mypage-address-default-check {
+  flex-direction: row !important;
+  align-items: center;
+
+  gap: 8px !important;
+}
+
+.mypage-address-default-check input {
+  width: 16px;
+  height: 16px;
+
+  accent-color: #111;
+}
+
+.mypage-address-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+
+  padding: 16px 24px 22px;
+
+  border-top: 1px solid #eeeeee;
+
+  gap: 8px;
+}
+
+.mypage-address-modal-actions button {
+  min-width: 94px;
+  height: 40px;
+
+  border-radius: 5px;
+
+  font-size: 11px;
+  font-weight: 800;
+
+  cursor: pointer;
+}
+
+.mypage-address-modal-actions .is-cancel {
+  border: 1px solid #cacaca;
+
+  background: #fff;
+  color: #333;
+}
+
+.mypage-address-modal-actions .is-save {
+  border: 1px solid #111;
+
+  background: #111;
+  color: #fff;
+}
+
+.mypage-loading,
+.mypage-error {
+  display: grid;
+
+  width: min(1040px, calc(100% - 64px));
+  min-height: 220px;
+  margin: 100px auto 0;
+
+  place-items: center;
+
+  border: 1px solid #e6e6e6;
+  border-radius: 6px;
+
+  background: #fff;
+  color: #777;
+
+  font-size: 12px;
+}
+
+.mypage-error {
+  width: 100%;
+  min-height: 160px;
+  margin: 0;
+}
+
+@media (max-width: 1024px) {
+  .mypage-shell {
+    grid-template-columns: 180px minmax(0, 1fr);
+
+    width: min(100% - 40px, 1000px);
+  }
+
+  .mypage-sidebar {
+    padding-right: 22px;
+  }
+
+  .mypage-content {
+    padding-left: 24px;
+  }
+
+  .mypage-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mypage-address-card {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      'title'
+      'info'
+      'actions';
+    row-gap: 14px;
+  }
+
+  .mypage-address-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    row-gap: 16px;
+  }
+
+  .mypage-address-card-grid > div {
+    padding: 0 12px;
+
+    border-left: 0;
+  }
+
+  .mypage-address-card-grid > div:first-child {
+    padding-left: 12px;
+  }
+
+  .mypage-address-card-actions {
+    flex-direction: row;
+
+    width: auto;
+  }
+
+  .mypage-address-card-actions button {
+    min-width: 92px;
+  }
+}
+
+@media (max-width: 760px) {
+  .mypage-page {
+    padding: 78px 0 52px;
+  }
+
+  .mypage-shell {
+    grid-template-columns: 1fr;
+
+    width: calc(100% - 32px);
+  }
+
+  .mypage-sidebar {
+    padding: 0 0 20px;
+
+    border-right: 0;
+    border-bottom: 1px solid #e8e8e8;
+  }
+
+  .mypage-user-panel {
+    flex-direction: row;
+    justify-content: flex-start;
+
+    padding: 0 0 16px;
+
+    gap: 12px;
+
+    text-align: left;
+  }
+
+  .mypage-profile-avatar,
+  .mypage-profile-avatar svg {
+    width: 52px;
+    height: 52px;
+  }
+
+  .mypage-user-name {
+    margin: 0;
+  }
+
+  .mypage-user-email {
+    display: none;
+  }
+
+  .mypage-sidebar-divider {
+    display: none;
+  }
+
+  .mypage-nav {
+    flex-direction: row;
+
+    padding-bottom: 4px;
+
+    overflow-x: auto;
+
+    scrollbar-width: none;
+  }
+
+  .mypage-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .mypage-nav-link {
+    flex: 0 0 auto;
+
+    width: auto;
+    min-height: 36px;
+    padding: 0 12px;
+
+    white-space: nowrap;
+  }
+
+  .mypage-logout-button {
+    margin: 0;
+  }
+
+  .mypage-content {
+    padding: 28px 0 0;
+  }
+
+  .mypage-heading {
+    padding-bottom: 24px;
+  }
+
+  .mypage-summary-grid {
+    grid-template-columns: 1fr 1fr;
+
+    gap: 10px;
+  }
+
+  .mypage-info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mypage-info-item:nth-child(odd) {
+    border-right: 0;
+  }
+
+  .mypage-info-item:nth-child(even) {
+    padding-left: 0;
+  }
+
+  .mypage-info-card {
+    padding: 14px 18px 8px;
+  }
+
+  .mypage-edit-section {
+    padding: 16px;
+  }
+
+  .mypage-edit-section-header,
+  .mypage-address-title-row {
+    flex-direction: column;
+  }
+
+  .mypage-direct-row {
+    grid-template-columns: 112px minmax(0, 1fr);
+  }
+
+  .mypage-address-card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mypage-address-card-grid > div,
+  .mypage-address-card-grid > div:first-child {
+    padding: 0 0 12px;
+
+    border-bottom: 1px solid #eeeeee;
+  }
+
+  .mypage-all-save-bar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .mypage-all-save-button {
+    width: 100%;
+  }
+
+  .mypage-postcode-row {
+    grid-template-columns: 1fr 120px;
+  }
+}
+
+@media (max-width: 480px) {
+  .mypage-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mypage-info-toolbar {
+    align-items: flex-start;
+
+    gap: 12px;
+  }
+
+  .mypage-security-badge {
+    max-width: 190px;
+  }
+
+  .mypage-edit-button {
+    padding: 0 12px;
+  }
+
+  .mypage-address-modal-backdrop {
+    padding: 10px;
+  }
+
+  .mypage-postcode-row {
+    grid-template-columns: 1fr;
+  }
+
+  .mypage-postcode-row button {
+    height: 42px;
+  }
+}
+
+.mypage-password-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  min-height: 74px;
+  margin-top: 18px;
+  padding: 0 4px;
+
+  border-top: 1px solid #ededed;
+}
+
+.mypage-password-toggle-row h3 {
+  margin: 0;
+
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.mypage-password-toggle-row p {
+  margin: 5px 0 0;
+
+  color: #929292;
+
+  font-size: 10px;
+}
+
+.mypage-outline-button {
+  min-width: 104px;
+  height: 36px;
+  padding: 0 16px;
+
+  border: 1px solid #b9b9b9;
+  border-radius: 4px;
+
+  background: #fff;
+  color: #222;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.mypage-password-section {
+  animation: mypage-section-open 180ms ease;
+}
+
+@keyframes mypage-section-open {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 760px) {
+  .mypage-password-toggle-row {
+    align-items: flex-start;
+    flex-direction: column;
+
+    padding: 16px 0;
+
+    gap: 12px;
+  }
+
+  .mypage-outline-button {
+    width: 100%;
+  }
+}
+
+.mypage-postcode-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 1200;
+
+  width: min(560px, calc(100% - 32px));
+  height: min(620px, calc(100vh - 48px));
+  margin: 0;
+  padding: 0;
+
+  border: 0;
+  border-radius: 8px;
+
+  overflow: hidden;
+
+  background: #fff;
+
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.22);
+
+  transform: translate(-50%, -50%);
+}
+
+.mypage-postcode-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.46);
+}
+
+.mypage-postcode-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  height: 58px;
+  padding: 0 20px;
+
+  border-bottom: 1px solid #ededed;
+}
+
+.mypage-postcode-dialog-header h2 {
+  margin: 0;
+
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.mypage-postcode-dialog-header button {
+  border: 0;
+
+  background: transparent;
+  color: #555;
+
+  font-size: 26px;
+  line-height: 1;
+
+  cursor: pointer;
+}
+
+.mypage-postcode-embed {
+  width: 100%;
+  height: calc(100% - 58px);
+}
+
+.mypage-password-modal-backdrop {
+  position: fixed;
+  z-index: 1100;
+  inset: 0;
+
+  display: grid;
+
+  padding: 24px;
+
+  place-items: center;
+
+  background: rgba(0, 0, 0, 0.44);
+}
+
+.mypage-password-modal {
+  width: min(620px, 100%);
+
+  border-radius: 8px;
+
+  overflow: hidden;
+
+  background: #fff;
+
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.22);
+}
+
+.mypage-password-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  padding: 22px 24px 18px;
+
+  border-bottom: 1px solid #ededed;
+}
+
+.mypage-password-modal-header h2 {
+  margin: 0;
+
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.mypage-password-modal-header p {
+  margin: 6px 0 0;
+
+  color: #898989;
+
+  font-size: 10px;
+}
+
+.mypage-password-modal-header button {
+  border: 0;
+
+  background: transparent;
+  color: #555;
+
+  font-size: 27px;
+  line-height: 1;
+
+  cursor: pointer;
+}
+
+.mypage-password-modal-body {
+  display: flex;
+  flex-direction: column;
+
+  padding: 22px 24px;
+
+  gap: 16px;
+}
+
+.mypage-password-modal-body label {
+  display: flex;
+  flex-direction: column;
+
+  gap: 7px;
+}
+
+.mypage-password-modal-body label > span {
+  color: #333;
+
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.mypage-password-modal-body input {
+  width: 100%;
+  height: 44px;
+  padding: 0 13px;
+
+  border: 1px solid #d5d5d5;
+  border-radius: 5px;
+
+  outline: none;
+
+  font: inherit;
+  font-size: 12px;
+}
+
+.mypage-password-modal-body input:focus {
+  border-color: #111;
+}
+
+.mypage-password-modal-body small {
+  color: #8b8b8b;
+
+  font-size: 10px;
+}
+
+.mypage-password-modal-body small.is-error,
+.mypage-password-save-message {
+  color: #e53935;
+}
+
+.mypage-password-save-message {
+  margin: 0;
+
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.mypage-password-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+
+  padding: 16px 24px 22px;
+
+  border-top: 1px solid #ededed;
+
+  gap: 8px;
+}
+
+.mypage-password-modal-actions button {
+  min-width: 94px;
+  height: 40px;
+
+  border-radius: 5px;
+
+  font-size: 11px;
+  font-weight: 800;
+
+  cursor: pointer;
+}
+
+.mypage-password-modal-actions .is-cancel {
+  border: 1px solid #cacaca;
+
+  background: #fff;
+  color: #333;
+}
+
+.mypage-password-modal-actions .is-save {
+  border: 1px solid #111;
+
+  background: #111;
+  color: #fff;
+}
+
+@media (max-width: 480px) {
+  .mypage-postcode-dialog {
+    width: calc(100% - 20px);
+    height: calc(100vh - 20px);
+  }
+
+  .mypage-password-modal-backdrop {
+    padding: 10px;
+  }
+}
+
+.mypage-save-toast {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 1500;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  min-width: 180px;
+  min-height: 52px;
+  padding: 0 24px;
+
+  border-radius: 6px;
+
+  background: #111;
+  color: #fff;
+
+  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.2);
+
+  font-size: 12px;
+  font-weight: 700;
+
+  transform: translate(-50%, -50%);
+
+  animation: mypage-save-toast-in 180ms ease;
+}
+
+@keyframes mypage-save-toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% + 8px));
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+@media (max-width: 480px) {
+  .mypage-save-toast {
+    width: calc(100% - 40px);
+    min-width: 0;
+  }
+}
+
+.mypage-delete-address-backdrop {
+  position: fixed;
+  z-index: 1600;
+  inset: 0;
+
+  display: grid;
+
+  padding: 24px;
+
+  place-items: center;
+
+  background: rgba(0, 0, 0, 0.44);
+}
+
+.mypage-delete-address-modal {
+  width: min(430px, 100%);
+  padding: 32px 28px 26px;
+
+  border-radius: 10px;
+
+  background: #fff;
+  color: #111;
+
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.22);
+
+  text-align: center;
+}
+
+.mypage-delete-address-icon {
+  display: grid;
+
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 18px;
+
+  place-items: center;
+
+  border-radius: 50%;
+
+  background: #f3f3f3;
+}
+
+.mypage-delete-address-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.mypage-delete-address-modal h2 {
+  margin: 0;
+
+  font-size: 19px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+}
+
+.mypage-delete-address-modal > p {
+  margin: 10px 0 0;
+
+  color: #7f7f7f;
+
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+.mypage-delete-address-preview {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+
+  margin-top: 20px;
+  padding: 14px 15px;
+
+  border: 1px solid #e5e5e5;
+  border-radius: 6px;
+
+  background: #fafafa;
+
+  gap: 6px;
+
+  text-align: left;
+}
+
+.mypage-delete-address-preview strong {
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.mypage-delete-address-preview span {
+  color: #777;
+
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.mypage-delete-address-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+
+  margin-top: 22px;
+
+  gap: 8px;
+}
+
+.mypage-delete-address-actions button {
+  height: 42px;
+
+  border-radius: 5px;
+
+  font: inherit;
+  font-size: 11px;
+  font-weight: 800;
+
+  cursor: pointer;
+}
+
+.mypage-delete-address-actions .is-cancel {
+  border: 1px solid #c8c8c8;
+
+  background: #fff;
+  color: #333;
+}
+
+.mypage-delete-address-actions .is-delete {
+  border: 1px solid #111;
+
+  background: #111;
+  color: #fff;
+}
+
+.mypage-delete-address-actions button:hover {
+  opacity: 0.88;
+}
+
+@media (max-width: 480px) {
+  .mypage-delete-address-backdrop {
+    padding: 14px;
+  }
+
+  .mypage-delete-address-modal {
+    padding: 28px 20px 22px;
+  }
+}
+
+.mypage-inline-logout-backdrop {
+  position: fixed;
+  z-index: 2200;
+  inset: 0;
+  display: grid;
+  padding: 24px;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.44);
+}
+.mypage-inline-logout-modal {
+  width: min(420px, 100%);
+  padding: 34px 30px 28px;
+  border-radius: 10px;
+  background: #fff;
+  color: #111;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.22);
+  text-align: center;
+}
+.mypage-inline-logout-icon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 18px;
+  place-items: center;
+  border-radius: 50%;
+  background: #f3f3f3;
+}
+.mypage-inline-logout-icon svg {
+  width: 23px;
+  height: 23px;
+}
+.mypage-inline-logout-modal h2 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+}
+.mypage-inline-logout-modal p {
+  margin: 10px 0 0;
+  color: #7f7f7f;
+  font-size: 11px;
+  line-height: 1.7;
+}
+.mypage-inline-logout-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin-top: 26px;
+  gap: 8px;
+}
+.mypage-inline-logout-actions button {
+  height: 42px;
+  border: 1px solid #c8c8c8;
+  border-radius: 5px;
+  background: #fff;
+  color: #333;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.mypage-inline-logout-actions .is-confirm {
+  border-color: #111;
+  background: #111;
+  color: #fff;
+}
