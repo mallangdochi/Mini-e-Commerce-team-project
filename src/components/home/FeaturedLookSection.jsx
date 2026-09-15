@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 
 import modelFull from '@/assets/home/featured-look/arc-model-full.png';
 import partTop from '@/assets/home/featured-look/arc-top.png';
@@ -78,6 +79,13 @@ const SET_SUMMARY = {
   thumbnail: partTop,
 };
 
+const FEATURED_LOOK_DETAIL_PATHS = {
+  top: '/products/10101',
+  bottom: '/products/10305',
+  shoes: '/products/10401',
+  set: '/products/10501?type=set',
+};
+
 const COMPACT_QUERY = '(max-width: 767px)';
 const SWIPE_THRESHOLD = 40; // px
 
@@ -151,6 +159,8 @@ function FeaturedLookSection() {
   const next = MODELS[nextModelIndex];
   const afterNext = MODELS[afterNextModelIndex];
   const activeInfo = PRODUCT_INFO[selectedView];
+  const activeDetailPath =
+    selectedView === 'full' ? FEATURED_LOOK_DETAIL_PATHS.set : FEATURED_LOOK_DETAIL_PATHS[selectedView];
 
   const clearViewTransitionTimer = () => {
     if (viewTransitionTimerRef.current) {
@@ -298,10 +308,10 @@ function FeaturedLookSection() {
 
             <p className="arc-product-description">{activeInfo.description}</p>
 
-            <button type="button" className="arc-detail-button">
+            <Link to={activeDetailPath} className="arc-detail-button">
               <span>상세설명</span>
               <span>↗</span>
-            </button>
+            </Link>
           </article>
         </aside>
 
@@ -422,11 +432,10 @@ function FeaturedLookSection() {
               {PARTS.map((part) => {
                 const HotspotIcon = HOTSPOT_ICONS[part];
                 return (
-                  <button
+                  <Link
                     key={part}
-                    type="button"
+                    to={FEATURED_LOOK_DETAIL_PATHS[part]}
                     className={`arc-hotspot-pill arc-hotspot-pill--${part}`}
-                    onClick={() => changeView(part)}
                     aria-label={`${VIEW_LABELS[part]} 자세히 보기`}
                   >
                     <span className="arc-hotspot-pill-icon">
@@ -434,7 +443,7 @@ function FeaturedLookSection() {
                     </span>
                     <span className="arc-hotspot-pill-label">{HOTSPOT_LABELS[part]}</span>
                     <span className="arc-hotspot-pill-arrow">›</span>
-                  </button>
+                  </Link>
                 );
               })}
             </div>
@@ -450,7 +459,11 @@ function FeaturedLookSection() {
             </button>
           </div>
 
-          <div className="arc-set-summary">
+          <Link
+            to={FEATURED_LOOK_DETAIL_PATHS.set}
+            className="arc-set-summary"
+            aria-label={`${SET_SUMMARY.title} 세트 상품 자세히 보기`}
+          >
             <img
               className="arc-set-summary-thumb"
               src={SET_SUMMARY.thumbnail}
@@ -465,16 +478,14 @@ function FeaturedLookSection() {
 
             <span className="arc-set-summary-divider" aria-hidden="true" />
 
-            {/* TODO: 실제 상품 상세 페이지 연결 */}
-            <button type="button" className="arc-set-summary-arrow" aria-label="자세히 보기">
+            <span className="arc-set-summary-arrow" aria-hidden="true">
               ›
-            </button>
-          </div>
+            </span>
+          </Link>
 
-          {/* TODO: 실제 구매/장바구니 플로우 연결 */}
-          <button type="button" className="arc-buy-button">
-            <span>구매하기</span>
-          </button>
+          <Link to={FEATURED_LOOK_DETAIL_PATHS.set} className="arc-buy-button">
+            <span>상세 설명</span>
+          </Link>
         </div>
       )}
     </section>
