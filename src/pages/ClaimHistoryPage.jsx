@@ -1,7 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
-import { getMe } from '@/api/authApi';
+import {
+  clearAuthSession,
+  getMe,
+  getStoredOrderDetails,
+  getStoredOrders,
+  getStoredUser,
+  resolveUserProfile,
+  setStoredOrderDetails,
+  setStoredOrders,
+} from '@/api/authApi';
 import { getOrder, getOrders } from '@/api/orders';
 import '@/styles/order-history.css';
 import '@/styles/claim-history.css';
@@ -13,7 +22,6 @@ const MY_PAGE_MENU = [
   { label: '내 리뷰', to: '/mypage/reviews' },
   { label: '쿠폰 및 혜택', to: '/mypage/coupons' },
   { label: '회원 정보 수정', to: '/mypage/profile' },
-  { label: '배송지 관리', to: '/mypage/addresses' },
   { label: '문의 내역', to: '/mypage/inquiries' },
   { label: '찜한 상품', to: '/mypage/wishlist' },
 ];
@@ -33,9 +41,15 @@ const PERIOD_OPTIONS = [
 ];
 
 const CLAIM_TYPE_META = {
-  cancel: '취소',
-  exchange: '교환',
-  return: '반품',
+  cancel: {
+    label: '주문 취소',
+  },
+  exchange: {
+    label: '교환',
+  },
+  return: {
+    label: '반품',
+  },
 };
 
 const CLAIM_STATUS_META = {
@@ -92,10 +106,6 @@ function ProfileAvatar() {
   );
 }
 
-function getProfile(response) {
-  return response?.data?.user ?? response?.data ?? response?.user ?? response?.userInfo ?? null;
-}
-
 function normalizeImageUrl(url) {
   if (!url || typeof url !== 'string') {
     return '';
@@ -143,9 +153,9 @@ function isWithinPeriod(dateString, months) {
 
 function getStoredCancelReasons() {
   try {
-    const value = JSON.parse(localStorage.getItem('arc-order-cancel-reasons') ?? '{}');
+    const storedReasons = JSON.parse(localStorage.getItem('arc-order-cancel-reasons') ?? '{}');
 
-    return value && typeof value === 'object' ? value : {};
+    return storedReasons && typeof storedReasons === 'object' ? storedReasons : {};
   } catch {
     return {};
   }
@@ -153,37 +163,26 @@ function getStoredCancelReasons() {
 
 function getStoredClaims() {
   try {
-    const value = JSON.parse(localStorage.getItem('arc-order-claims') ?? '[]');
+    const storedClaims = JSON.parse(localStorage.getItem('arc-order-claims') ?? '[]');
 
-    return Array.isArray(value) ? value : [];
+    return Array.isArray(storedClaims) ? storedClaims : [];
   } catch {
     return [];
   }
 }
 
-function getOptionText(item) {
-  if (!item) {
-    return '';
-  }
-
-  const color =
-    typeof item.color === 'string' ? item.color : (item.color?.label ?? item.color?.value ?? '');
-
-  return [color, item.size].filter(Boolean).join(' / ');
-}
-
 function ClaimHistoryPage() {
   const navigate = useNavigate();
 
-  const [user, setUser] = useState(null);
-  const [orders, setOrders] = useState([]);
-  const [orderDetails, setOrderDetails] = useState({});
-  const [cancelReasons, setCancelReasons] = useState({});
+  const [user, setUser] = useState(() => getStoredUser());
+  const [isLogoutPanelOpen, setIsLogoutPanelOpen] = useState(false);
+  const [orders, setOrders] = useState(() => getStoredOrders());
+  const [orderDetails, setOrderDetails] = useState(() => getStoredOrderDetails());
   const [localClaims, setLocalClaims] = useState([]);
+  const [cancelReasons, setCancelReasons] = useState({});
   const [selectedTab, setSelectedTab] = useState('all');
   const [periodMonths, setPeriodMonths] = useState(3);
   const [selectedClaim, setSelectedClaim] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
@@ -195,39 +194,54 @@ function ClaimHistoryPage() {
     }
 
     const loadData = async () => {
-      setIsLoading(true);
       setErrorMessage('');
 
       try {
-        const [profileResponse, ordersResponse] = await Promise.all([
+        const [profileResult, ordersResult] = await Promise.allSettled([
           getMe(accessToken),
           getOrders({ page: 1, limit: 50 }),
         ]);
 
-        const profile = getProfile(profileResponse);
-        const orderList = ordersResponse?.data?.orders ?? [];
+        if (ordersResult.status === 'rejected') {
+          throw ordersResult.reason;
+        }
+
+        const profile =
+          profileResult.status === 'fulfilled'
+            ? resolveUserProfile(profileResult.value)
+            : getStoredUser();
+        const orderList = ordersResult.value?.data?.orders ?? [];
+        const storedClaims = getStoredClaims();
+        const relevantOrderIds = new Set([
+          ...orderList
+            .filter((order) => order.orderStatus === 'cancelled')
+            .map((order) => order.orderId),
+          ...storedClaims.map((claim) => claim.orderId).filter(Boolean),
+        ]);
+        const relevantOrders = orderList.filter((order) => relevantOrderIds.has(order.orderId));
 
         setUser(profile);
         setOrders(orderList);
+        setStoredOrders(orderList);
         setCancelReasons(getStoredCancelReasons());
-        setLocalClaims(getStoredClaims());
+        setLocalClaims(storedClaims);
 
         const detailResults = await Promise.allSettled(
-          orderList.map((order) => getOrder(order.orderId))
+          relevantOrders.map((order) => getOrder(order.orderId))
         );
+
         const nextDetails = {};
 
         detailResults.forEach((result, index) => {
           if (result.status === 'fulfilled') {
-            nextDetails[orderList[index].orderId] = result.value?.data ?? null;
+            nextDetails[relevantOrders[index].orderId] = result.value?.data ?? null;
           }
         });
 
         setOrderDetails(nextDetails);
+        setStoredOrderDetails(nextDetails);
       } catch (error) {
         setErrorMessage(error.message || '취소/교환/반품 내역을 불러오지 못했습니다.');
-      } finally {
-        setIsLoading(false);
       }
     };
 
@@ -291,34 +305,49 @@ function ClaimHistoryPage() {
         requestedAt: claim.requestedAt ?? claim.createdAt ?? new Date().toISOString(),
       }));
 
-    return [...cancelledClaims, ...exchangeReturnClaims].sort(
-      (a, b) => new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime()
-    );
+    return [...cancelledClaims, ...exchangeReturnClaims].sort((a, b) => {
+      return new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime();
+    });
   }, [cancelReasons, localClaims, orderDetails, orders]);
 
   const filteredClaims = useMemo(() => {
     return claims.filter((claim) => {
-      const matchesType = selectedTab === 'all' || claim.type === selectedTab;
-      const matchesPeriod = isWithinPeriod(claim.requestedAt, periodMonths);
+      const tabMatched = selectedTab === 'all' || claim.type === selectedTab;
+      const periodMatched = isWithinPeriod(claim.requestedAt, periodMonths);
 
-      return matchesType && matchesPeriod;
+      return tabMatched && periodMatched;
     });
   }, [claims, periodMonths, selectedTab]);
 
+  const claimCountByType = useMemo(() => {
+    return claims.reduce(
+      (acc, claim) => {
+        acc.all += 1;
+
+        if (claim.type in acc) {
+          acc[claim.type] += 1;
+        }
+
+        return acc;
+      },
+      {
+        all: 0,
+        cancel: 0,
+        exchange: 0,
+        return: 0,
+      }
+    );
+  }, [claims]);
+
   const handleLogout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('userInfo');
-    window.dispatchEvent(new Event('auth-change'));
-    navigate('/login');
+    setIsLogoutPanelOpen(true);
   };
 
-  if (isLoading) {
-    return (
-      <main className="order-history-page">
-        <div className="order-history-loading">취소/교환/반품 내역을 불러오는 중입니다.</div>
-      </main>
-    );
-  }
+  const confirmLogout = () => {
+    clearAuthSession();
+    setIsLogoutPanelOpen(false);
+    navigate('/login');
+  };
 
   return (
     <main className="order-history-page claim-history-page">
@@ -326,6 +355,7 @@ function ClaimHistoryPage() {
         <aside className="order-history-sidebar">
           <div className="order-history-user">
             <ProfileAvatar />
+
             <strong>{userName}님</strong>
             <span>{email}</span>
           </div>
@@ -358,7 +388,7 @@ function ClaimHistoryPage() {
         <section className="order-history-content">
           <header className="order-history-heading">
             <h1>취소 / 교환 / 반품</h1>
-            <p>신청한 취소, 교환, 반품 내역과 처리 상태를 확인하세요.</p>
+            <p>신청한 취소, 교환, 반품 처리 현황을 한눈에 확인하세요.</p>
           </header>
 
           <section className="order-history-summary">
@@ -375,8 +405,8 @@ function ClaimHistoryPage() {
             ))}
           </section>
 
-          <div className="order-history-toolbar">
-            <div className="order-history-tabs">
+          <div className="claim-history-toolbar">
+            <div className="claim-history-tabs">
               {CLAIM_TABS.map((tab) => (
                 <button
                   type="button"
@@ -385,6 +415,7 @@ function ClaimHistoryPage() {
                   onClick={() => setSelectedTab(tab.value)}
                 >
                   {tab.label}
+                  <span>{claimCountByType[tab.value]}</span>
                 </button>
               ))}
             </div>
@@ -409,12 +440,12 @@ function ClaimHistoryPage() {
               <strong>해당 내역이 없습니다.</strong>
               <span>
                 {selectedTab === 'exchange' || selectedTab === 'return'
-                  ? '신청된 교환/반품 내역이 없습니다.'
-                  : '취소/교환/반품 내역이 없습니다.'}
+                  ? '교환/반품 신청 내역이 생기면 이곳에서 확인할 수 있습니다.'
+                  : '취소, 교환, 반품 신청 내역이 없습니다.'}
               </span>
             </div>
           ) : (
-            <div className="order-history-list">
+            <div className="claim-history-list">
               {filteredClaims.map((claim) => {
                 const order = orders.find((item) => item.orderId === claim.orderId);
                 const detail = orderDetails[claim.orderId];
@@ -425,15 +456,21 @@ function ClaimHistoryPage() {
                 const productName =
                   firstItem?.name ?? order?.representativeProduct?.name ?? '상품 정보 없음';
                 const totalItemCount = Number(order?.totalItemCount ?? detail?.items?.length ?? 1);
-                const optionText = getOptionText(firstItem);
-                const amount = Number(order?.finalAmount ?? detail?.finalAmount ?? 0);
+                const optionText = [
+                  typeof firstItem?.color === 'string'
+                    ? firstItem.color.toUpperCase()
+                    : (firstItem?.color?.label ?? firstItem?.color?.value?.toUpperCase()),
+                  firstItem?.size,
+                ]
+                  .filter(Boolean)
+                  .join(' / ');
 
                 return (
-                  <article className="order-history-card claim-order-card" key={claim.claimId}>
-                    <div className="order-history-card-head">
+                  <article className="claim-history-card" key={claim.claimId}>
+                    <div className="claim-history-card-head">
                       <div>
                         <strong>{formatDate(claim.requestedAt)}</strong>
-                        <span className="order-history-head-divider">|</span>
+                        <span>|</span>
                         <span>주문번호 {claim.orderId}</span>
                       </div>
 
@@ -443,13 +480,13 @@ function ClaimHistoryPage() {
                       </button>
                     </div>
 
-                    <div className="claim-order-card-body">
-                      <div className="order-history-product">
-                        <div className="order-history-product-image">
+                    <div className="claim-history-card-body">
+                      <div className="claim-history-product">
+                        <div className="claim-history-product-image">
                           {imageUrl ? <img src={imageUrl} alt={productName} /> : <span>IMAGE</span>}
                         </div>
 
-                        <div className="order-history-product-info">
+                        <div className="claim-history-product-info">
                           <h2>
                             {totalItemCount > 1
                               ? `${productName} 외 ${totalItemCount - 1}개`
@@ -459,27 +496,34 @@ function ClaimHistoryPage() {
                           {optionText && <p>{optionText}</p>}
 
                           <div>
-                            <strong>₩ {amount.toLocaleString()}</strong>
+                            <strong>
+                              ₩{' '}
+                              {Number(
+                                order?.finalAmount ?? detail?.finalAmount ?? 0
+                              ).toLocaleString()}
+                            </strong>
+
                             <span>|</span>
                             <span>수량 {firstItem?.quantity ?? totalItemCount}</span>
                           </div>
                         </div>
                       </div>
 
-                      <div className="claim-order-state">
-                        <span>{CLAIM_TYPE_META[claim.type] ?? claim.type}</span>
+                      <div className="claim-history-type">
+                        <span>{CLAIM_TYPE_META[claim.type]?.label ?? claim.type}</span>
                         <strong>{CLAIM_STATUS_META[claim.status] ?? claim.status}</strong>
                       </div>
 
-                      <div className="claim-order-reason">
+                      <div className="claim-history-reason">
                         <span>신청 사유</span>
                         <strong>{claim.reason}</strong>
                       </div>
 
-                      <div className="claim-order-actions">
+                      <div className="claim-history-actions">
                         <button type="button" onClick={() => setSelectedClaim(claim)}>
                           상세보기
                         </button>
+
                         <Link to="/mypage/orders">주문 내역 보기</Link>
                       </div>
                     </div>
@@ -502,7 +546,9 @@ function ClaimHistoryPage() {
           >
             <div className="claim-detail-header">
               <div>
-                <h2 id="claimDetailTitle">{CLAIM_TYPE_META[selectedClaim.type] ?? '처리'} 상세</h2>
+                <h2 id="claimDetailTitle">
+                  {CLAIM_TYPE_META[selectedClaim.type]?.label ?? '처리'} 상세
+                </h2>
                 <p>주문번호 {selectedClaim.orderId}</p>
               </div>
 
@@ -519,16 +565,19 @@ function ClaimHistoryPage() {
               <dl>
                 <div>
                   <dt>구분</dt>
-                  <dd>{CLAIM_TYPE_META[selectedClaim.type] ?? selectedClaim.type}</dd>
+                  <dd>{CLAIM_TYPE_META[selectedClaim.type]?.label ?? selectedClaim.type}</dd>
                 </div>
+
                 <div>
                   <dt>처리 상태</dt>
                   <dd>{CLAIM_STATUS_META[selectedClaim.status] ?? selectedClaim.status}</dd>
                 </div>
+
                 <div>
                   <dt>신청일</dt>
                   <dd>{formatDate(selectedClaim.requestedAt)}</dd>
                 </div>
+
                 <div>
                   <dt>신청 사유</dt>
                   <dd>{selectedClaim.reason}</dd>
@@ -537,9 +586,50 @@ function ClaimHistoryPage() {
 
               <div className="claim-detail-guide">
                 {selectedClaim.type === 'cancel'
-                  ? '취소가 완료된 주문은 주문 내역에서 다시 확인할 수 있습니다.'
-                  : '교환/반품 처리 상태가 변경되면 이 화면에서 확인할 수 있습니다.'}
+                  ? '취소 완료된 주문은 주문 내역에서 재구매할 수 있습니다.'
+                  : '교환/반품 진행 상태는 신청 정보가 업데이트되면 이곳에 표시됩니다.'}
               </div>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {isLogoutPanelOpen && (
+        <div className="mypage-inline-logout-backdrop" onClick={() => setIsLogoutPanelOpen(false)}>
+          <section
+            className="mypage-inline-logout-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="mypageInlineLogoutTitle"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mypage-inline-logout-icon" aria-hidden="true">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M10 17l5-5-5-5" />
+                <path d="M15 12H3" />
+                <path d="M14 3h4a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3h-4" />
+              </svg>
+            </div>
+            <h2 id="mypageInlineLogoutTitle">로그아웃하시겠습니까?</h2>
+            <p>
+              현재 계정에서 로그아웃됩니다.
+              <br />
+              다시 이용하려면 로그인이 필요합니다.
+            </p>
+            <div className="mypage-inline-logout-actions">
+              <button type="button" onClick={() => setIsLogoutPanelOpen(false)}>
+                취소
+              </button>
+              <button type="button" className="is-confirm" onClick={confirmLogout}>
+                로그아웃
+              </button>
             </div>
           </section>
         </div>

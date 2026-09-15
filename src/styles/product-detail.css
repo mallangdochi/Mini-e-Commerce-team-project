@@ -1403,3 +1403,12 @@
 .product-detail-page .set-component-image .main-image-placeholder {
   min-height: 100%;
 }
+
+.wish-button.is-active {
+  color: #111;
+}
+
+.wish-button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}

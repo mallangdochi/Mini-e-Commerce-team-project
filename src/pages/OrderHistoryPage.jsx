@@ -1,7 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
-import { getMe } from '@/api/authApi';
+import {
+  clearAuthSession,
+  getMe,
+  getStoredOrderDetails,
+  getStoredOrders,
+  getStoredUser,
+  resolveUserProfile,
+  setStoredOrderDetails,
+  setStoredOrders,
+  updateStoredSummary,
+} from '@/api/authApi';
 import { cancelOrder, getOrder, getOrders } from '@/api/orders';
 import { useCartStore } from '@/store/cartStore';
 import '@/styles/order-history.css';
@@ -13,7 +23,6 @@ const MY_PAGE_MENU = [
   { label: '내 리뷰', to: '/mypage/reviews' },
   { label: '쿠폰 및 혜택', to: '/mypage/coupons' },
   { label: '회원 정보 수정', to: '/mypage/profile' },
-  { label: '배송지 관리', to: '/mypage/addresses' },
   { label: '문의 내역', to: '/mypage/inquiries' },
   { label: '찜한 상품', to: '/mypage/wishlist' },
 ];
@@ -111,10 +120,6 @@ function ProfileAvatar() {
       </svg>
     </div>
   );
-}
-
-function getProfile(response) {
-  return response?.data?.user ?? response?.data ?? response?.user ?? response?.userInfo ?? null;
 }
 
 function normalizeImageUrl(url) {
@@ -235,12 +240,12 @@ function OrderHistoryPage() {
   const navigate = useNavigate();
   const addCartItem = useCartStore((state) => state.addItem);
 
-  const [user, setUser] = useState(null);
-  const [orders, setOrders] = useState([]);
-  const [orderDetails, setOrderDetails] = useState({});
+  const [user, setUser] = useState(() => getStoredUser());
+  const [isLogoutPanelOpen, setIsLogoutPanelOpen] = useState(false);
+  const [orders, setOrders] = useState(() => getStoredOrders());
+  const [orderDetails, setOrderDetails] = useState(() => getStoredOrderDetails());
   const [selectedTab, setSelectedTab] = useState('all');
   const [periodMonths, setPeriodMonths] = useState(3);
-  const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [shippingOrderId, setShippingOrderId] = useState(null);
@@ -260,20 +265,27 @@ function OrderHistoryPage() {
     }
 
     const loadData = async () => {
-      setIsLoading(true);
       setErrorMessage('');
 
       try {
-        const [profileResponse, ordersResponse] = await Promise.all([
+        const [profileResult, ordersResult] = await Promise.allSettled([
           getMe(accessToken),
           getOrders({ page: 1, limit: 50 }),
         ]);
 
-        const profile = getProfile(profileResponse);
-        const orderList = ordersResponse?.data?.orders ?? [];
+        if (ordersResult.status === 'rejected') {
+          throw ordersResult.reason;
+        }
+
+        const profile =
+          profileResult.status === 'fulfilled'
+            ? resolveUserProfile(profileResult.value)
+            : getStoredUser();
+        const orderList = ordersResult.value?.data?.orders ?? [];
 
         setUser(profile);
         setOrders(orderList);
+        setStoredOrders(orderList);
 
         const detailResults = await Promise.allSettled(
           orderList.map((order) => getOrder(order.orderId))
@@ -288,10 +300,9 @@ function OrderHistoryPage() {
         });
 
         setOrderDetails(nextDetails);
+        setStoredOrderDetails(nextDetails);
       } catch (error) {
         setErrorMessage(error.message || '주문 내역을 불러오지 못했습니다.');
-      } finally {
-        setIsLoading(false);
       }
     };
 
@@ -346,9 +357,12 @@ function OrderHistoryPage() {
   const selectedOrderDetail = selectedOrderId ? orderDetails[selectedOrderId] : null;
 
   const handleLogout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('userInfo');
-    window.dispatchEvent(new Event('auth-change'));
+    setIsLogoutPanelOpen(true);
+  };
+
+  const confirmLogout = () => {
+    clearAuthSession();
+    setIsLogoutPanelOpen(false);
     navigate('/login');
   };
 
@@ -415,6 +429,36 @@ function OrderHistoryPage() {
             : order
         )
       );
+
+      const cancelledDetail = orderDetails[cancelOrderId];
+      const restoredPoints = Number(cancelledDetail?.pointsUsed ?? 0);
+      const restoredCoupon = Boolean(cancelledDetail?.coupon?.couponId);
+      const currentPoints = Number(user?.points ?? user?.pointBalance ?? user?.mileage ?? 0);
+      const currentCouponCount = Number(
+        user?.availableCouponCount ??
+          user?.couponCount ??
+          getStoredUser()?.availableCouponCount ??
+          0
+      );
+      const nextSummary = {};
+
+      if (restoredPoints > 0) {
+        nextSummary.points = currentPoints + restoredPoints;
+        nextSummary.pointBalance = currentPoints + restoredPoints;
+      }
+
+      if (restoredCoupon) {
+        nextSummary.availableCouponCount = currentCouponCount + 1;
+        nextSummary.couponCount = currentCouponCount + 1;
+      }
+
+      if (Object.keys(nextSummary).length > 0) {
+        updateStoredSummary(nextSummary);
+        setUser((prev) => ({
+          ...(prev ?? {}),
+          ...nextSummary,
+        }));
+      }
 
       setOrderDetails((prev) => ({
         ...prev,
@@ -511,14 +555,6 @@ function OrderHistoryPage() {
   const cancelTargetOrder = cancelOrderId
     ? orders.find((order) => order.orderId === cancelOrderId)
     : null;
-
-  if (isLoading) {
-    return (
-      <main className="order-history-page">
-        <div className="order-history-loading">주문 내역을 불러오는 중입니다.</div>
-      </main>
-    );
-  }
 
   return (
     <main className="order-history-page">
@@ -1016,6 +1052,47 @@ function OrderHistoryPage() {
                   </dd>
                 </div>
               </dl>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {isLogoutPanelOpen && (
+        <div className="mypage-inline-logout-backdrop" onClick={() => setIsLogoutPanelOpen(false)}>
+          <section
+            className="mypage-inline-logout-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="mypageInlineLogoutTitle"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mypage-inline-logout-icon" aria-hidden="true">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M10 17l5-5-5-5" />
+                <path d="M15 12H3" />
+                <path d="M14 3h4a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3h-4" />
+              </svg>
+            </div>
+            <h2 id="mypageInlineLogoutTitle">로그아웃하시겠습니까?</h2>
+            <p>
+              현재 계정에서 로그아웃됩니다.
+              <br />
+              다시 이용하려면 로그인이 필요합니다.
+            </p>
+            <div className="mypage-inline-logout-actions">
+              <button type="button" onClick={() => setIsLogoutPanelOpen(false)}>
+                취소
+              </button>
+              <button type="button" className="is-confirm" onClick={confirmLogout}>
+                로그아웃
+              </button>
             </div>
           </section>
         </div>
