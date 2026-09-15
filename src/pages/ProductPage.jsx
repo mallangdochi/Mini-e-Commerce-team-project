@@ -260,7 +260,8 @@ function getAppliedFiltersFromParams(searchParams) {
   const minPriceParam = Number(rawMinPrice);
   const maxPriceParam = Number(rawMaxPrice);
   const hasMinPrice = Number.isFinite(minPriceParam) && minPriceParam > PRICE_MIN;
-  const hasMaxPrice = rawMaxPrice !== null && Number.isFinite(maxPriceParam) && maxPriceParam < PRICE_MAX;
+  const hasMaxPrice =
+    rawMaxPrice !== null && Number.isFinite(maxPriceParam) && maxPriceParam < PRICE_MAX;
 
   return {
     color: searchParams.get('color') || null,
@@ -856,7 +857,9 @@ function ProductPage() {
         }
 
         const nextWishlist = getWishlistItems(response).reduce((acc, item) => {
-          const productId = Number(item?.productId ?? item?.product?.productId ?? item?.product?.id);
+          const productId = Number(
+            item?.productId ?? item?.product?.productId ?? item?.product?.id
+          );
 
           if (Number.isFinite(productId)) {
             acc[productId] = getWishlistId(item, productId);
