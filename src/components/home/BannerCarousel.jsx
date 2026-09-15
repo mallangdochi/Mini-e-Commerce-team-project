@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 
 import '@/styles/banner-carousel.css';
@@ -44,7 +44,7 @@ function ChevronRight({ size = 18, className }) {
 const SLIDES = [
   {
     id: 'wind-shell',
-    to: '/products/wind-shell',
+    to: '/products/10104',
     video: '/main_video_1.mp4',
     topLeft: 'THE LIGHT WAY OUT',
     topRight: 'LAYER FOR THE WIND. PACK WHAT YOU NEED.',
@@ -54,7 +54,7 @@ const SLIDES = [
   },
   {
     id: 'product-2',
-    to: '/products/product-2',
+    to: '/products/10101',
     video: '/main_video_2.mp4',
     topLeft: 'SLIDE TWO',
     topRight: 'SAMPLE CAPTION',
@@ -64,7 +64,7 @@ const SLIDES = [
   },
   {
     id: 'product-3',
-    to: '/products/product-3',
+    to: '/products/10102',
     video: '/main_video_3.mp4',
     topLeft: 'SLIDE THREE',
     topRight: 'SAMPLE CAPTION',
@@ -103,40 +103,61 @@ export default function BannerCarousel({ slides, isLoading = false, error = null
   const [paused, setPaused] = useState(false);
   const [durations, setDurations] = useState({});
   const touchStartX = useRef(0);
-  const videoRefs = useRef([]);
+  const videoRefs = useRef({});
 
   const step = (delta) => setCurrent((c) => (c + delta + total) % total);
+
+  // from과 현재 슬라이드가 같을 때만 넘김 — onEnded와 안전망 타이머가 동시에 걸려도 중복 전환 방지
+  const advanceFrom = useCallback(
+    (from) => {
+      setCurrent((c) => (c === from ? (c + 1) % total : c));
+    },
+    [total]
+  );
 
   // reduced-motion일 땐 영상이 끝나도 자동 전환하지 않음
   const handleVideoEnded = () => {
     if (reduced) return;
-    step(1);
+    advanceFrom(current);
   };
 
-  const handleLoadedMetadata = (i) => (e) => {
+  const handleLoadedMetadata = (slideId) => (e) => {
     const { duration } = e.currentTarget;
     if (Number.isFinite(duration)) {
-      setDurations((d) => ({ ...d, [i]: duration * 1000 }));
+      setDurations((d) =>
+        d[slideId] === duration * 1000 ? d : { ...d, [slideId]: duration * 1000 }
+      );
     }
   };
 
+  const currentSlideId = data[current]?.id;
+  const currentDuration = durations[currentSlideId] ?? DEFAULT_SLIDE_DURATION;
+
+  // autoplay가 막혀 ended가 안 오는 경우를 대비한 안전망
+  useEffect(() => {
+    if (reduced || paused) return;
+    const from = current;
+    const timer = setTimeout(() => advanceFrom(from), currentDuration + 800);
+    return () => clearTimeout(timer);
+  }, [current, paused, reduced, currentDuration, advanceFrom]);
+
   // 슬라이드가 바뀌면 그 영상만 처음으로 되감기
   useEffect(() => {
-    const video = videoRefs.current[current];
+    const video = videoRefs.current[currentSlideId];
     if (video) video.currentTime = 0;
-  }, [current]);
+  }, [currentSlideId]);
 
   // 활성 슬라이드이면서 재생 중일 때만 play, 그 외에는 pause
   useEffect(() => {
-    videoRefs.current.forEach((video, i) => {
+    Object.entries(videoRefs.current).forEach(([slideId, video]) => {
       if (!video) return;
-      if (i === current && !paused) {
+      if (slideId === currentSlideId && !paused) {
         video.play().catch(() => {});
       } else {
         video.pause();
       }
     });
-  }, [current, paused]);
+  }, [currentSlideId, paused]);
 
   const handleTouchStart = (e) => {
     touchStartX.current = e.changedTouches[0].screenX;
@@ -182,7 +203,7 @@ export default function BannerCarousel({ slides, isLoading = false, error = null
           >
             <video
               ref={(el) => {
-                videoRefs.current[i] = el;
+                videoRefs.current[slide.id] = el;
               }}
               className="banner-carousel__video"
               muted
@@ -190,7 +211,7 @@ export default function BannerCarousel({ slides, isLoading = false, error = null
               playsInline
               preload={i === current ? 'auto' : 'metadata'}
               onEnded={i === current ? handleVideoEnded : undefined}
-              onLoadedMetadata={handleLoadedMetadata(i)}
+              onLoadedMetadata={handleLoadedMetadata(slide.id)}
             >
               <source src={slide.video} type="video/mp4" />
             </video>
@@ -273,7 +294,7 @@ export default function BannerCarousel({ slides, isLoading = false, error = null
                     strokeDasharray={DOT_CIRC}
                     strokeDashoffset={DOT_CIRC}
                     style={{
-                      animation: `bannerDotFill ${durations[current] ?? DEFAULT_SLIDE_DURATION}ms linear forwards`,
+                      animation: `bannerDotFill ${currentDuration}ms linear forwards`,
                       animationPlayState: paused ? 'paused' : 'running',
                     }}
                   />

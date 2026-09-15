@@ -220,6 +220,7 @@
   color: #ffffff;
   font-size: 15px;
   font-weight: 700;
+  text-decoration: none;
   cursor: pointer;
   transition:
     transform 220ms ease,
@@ -807,8 +808,6 @@
     position: relative;
     width: 100%;
     aspect-ratio: 1637 / 2048;
-    min-height: 60vh;
-    max-height: 88vh;
     overflow: hidden;
     border-radius: 10px;
     background: #e9e9e9;
@@ -818,7 +817,8 @@
     display: block;
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
+    object-position: center top;
   }
 
   .arc-hotspot-pill {
@@ -831,6 +831,7 @@
     border-radius: 9999px;
     background: rgba(255, 255, 255, 0.92);
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+    text-decoration: none;
     cursor: pointer;
   }
 
@@ -913,6 +914,8 @@
     padding: 14px 18px;
     border-radius: 10px;
     background: var(--arc-panel);
+    color: inherit;
+    text-decoration: none;
   }
 
   .arc-set-summary-thumb {
@@ -975,6 +978,7 @@
     color: #ffffff;
     font-size: 16px;
     font-weight: 400;
+    text-decoration: none;
     cursor: pointer;
   }
 }

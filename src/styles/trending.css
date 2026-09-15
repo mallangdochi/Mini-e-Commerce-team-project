@@ -54,12 +54,13 @@
 .trending-card__shade {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(0, 0, 0, 0.16) 0%,
-    rgba(0, 0, 0, 0.02) 38%,
-    rgba(0, 0, 0, 0.12) 100%
-  );
+  background: rgba(0, 0, 0, 0.28);
+  pointer-events: none;
+  transition: opacity 350ms ease;
+}
+
+.trending-card:hover .trending-card__shade {
+  opacity: 0;
 }
 
 .trending-card__text {
