@@ -192,8 +192,6 @@ const EMPTY_APPLIED_FILTERS = {
   maxPrice: null,
 };
 
-const SORT_STORAGE_KEY = 'arc-product-sort';
-
 const LENGTH_LABELS = {
   long: '롱',
   short: '숏',
@@ -248,10 +246,10 @@ function getWishlistId(item, productId) {
   return item?.id ?? item?.wishlistId ?? item?.wishId ?? productId;
 }
 
-function getStoredSortType() {
-  const stored = localStorage.getItem(SORT_STORAGE_KEY);
+function getSortTypeFromParams(searchParams) {
+  const sortParam = searchParams.get('sort');
 
-  return SORT_OPTIONS.some((option) => option.value === stored) ? stored : 'popular';
+  return SORT_OPTIONS.some((option) => option.value === sortParam) ? sortParam : 'popular';
 }
 
 function getAppliedFiltersFromParams(searchParams) {
@@ -260,7 +258,8 @@ function getAppliedFiltersFromParams(searchParams) {
   const minPriceParam = Number(rawMinPrice);
   const maxPriceParam = Number(rawMaxPrice);
   const hasMinPrice = Number.isFinite(minPriceParam) && minPriceParam > PRICE_MIN;
-  const hasMaxPrice = rawMaxPrice !== null && Number.isFinite(maxPriceParam) && maxPriceParam < PRICE_MAX;
+  const hasMaxPrice =
+    rawMaxPrice !== null && Number.isFinite(maxPriceParam) && maxPriceParam < PRICE_MAX;
 
   return {
     color: searchParams.get('color') || null,
@@ -407,13 +406,16 @@ function ProductPage() {
   const categoryParam = (
     searchParams.get('categoryId') ??
     searchParams.get('category') ??
-    'top'
+    'all'
   ).toLowerCase();
 
   const gender = searchParams.get('gender') ?? 'women';
   const searchQuery = searchParams.get('q')?.trim() ?? '';
+  const sortType = getSortTypeFromParams(searchParams);
+  const searchParamsKey = searchParams.toString();
+  const requestGender = gender;
 
-  const activeCategory = CATEGORY_CONFIG[categoryParam] ?? CATEGORY_CONFIG.top;
+  const activeCategory = CATEGORY_CONFIG[categoryParam] ?? CATEGORY_CONFIG.all;
   const isAccessorySearchScope = activeCategory.categoryId === 'accessories';
   const searchScopeLabel = isAccessorySearchScope
     ? '악세사리'
@@ -458,6 +460,9 @@ function ProductPage() {
   const requestIdRef = useRef(0);
   const requestInFlightRef = useRef(false);
   const filterRequestIdRef = useRef(0);
+  const sortRef = useRef(null);
+  const searchParamsRef = useRef(searchParams);
+  const searchDebounceTimerRef = useRef(null);
 
   /* 현재 보여주는 상품 */
   const [productItems, setProductItems] = useState([]);
@@ -469,12 +474,12 @@ function ProductPage() {
 
   /* 정렬 메뉴 */
   const [isSortOpen, setIsSortOpen] = useState(false);
-  const [sortType, setSortType] = useState(getStoredSortType);
 
   const [excludeSoldOut, setExcludeSoldOut] = useState(true);
   const [wishlistByProductId, setWishlistByProductId] = useState({});
   const [wishlistLoadingIds, setWishlistLoadingIds] = useState(() => new Set());
   const [searchInput, setSearchInput] = useState(searchQuery);
+  const [isSearchComposing, setIsSearchComposing] = useState(false);
 
   const resetFilters = () => {
     setSelectedColor(null);
@@ -507,6 +512,114 @@ function ProductPage() {
     resetFilters();
     setSearchParams(syncFilterParams(searchParams, EMPTY_APPLIED_FILTERS));
   };
+
+  const cancelPendingSearchSync = () => {
+    if (searchDebounceTimerRef.current) {
+      window.clearTimeout(searchDebounceTimerRef.current);
+      searchDebounceTimerRef.current = null;
+    }
+  };
+
+  const syncSearchQueryToUrl = (value) => {
+    cancelPendingSearchSync();
+
+    const nextQuery = value.trim();
+
+    if (nextQuery === searchQuery) {
+      return;
+    }
+
+    const nextParams = new URLSearchParams(searchParamsRef.current);
+
+    if (nextQuery) {
+      nextParams.set('q', nextQuery);
+
+      if (isAccessorySearchScope) {
+        nextParams.set('category', 'accessories');
+        nextParams.delete('categoryId');
+        nextParams.delete('gender');
+      } else {
+        nextParams.set('gender', gender);
+        nextParams.set('category', 'ALL');
+        nextParams.delete('categoryId');
+      }
+    } else {
+      nextParams.delete('q');
+    }
+
+    setSearchParams(nextParams);
+  };
+
+  const scheduleSearchSync = (value) => {
+    cancelPendingSearchSync();
+
+    searchDebounceTimerRef.current = window.setTimeout(() => {
+      searchDebounceTimerRef.current = null;
+      syncSearchQueryToUrl(value);
+    }, 1000);
+  };
+
+  const getCategoryLink = (item) => {
+    const nextParams = new URLSearchParams(searchParams);
+    const [, queryString = ''] = item.to.split('?');
+    const itemParams = new URLSearchParams(queryString);
+
+    nextParams.delete('q');
+    nextParams.delete('category');
+    nextParams.delete('categoryId');
+    nextParams.set('gender', gender);
+
+    itemParams.forEach((value, key) => {
+      nextParams.set(key, value);
+    });
+
+    return `/products?${nextParams.toString()}`;
+  };
+
+  const handleCategoryClick = () => {
+    cancelPendingSearchSync();
+    setIsSearchComposing(false);
+    setSearchInput('');
+  };
+
+  const selectSortType = (nextSortType) => {
+    const nextParams = new URLSearchParams(searchParams);
+
+    if (nextSortType === 'popular') {
+      nextParams.delete('sort');
+    } else {
+      nextParams.set('sort', nextSortType);
+    }
+
+    setSearchParams(nextParams);
+    setIsSortOpen(false);
+  };
+
+  useEffect(() => {
+    if (!isSortOpen) return undefined;
+
+    const handlePointerDown = (event) => {
+      if (!sortRef.current?.contains(event.target)) {
+        setIsSortOpen(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+    };
+  }, [isSortOpen]);
+
+  useEffect(() => {
+    searchParamsRef.current = searchParams;
+  }, [searchParams]);
+
+  useEffect(() => {
+    return () => {
+      cancelPendingSearchSync();
+    };
+  }, []);
 
   const removeAppliedFilter = (type) => {
     const nextFilters = { ...appliedFilters };
@@ -554,7 +667,7 @@ function ProductPage() {
     filterRequestIdRef.current = requestId;
 
     const fetchFilterOptions = async () => {
-      if (activeCategory.categoryId === 'sets' && gender === 'men') {
+      if (activeCategory.categoryId === 'sets' && requestGender === 'men') {
         setFilterOptions({
           colors: [],
           sizes: [],
@@ -575,7 +688,7 @@ function ProductPage() {
 
       try {
         const params = {
-          gender,
+          gender: requestGender,
         };
 
         if (activeCategory.categoryId) {
@@ -641,16 +754,18 @@ function ProductPage() {
     };
 
     fetchFilterOptions();
-  }, [activeCategory.categoryId, activeCategory.subCategoryId, gender, searchParams]);
+  }, [activeCategory.categoryId, activeCategory.subCategoryId, requestGender, searchParams]);
 
   const fetchProductsPage = useCallback(
     async (targetPage, replace = false) => {
       const requestId = requestIdRef.current + 1;
+      const currentSearchParams = new URLSearchParams(searchParamsKey);
+      const currentGender = currentSearchParams.get('gender') ?? 'women';
 
       requestIdRef.current = requestId;
       requestInFlightRef.current = true;
 
-      if (activeCategory.categoryId === 'sets' && gender === 'men') {
+      if (activeCategory.categoryId === 'sets' && currentGender === 'men') {
         if (replace) {
           setPage(1);
         }
@@ -669,7 +784,7 @@ function ProductPage() {
         setLoadError('');
 
         const params = {
-          gender,
+          gender: currentGender,
           sort: sortType,
           page: targetPage,
           limit: PRODUCTS_PER_LOAD,
@@ -702,18 +817,18 @@ function ProductPage() {
         let response;
 
         if (searchQuery) {
-          const searchParams = { ...params };
+          const searchRequestParams = { ...params };
 
-          delete searchParams.subCategoryId;
+          delete searchRequestParams.subCategoryId;
 
           if (isAccessorySearchScope) {
-            delete searchParams.gender;
+            delete searchRequestParams.gender;
           }
 
           response = await searchProducts({
-            ...searchParams,
+            ...searchRequestParams,
             q: searchQuery,
-            ...(isAccessorySearchScope ? { categoryId: 'accessories' } : { gender }),
+            ...(isAccessorySearchScope ? { categoryId: 'accessories' } : { gender: currentGender }),
           });
         } else if (activeCategory.categoryId === 'sets') {
           response = await getSets(params);
@@ -777,9 +892,9 @@ function ProductPage() {
       activeCategory.categoryId,
       activeCategory.subCategoryId,
       appliedFilters,
-      gender,
       isAccessorySearchScope,
       searchQuery,
+      searchParamsKey,
       sortType,
     ]
   );
@@ -805,40 +920,6 @@ function ProductPage() {
   }, [searchQuery]);
 
   useEffect(() => {
-    const nextQuery = searchInput.trim();
-
-    if (nextQuery === searchQuery) {
-      return undefined;
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      const nextParams = new URLSearchParams(searchParams);
-
-      if (nextQuery) {
-        nextParams.set('q', nextQuery);
-
-        if (isAccessorySearchScope) {
-          nextParams.set('category', 'accessories');
-          nextParams.delete('categoryId');
-          nextParams.delete('gender');
-        } else {
-          nextParams.set('gender', gender);
-          nextParams.set('category', 'ALL');
-          nextParams.delete('categoryId');
-        }
-      } else {
-        nextParams.delete('q');
-      }
-
-      setSearchParams(nextParams);
-    }, 300);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, [gender, isAccessorySearchScope, searchInput, searchParams, searchQuery, setSearchParams]);
-
-  useEffect(() => {
     const accessToken = localStorage.getItem('accessToken');
 
     if (!accessToken) {
@@ -856,7 +937,9 @@ function ProductPage() {
         }
 
         const nextWishlist = getWishlistItems(response).reduce((acc, item) => {
-          const productId = Number(item?.productId ?? item?.product?.productId ?? item?.product?.id);
+          const productId = Number(
+            item?.productId ?? item?.product?.productId ?? item?.product?.id
+          );
 
           if (Number.isFinite(productId)) {
             acc[productId] = getWishlistId(item, productId);
@@ -941,6 +1024,7 @@ function ProductPage() {
 
   const handleSearchClear = () => {
     setSearchInput('');
+    syncSearchQueryToUrl('');
   };
 
   /* ================================
@@ -1117,7 +1201,8 @@ function ProductPage() {
               return (
                 <Link
                   key={item.label}
-                  to={`${item.to}&gender=${gender}`}
+                  to={getCategoryLink(item)}
+                  onClick={handleCategoryClick}
                   className={`product-sidebar-link${active ? ' is-active' : ''}`}
                   aria-current={active ? 'page' : undefined}
                 >
@@ -1159,7 +1244,7 @@ function ProductPage() {
 
           <div className="product-filter-bar">
             <div className="product-filter-bar-left">
-              <div className="product-sort">
+              <div className="product-sort" ref={sortRef}>
                 <button
                   type="button"
                   className={`filter-btn product-sort-btn ${isSortOpen ? 'is-open' : ''}`}
@@ -1181,9 +1266,7 @@ function ProductPage() {
                           sortType === option.value ? 'is-active' : ''
                         }`}
                         onClick={() => {
-                          setSortType(option.value);
-                          localStorage.setItem(SORT_STORAGE_KEY, option.value);
-                          setIsSortOpen(false);
+                          selectSortType(option.value);
                         }}
                       >
                         {option.label}
@@ -1213,7 +1296,23 @@ function ProductPage() {
                 type="search"
                 name="q"
                 value={searchInput}
-                onChange={(event) => setSearchInput(event.target.value)}
+                onChange={(event) => {
+                  const { value } = event.target;
+
+                  setSearchInput(value);
+
+                  if (!isSearchComposing) {
+                    scheduleSearchSync(value);
+                  }
+                }}
+                onCompositionStart={() => setIsSearchComposing(true)}
+                onCompositionEnd={(event) => {
+                  const { value } = event.currentTarget;
+
+                  setIsSearchComposing(false);
+                  setSearchInput(value);
+                  syncSearchQueryToUrl(value);
+                }}
                 placeholder={`${searchScopeLabel} 검색`}
                 aria-label={`${searchScopeLabel} 상품 검색`}
               />
@@ -1530,7 +1629,8 @@ function ProductPage() {
               return (
                 <Link
                   key={`responsive-${item.label}`}
-                  to={`${item.to}&gender=${gender}`}
+                  to={getCategoryLink(item)}
+                  onClick={handleCategoryClick}
                   className={`responsive-category-link${active ? ' is-active' : ''}`}
                   aria-current={active ? 'page' : undefined}
                 >
