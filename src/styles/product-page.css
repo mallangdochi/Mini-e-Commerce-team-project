@@ -105,7 +105,10 @@
 .product-page .product-sidebar-link {
   position: relative;
 
-  padding: 17px 0;
+  display: inline-flex;
+
+  margin-left: -14px;
+  padding: 17px 14px;
 
   color: #b5bcc7;
 
@@ -145,18 +148,26 @@
 
 /* 모든 메뉴 hover */
 .product-page .product-sidebar-link:hover {
-  color: #0b0c0e;
+  color: #111;
 
   transform: translateX(6px);
+}
+
+.product-page .product-sidebar-link.is-active {
+  color: #111;
+}
+
+.product-page .product-sidebar-link.is-active:hover {
+  color: #111;
 }
 
 .product-page .product-sidebar-link:hover::after {
   transform: scaleX(1);
 }
 
-/* is-active가 붙어 있어도 기본 상태는 회색 */
-.product-page .product-sidebar-link.is-active {
-  color: #b5bcc7;
+.product-page .product-sidebar-link.is-active::after,
+.product-page .product-sidebar-link.is-active:hover::after {
+  transform: scaleX(0);
 }
 
 /* ===== breadcrumb ===== */
@@ -267,6 +278,46 @@
   color: #90959d;
 
   font-size: 14px;
+}
+
+.product-page .product-search-box input {
+  min-width: 0;
+  flex: 1;
+  padding: 0;
+
+  border: 0;
+  outline: 0;
+  background: transparent;
+
+  color: #111;
+
+  font: inherit;
+}
+
+.product-page .product-search-box input::placeholder {
+  color: #90959d;
+}
+
+.product-page .product-search-box button {
+  display: grid;
+
+  width: 18px;
+  height: 18px;
+  padding: 0;
+
+  place-items: center;
+
+  border: 0;
+  background: transparent;
+
+  color: #90959d;
+
+  cursor: pointer;
+}
+
+.product-page .product-search-box button svg {
+  width: 13px;
+  height: 13px;
 }
 
 /* ===== 활성 필터 태그 + 품절 토글 ===== */
@@ -425,6 +476,9 @@
 .product-page .product-image-link {
   display: block;
 
+  width: 100%;
+  height: 100%;
+
   color: inherit;
 
   text-decoration: none;
@@ -455,6 +509,74 @@
 
 .product-page .product-card:hover .product-image img {
   transform: scale(1.025);
+}
+
+.product-page .product-wishlist-button {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 2;
+
+  display: grid;
+
+  width: 40px;
+  height: 40px;
+  padding: 0;
+
+  place-items: center;
+
+  border: 0;
+  background: transparent;
+
+  color: #fff;
+
+  cursor: pointer;
+
+  transition:
+    background-color 0.2s ease,
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+.product-page .product-wishlist-button:hover {
+  transform: translateY(-1px);
+}
+
+.product-page .product-wishlist-button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.product-page .product-wishlist-button svg {
+  display: block;
+
+  width: 26px;
+  height: 26px;
+
+  overflow: visible;
+
+  transition:
+    color 0.2s ease,
+    filter 0.2s ease;
+}
+
+.product-page .product-wishlist-icon-shadow {
+  fill: none;
+  stroke: rgba(0, 0, 0, 0.22);
+  stroke-width: 18;
+  filter: blur(20px);
+}
+
+.product-page .product-wishlist-icon-shape {
+  fill: currentColor;
+}
+
+.product-page .product-wishlist-button.is-active {
+  color: #ef4444;
+}
+
+.product-page .product-wishlist-button.is-active .product-wishlist-icon-shadow {
+  stroke: rgba(239, 68, 68, 0.34);
 }
 
 .product-page .product-image-placeholder {
@@ -558,6 +680,8 @@
 }
 
 .product-page .responsive-category-link {
+  display: inline-flex;
+
   color: #aeb5c0;
 
   font-size: 14px;
@@ -647,6 +771,41 @@
   color: #90959d;
 }
 
+.product-page .product-empty-state {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.product-page .product-empty-state strong {
+  color: #111;
+
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.product-page .product-empty-state span {
+  color: #90959d;
+
+  font-size: 13px;
+}
+
+.product-page .product-empty-state button {
+  margin-top: 8px;
+  padding: 9px 16px;
+
+  border: 1px solid #111;
+  background: #fff;
+
+  color: #111;
+
+  font: inherit;
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
 /* =================================
    오른쪽 전체 필터 패널
 ================================= */
@@ -717,10 +876,32 @@
 }
 
 .product-page .filter-drawer-header h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
   margin: 0;
 
   font-size: 21px;
   font-weight: 600;
+}
+
+.product-page .filter-drawer-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+
+  border-radius: 9999px;
+  background: #111;
+
+  color: #fff;
+
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .product-page .filter-close-btn {

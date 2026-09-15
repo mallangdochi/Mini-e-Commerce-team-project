@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
-import { getProductFilters, getProducts, getSets } from '@/api/products';
+import { getProductFilters, getProducts, getSets, searchProducts } from '@/api/products';
+import { addWishlist, getWishlist, removeWishlist } from '@/api/wishlist';
 import '@/styles/product-page.css';
 
 const CATEGORY_NAV = [
@@ -191,9 +192,18 @@ const EMPTY_APPLIED_FILTERS = {
   maxPrice: null,
 };
 
+const SORT_STORAGE_KEY = 'arc-product-sort';
+
 const LENGTH_LABELS = {
   long: '롱',
   short: '숏',
+};
+
+const WISHLIST_HEART_PATHS = {
+  filled:
+    'M240,102c0,70-103.79,126.66-108.21,129a8,8,0,0,1-7.58,0C119.79,228.66,16,172,16,102A62.07,62.07,0,0,1,78,40c20.65,0,38.73,8.88,50,23.89C139.27,48.88,157.35,40,178,40A62.07,62.07,0,0,1,240,102Z',
+  outline:
+    'M178,40c-20.65,0-38.73,8.88-50,23.89C116.73,48.88,98.65,40,78,40a62.07,62.07,0,0,0-62,62c0,70,103.79,126.66,108.21,129a8,8,0,0,0,7.58,0C136.21,228.66,240,172,240,102A62.07,62.07,0,0,0,178,40ZM128,214.8C109.74,204.16,32,155.69,32,102A46.06,46.06,0,0,1,78,56c19.45,0,35.78,10.36,42.6,27a8,8,0,0,0,14.8,0c6.82-16.67,23.15-27,42.6-27a46.06,46.06,0,0,1,46,46C224,155.61,146.24,204.15,128,214.8Z',
 };
 
 function normalizeColorOption(color) {
@@ -214,6 +224,94 @@ function toggleSingleValue(currentValue, nextValue) {
   }
 
   return nextValue;
+}
+
+function getWishlistItems(response) {
+  const data = response?.data ?? response;
+
+  if (Array.isArray(data)) {
+    return data;
+  }
+
+  if (Array.isArray(data?.items)) {
+    return data.items;
+  }
+
+  if (Array.isArray(data?.wishlist)) {
+    return data.wishlist;
+  }
+
+  return [];
+}
+
+function getWishlistId(item, productId) {
+  return item?.id ?? item?.wishlistId ?? item?.wishId ?? productId;
+}
+
+function getStoredSortType() {
+  const stored = localStorage.getItem(SORT_STORAGE_KEY);
+
+  return SORT_OPTIONS.some((option) => option.value === stored) ? stored : 'popular';
+}
+
+function getAppliedFiltersFromParams(searchParams) {
+  const rawMinPrice = searchParams.get('minPrice');
+  const rawMaxPrice = searchParams.get('maxPrice');
+  const minPriceParam = Number(rawMinPrice);
+  const maxPriceParam = Number(rawMaxPrice);
+  const hasMinPrice = Number.isFinite(minPriceParam) && minPriceParam > PRICE_MIN;
+  const hasMaxPrice = rawMaxPrice !== null && Number.isFinite(maxPriceParam) && maxPriceParam < PRICE_MAX;
+
+  return {
+    color: searchParams.get('color') || null,
+    size: searchParams.get('size') || null,
+    lengthType: searchParams.get('lengthType') || null,
+    minPrice: hasMinPrice ? minPriceParam : null,
+    maxPrice: hasMaxPrice ? maxPriceParam : null,
+  };
+}
+
+function getPriceValueFromParams(searchParams, key, fallback) {
+  const rawValue = searchParams.get(key);
+  const value = Number(rawValue);
+
+  return rawValue !== null && Number.isFinite(value) ? value : fallback;
+}
+
+function syncFilterParams(searchParams, filters) {
+  const nextParams = new URLSearchParams(searchParams);
+
+  if (filters.color) {
+    nextParams.set('color', filters.color);
+  } else {
+    nextParams.delete('color');
+  }
+
+  if (filters.size) {
+    nextParams.set('size', filters.size);
+  } else {
+    nextParams.delete('size');
+  }
+
+  if (filters.lengthType) {
+    nextParams.set('lengthType', filters.lengthType);
+  } else {
+    nextParams.delete('lengthType');
+  }
+
+  if (filters.minPrice !== null) {
+    nextParams.set('minPrice', String(filters.minPrice));
+  } else {
+    nextParams.delete('minPrice');
+  }
+
+  if (filters.maxPrice !== null) {
+    nextParams.set('maxPrice', String(filters.maxPrice));
+  } else {
+    nextParams.delete('maxPrice');
+  }
+
+  return nextParams;
 }
 
 /* ================================
@@ -304,7 +402,7 @@ function FilterTag({ label, color, onRemove }) {
 ================================ */
 
 function ProductPage() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const categoryParam = (
     searchParams.get('categoryId') ??
@@ -313,8 +411,15 @@ function ProductPage() {
   ).toLowerCase();
 
   const gender = searchParams.get('gender') ?? 'women';
+  const searchQuery = searchParams.get('q')?.trim() ?? '';
 
   const activeCategory = CATEGORY_CONFIG[categoryParam] ?? CATEGORY_CONFIG.top;
+  const isAccessorySearchScope = activeCategory.categoryId === 'accessories';
+  const searchScopeLabel = isAccessorySearchScope
+    ? '악세사리'
+    : gender === 'men'
+      ? '남성복'
+      : '여성복';
 
   /* 필터 열림 / 닫힘 */
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -322,8 +427,12 @@ function ProductPage() {
   const [isColorOpen, setIsColorOpen] = useState(true);
 
   /* 가격 필터 */
-  const [minPrice, setMinPrice] = useState(PRICE_MIN);
-  const [maxPrice, setMaxPrice] = useState(PRICE_MAX);
+  const [minPrice, setMinPrice] = useState(() =>
+    getPriceValueFromParams(searchParams, 'minPrice', PRICE_MIN)
+  );
+  const [maxPrice, setMaxPrice] = useState(() =>
+    getPriceValueFromParams(searchParams, 'maxPrice', PRICE_MAX)
+  );
 
   const [filterOptions, setFilterOptions] = useState({
     colors: [],
@@ -331,11 +440,15 @@ function ProductPage() {
     lengthTypes: [],
   });
 
-  const [selectedColor, setSelectedColor] = useState(null);
-  const [selectedSize, setSelectedSize] = useState(null);
-  const [selectedLengthType, setSelectedLengthType] = useState(null);
+  const [selectedColor, setSelectedColor] = useState(() => searchParams.get('color') || null);
+  const [selectedSize, setSelectedSize] = useState(() => searchParams.get('size') || null);
+  const [selectedLengthType, setSelectedLengthType] = useState(
+    () => searchParams.get('lengthType') || null
+  );
 
-  const [appliedFilters, setAppliedFilters] = useState(EMPTY_APPLIED_FILTERS);
+  const [appliedFilters, setAppliedFilters] = useState(() =>
+    getAppliedFiltersFromParams(searchParams)
+  );
 
   /* 현재 몇 개까지 보여줄지 */
   const [page, setPage] = useState(1);
@@ -356,9 +469,12 @@ function ProductPage() {
 
   /* 정렬 메뉴 */
   const [isSortOpen, setIsSortOpen] = useState(false);
-  const [sortType, setSortType] = useState('popular');
+  const [sortType, setSortType] = useState(getStoredSortType);
 
   const [excludeSoldOut, setExcludeSoldOut] = useState(true);
+  const [wishlistByProductId, setWishlistByProductId] = useState({});
+  const [wishlistLoadingIds, setWishlistLoadingIds] = useState(() => new Set());
+  const [searchInput, setSearchInput] = useState(searchQuery);
 
   const resetFilters = () => {
     setSelectedColor(null);
@@ -373,52 +489,51 @@ function ProductPage() {
 
   const applyFilters = () => {
     const hasPriceFilter = minPrice !== PRICE_MIN || maxPrice !== PRICE_MAX;
-
-    setAppliedFilters({
+    const nextFilters = {
       color: selectedColor,
       size: selectedSize,
       lengthType: selectedLengthType,
       minPrice: hasPriceFilter ? minPrice : null,
       maxPrice: hasPriceFilter ? maxPrice : null,
-    });
+    };
+
+    setAppliedFilters(nextFilters);
+    setSearchParams(syncFilterParams(searchParams, nextFilters));
 
     setIsFilterOpen(false);
   };
 
   const clearAllFilters = () => {
     resetFilters();
+    setSearchParams(syncFilterParams(searchParams, EMPTY_APPLIED_FILTERS));
   };
 
   const removeAppliedFilter = (type) => {
+    const nextFilters = { ...appliedFilters };
+
     if (type === 'color') {
       setSelectedColor(null);
-
-      setAppliedFilters((prev) => ({
-        ...prev,
-        color: null,
-      }));
+      nextFilters.color = null;
+      setAppliedFilters(nextFilters);
+      setSearchParams(syncFilterParams(searchParams, nextFilters));
 
       return;
     }
 
     if (type === 'size') {
       setSelectedSize(null);
-
-      setAppliedFilters((prev) => ({
-        ...prev,
-        size: null,
-      }));
+      nextFilters.size = null;
+      setAppliedFilters(nextFilters);
+      setSearchParams(syncFilterParams(searchParams, nextFilters));
 
       return;
     }
 
     if (type === 'lengthType') {
       setSelectedLengthType(null);
-
-      setAppliedFilters((prev) => ({
-        ...prev,
-        lengthType: null,
-      }));
+      nextFilters.lengthType = null;
+      setAppliedFilters(nextFilters);
+      setSearchParams(syncFilterParams(searchParams, nextFilters));
 
       return;
     }
@@ -426,12 +541,10 @@ function ProductPage() {
     if (type === 'price') {
       setMinPrice(PRICE_MIN);
       setMaxPrice(PRICE_MAX);
-
-      setAppliedFilters((prev) => ({
-        ...prev,
-        minPrice: null,
-        maxPrice: null,
-      }));
+      nextFilters.minPrice = null;
+      nextFilters.maxPrice = null;
+      setAppliedFilters(nextFilters);
+      setSearchParams(syncFilterParams(searchParams, nextFilters));
     }
   };
 
@@ -441,31 +554,33 @@ function ProductPage() {
     filterRequestIdRef.current = requestId;
 
     const fetchFilterOptions = async () => {
-      if (
-        !activeCategory.categoryId ||
-        (activeCategory.categoryId === 'sets' && gender === 'men')
-      ) {
+      if (activeCategory.categoryId === 'sets' && gender === 'men') {
         setFilterOptions({
           colors: [],
           sizes: [],
           lengthTypes: [],
         });
 
-        setMinPrice(PRICE_MIN);
-        setMaxPrice(PRICE_MAX);
-        setSelectedColor(null);
-        setSelectedSize(null);
-        setSelectedLengthType(null);
-        setAppliedFilters(EMPTY_APPLIED_FILTERS);
+        const nextFilters = getAppliedFiltersFromParams(searchParams);
+
+        setMinPrice(getPriceValueFromParams(searchParams, 'minPrice', PRICE_MIN));
+        setMaxPrice(getPriceValueFromParams(searchParams, 'maxPrice', PRICE_MAX));
+        setSelectedColor(nextFilters.color);
+        setSelectedSize(nextFilters.size);
+        setSelectedLengthType(nextFilters.lengthType);
+        setAppliedFilters(nextFilters);
 
         return;
       }
 
       try {
         const params = {
-          categoryId: activeCategory.categoryId,
           gender,
         };
+
+        if (activeCategory.categoryId) {
+          params.categoryId = activeCategory.categoryId;
+        }
 
         if (activeCategory.subCategoryId) {
           params.subCategoryId = activeCategory.subCategoryId;
@@ -491,14 +606,16 @@ function ProductPage() {
           lengthTypes,
         });
 
-        setMinPrice(PRICE_MIN);
-        setMaxPrice(PRICE_MAX);
+        const nextFilters = getAppliedFiltersFromParams(searchParams);
 
-        setSelectedColor(null);
-        setSelectedSize(null);
-        setSelectedLengthType(null);
+        setMinPrice(getPriceValueFromParams(searchParams, 'minPrice', PRICE_MIN));
+        setMaxPrice(getPriceValueFromParams(searchParams, 'maxPrice', PRICE_MAX));
 
-        setAppliedFilters(EMPTY_APPLIED_FILTERS);
+        setSelectedColor(nextFilters.color);
+        setSelectedSize(nextFilters.size);
+        setSelectedLengthType(nextFilters.lengthType);
+
+        setAppliedFilters(nextFilters);
       } catch {
         if (requestId !== filterRequestIdRef.current) {
           return;
@@ -510,19 +627,21 @@ function ProductPage() {
           lengthTypes: [],
         });
 
-        setMinPrice(PRICE_MIN);
-        setMaxPrice(PRICE_MAX);
+        const nextFilters = getAppliedFiltersFromParams(searchParams);
 
-        setSelectedColor(null);
-        setSelectedSize(null);
-        setSelectedLengthType(null);
+        setMinPrice(getPriceValueFromParams(searchParams, 'minPrice', PRICE_MIN));
+        setMaxPrice(getPriceValueFromParams(searchParams, 'maxPrice', PRICE_MAX));
 
-        setAppliedFilters(EMPTY_APPLIED_FILTERS);
+        setSelectedColor(nextFilters.color);
+        setSelectedSize(nextFilters.size);
+        setSelectedLengthType(nextFilters.lengthType);
+
+        setAppliedFilters(nextFilters);
       }
     };
 
     fetchFilterOptions();
-  }, [activeCategory.categoryId, activeCategory.subCategoryId, gender]);
+  }, [activeCategory.categoryId, activeCategory.subCategoryId, gender, searchParams]);
 
   const fetchProductsPage = useCallback(
     async (targetPage, replace = false) => {
@@ -582,7 +701,21 @@ function ProductPage() {
 
         let response;
 
-        if (activeCategory.categoryId === 'sets') {
+        if (searchQuery) {
+          const searchParams = { ...params };
+
+          delete searchParams.subCategoryId;
+
+          if (isAccessorySearchScope) {
+            delete searchParams.gender;
+          }
+
+          response = await searchProducts({
+            ...searchParams,
+            q: searchQuery,
+            ...(isAccessorySearchScope ? { categoryId: 'accessories' } : { gender }),
+          });
+        } else if (activeCategory.categoryId === 'sets') {
           response = await getSets(params);
         } else if (activeCategory.categoryId) {
           response = await getProducts({
@@ -640,7 +773,15 @@ function ProductPage() {
         }
       }
     },
-    [activeCategory.categoryId, activeCategory.subCategoryId, appliedFilters, gender, sortType]
+    [
+      activeCategory.categoryId,
+      activeCategory.subCategoryId,
+      appliedFilters,
+      gender,
+      isAccessorySearchScope,
+      searchQuery,
+      sortType,
+    ]
   );
 
   useEffect(() => {
@@ -652,6 +793,155 @@ function ProductPage() {
       window.clearTimeout(timeoutId);
     };
   }, [fetchProductsPage]);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setSearchInput(searchQuery);
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [searchQuery]);
+
+  useEffect(() => {
+    const nextQuery = searchInput.trim();
+
+    if (nextQuery === searchQuery) {
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      const nextParams = new URLSearchParams(searchParams);
+
+      if (nextQuery) {
+        nextParams.set('q', nextQuery);
+
+        if (isAccessorySearchScope) {
+          nextParams.set('category', 'accessories');
+          nextParams.delete('categoryId');
+          nextParams.delete('gender');
+        } else {
+          nextParams.set('gender', gender);
+          nextParams.set('category', 'ALL');
+          nextParams.delete('categoryId');
+        }
+      } else {
+        nextParams.delete('q');
+      }
+
+      setSearchParams(nextParams);
+    }, 300);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [gender, isAccessorySearchScope, searchInput, searchParams, searchQuery, setSearchParams]);
+
+  useEffect(() => {
+    const accessToken = localStorage.getItem('accessToken');
+
+    if (!accessToken) {
+      return;
+    }
+
+    let isMounted = true;
+
+    const fetchWishlist = async () => {
+      try {
+        const response = await getWishlist();
+
+        if (!isMounted) {
+          return;
+        }
+
+        const nextWishlist = getWishlistItems(response).reduce((acc, item) => {
+          const productId = Number(item?.productId ?? item?.product?.productId ?? item?.product?.id);
+
+          if (Number.isFinite(productId)) {
+            acc[productId] = getWishlistId(item, productId);
+          }
+
+          return acc;
+        }, {});
+
+        setWishlistByProductId(nextWishlist);
+      } catch {
+        if (isMounted) {
+          setWishlistByProductId({});
+        }
+      }
+    };
+
+    fetchWishlist();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleWishlist = async (product) => {
+    const accessToken = localStorage.getItem('accessToken');
+
+    if (!accessToken) {
+      alert('로그인 후 찜할 수 있습니다.');
+      return;
+    }
+
+    const productId = Number(product.productId);
+
+    if (!Number.isFinite(productId) || wishlistLoadingIds.has(productId)) {
+      return;
+    }
+
+    const wishlistId = wishlistByProductId[productId];
+    const isFavorite = Boolean(wishlistId);
+
+    setWishlistLoadingIds((prev) => new Set(prev).add(productId));
+
+    try {
+      if (isFavorite) {
+        await removeWishlist(wishlistId);
+
+        setWishlistByProductId((prev) => {
+          const next = { ...prev };
+
+          delete next[productId];
+
+          return next;
+        });
+
+        return;
+      }
+
+      const response = await addWishlist(productId);
+      const responseData = response?.data ?? response;
+      const nextWishlistId = getWishlistId(responseData, productId);
+
+      setWishlistByProductId((prev) => ({
+        ...prev,
+        [productId]: nextWishlistId,
+      }));
+    } catch (error) {
+      alert(error.message || '찜 상태를 변경하지 못했습니다.');
+    } finally {
+      setWishlistLoadingIds((prev) => {
+        const next = new Set(prev);
+
+        next.delete(productId);
+
+        return next;
+      });
+    }
+  };
+
+  const handleSearchSubmit = (event) => {
+    event.preventDefault();
+  };
+
+  const handleSearchClear = () => {
+    setSearchInput('');
+  };
 
   /* ================================
      무한 스크롤
@@ -778,6 +1068,20 @@ function ProductPage() {
     ? productItems.filter((product) => !product.isSoldOut)
     : productItems;
 
+  const hasActiveFilters = activeFilterTags.length > 0;
+  const isLengthFilterVisible =
+    activeCategory.categoryId === null || activeCategory.categoryId === 'bottom';
+  const emptyMessage = searchQuery
+    ? `"${searchQuery}"에 대한 검색 결과가 없습니다.`
+    : hasActiveFilters
+      ? '조건에 맞는 상품이 없습니다.'
+      : '등록된 상품이 없습니다.';
+  const emptySubMessage = searchQuery
+    ? `${searchScopeLabel} 안에서 다른 검색어를 입력해 보세요.`
+    : hasActiveFilters
+      ? '필터를 조정하거나 전체 해제해 주세요.'
+      : '';
+
   const priceRangeSpan = PRICE_MAX - PRICE_MIN;
 
   return (
@@ -878,6 +1182,7 @@ function ProductPage() {
                         }`}
                         onClick={() => {
                           setSortType(option.value);
+                          localStorage.setItem(SORT_STORAGE_KEY, option.value);
                           setIsSortOpen(false);
                         }}
                       >
@@ -901,11 +1206,24 @@ function ProductPage() {
 
             {/* 검색 */}
 
-            <div className="product-search-box">
+            <form className="product-search-box" onSubmit={handleSearchSubmit}>
               <IconSearch />
 
-              <span>상품 검색</span>
-            </div>
+              <input
+                type="search"
+                name="q"
+                value={searchInput}
+                onChange={(event) => setSearchInput(event.target.value)}
+                placeholder={`${searchScopeLabel} 검색`}
+                aria-label={`${searchScopeLabel} 상품 검색`}
+              />
+
+              {searchInput && (
+                <button type="button" onClick={handleSearchClear} aria-label="검색어 지우기">
+                  <IconClose />
+                </button>
+              )}
+            </form>
           </div>
 
           {/* ================================
@@ -923,10 +1241,15 @@ function ProductPage() {
   ================================ */}
 
             <div className="filter-drawer-header">
-              <h2>전체 필터</h2>
+              <h2>
+                전체 필터
+                {activeFilterTags.length > 0 && (
+                  <span className="filter-drawer-count">{activeFilterTags.length}</span>
+                )}
+              </h2>
 
               <div className="filter-drawer-header-actions">
-                <button type="button" className="filter-reset-btn" onClick={resetFilters}>
+                <button type="button" className="filter-reset-btn" onClick={clearAllFilters}>
                   초기화
                 </button>
 
@@ -1014,7 +1337,7 @@ function ProductPage() {
         긴팔 / 반팔
     ================================ */}
 
-              {activeCategory.categoryId === 'bottom' && filterOptions.lengthTypes.length > 0 && (
+              {isLengthFilterVisible && filterOptions.lengthTypes.length > 0 && (
                 <section className="filter-section">
                   <h3>길이</h3>
 
@@ -1239,20 +1562,43 @@ function ProductPage() {
                 product.productType === 'set'
                   ? `/products/${product.productId}?type=set`
                   : `/products/${product.productId}`;
+              const isFavorite = Boolean(wishlistByProductId[product.productId]);
+              const isWishlistLoading = wishlistLoadingIds.has(product.productId);
+              const heartPath = isFavorite
+                ? WISHLIST_HEART_PATHS.filled
+                : WISHLIST_HEART_PATHS.outline;
 
               return (
                 <article className="product-card" key={product.productId}>
                   {/* 이미지 */}
 
-                  <Link to={detailPath} className="product-image-link">
-                    <div className="product-image">
+                  <div className="product-image">
+                    <Link to={detailPath} className="product-image-link">
                       {product.imageUrl ? (
                         <img src={product.imageUrl} alt={product.name} />
                       ) : (
                         <div className="product-image-placeholder" />
                       )}
-                    </div>
-                  </Link>
+                    </Link>
+
+                    <button
+                      type="button"
+                      onClick={() => handleWishlist(product)}
+                      aria-label={isFavorite ? `${product.name} 찜 해제` : `${product.name} 찜하기`}
+                      aria-pressed={isFavorite}
+                      disabled={isWishlistLoading}
+                      className={`product-wishlist-button${isFavorite ? ' is-active' : ''}`}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 256 256"
+                        aria-hidden="true"
+                      >
+                        <path className="product-wishlist-icon-shadow" d={heartPath} />
+                        <path className="product-wishlist-icon-shape" d={heartPath} />
+                      </svg>
+                    </button>
+                  </div>
 
                   {/* 상품 정보 */}
 
@@ -1323,7 +1669,17 @@ function ProductPage() {
           )}
 
           {!isLoading && !loadError && !hasMore && displayedProducts.length === 0 && (
-            <div className="product-scroll-end">등록된 상품이 없습니다.</div>
+            <div className="product-scroll-end product-empty-state">
+              <strong>{emptyMessage}</strong>
+
+              {emptySubMessage && <span>{emptySubMessage}</span>}
+
+              {hasActiveFilters && (
+                <button type="button" onClick={clearAllFilters}>
+                  전체 필터 해제
+                </button>
+              )}
+            </div>
           )}
         </div>
       </div>
