@@ -47,7 +47,7 @@
   display: grid;
 
   grid-template-columns:
-    clamp(90px, 11vw, 160px)
+    clamp(80px, 9vw, 140px)
     minmax(0, 1fr);
 
   column-gap: clamp(8px, 1vw, 12px);
@@ -95,7 +95,6 @@
   object-fit: cover;
 }
 
-.product-detail-page .image-placeholder,
 .product-detail-page .main-image-placeholder {
   display: flex;
 
@@ -117,7 +116,7 @@
   width: 100%;
   height: auto;
 
-  aspect-ratio: 680 / 745;
+  aspect-ratio: 680 / 732;
 
   overflow: hidden;
 
@@ -136,7 +135,7 @@
 @media (min-width: 1360px) {
   .product-detail-page .product-layout {
     grid-template-columns:
-      852px
+      832px
       minmax(0, 1fr);
 
     column-gap: 60px;
@@ -144,22 +143,22 @@
 
   .product-detail-page .product-gallery {
     grid-template-columns:
-      160px
+      140px
       680px;
 
     column-gap: 12px;
   }
 
   .product-detail-page .thumbnail {
-    width: 160px;
-    height: 180px;
+    width: 140px;
+    height: 140px;
 
     aspect-ratio: auto;
   }
 
   .product-detail-page .main-image {
     width: 680px;
-    height: 745px;
+    height: 732px;
 
     aspect-ratio: auto;
   }
@@ -306,18 +305,6 @@
   height: 24px;
 
   border-radius: 50%;
-}
-
-.product-detail-page .color-black {
-  background: #000;
-}
-
-.product-detail-page .color-brown {
-  background: #5c5144;
-}
-
-.product-detail-page .color-beige {
-  background: #d9d5cc;
 }
 
 .product-detail-page .color-option input:checked + .color-circle {
@@ -1613,27 +1600,6 @@
   }
 }
 
-.product-detail-page .cart-toast {
-  position: fixed;
-  left: 50%;
-  bottom: 40px;
-  z-index: 1000;
-
-  padding: 14px 22px;
-
-  border-radius: 6px;
-  background: #111;
-
-  color: #fff;
-  font-size: 14px;
-  font-weight: 500;
-
-  transform: translateX(-50%);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
-
-  animation: cartToastIn 0.25s ease;
-}
-
 .cart-alert-overlay {
   position: fixed;
   inset: 0;
@@ -1642,10 +1608,18 @@
   pointer-events: none;
 }
 
-.cart-alert {
+.cart-alert-stack {
   position: absolute;
   top: 28px;
   right: 32px;
+
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 12px;
+}
+
+.cart-alert {
+  position: relative;
 
   width: 315px;
   min-height: 92px;

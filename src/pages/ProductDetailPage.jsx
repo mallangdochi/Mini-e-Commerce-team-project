@@ -41,10 +41,10 @@ function getImageList(product) {
 
   return [
     normalizeImageUrl(product.images?.thumbnail || product.imageUrl),
-    normalizeImageUrl(product.images?.styled),
     normalizeImageUrl(product.images?.front),
     normalizeImageUrl(product.images?.side),
     normalizeImageUrl(product.images?.back),
+    normalizeImageUrl(product.images?.styled),
   ].filter(Boolean);
 }
 
@@ -76,7 +76,7 @@ function ProductDetailPage() {
 
   const [quantity, setQuantity] = useState(1);
 
-  const [cartMessage, setCartMessage] = useState(false);
+  const [cartMessages, setCartMessages] = useState([]);
   const [wishlistId, setWishlistId] = useState(null);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [isWishlistLoading, setIsWishlistLoading] = useState(false);
@@ -246,7 +246,7 @@ function ProductDetailPage() {
       image,
       index,
     }))
-    .filter((item) => item.index !== activeImageIndex);
+    .slice(0, 5);
 
   const hasSizes = Array.isArray(product?.sizes) && product.sizes.length > 0;
 
@@ -397,9 +397,9 @@ function ProductDetailPage() {
     }
   };
 
-  const handleCartAdd = () => {
+  const createSelectedOrderItem = () => {
     if (!product || isUnavailable) {
-      return;
+      return null;
     }
 
     const selectedColorData = product.colors?.find(
@@ -421,9 +421,20 @@ function ProductDetailPage() {
       optionParts.push(selectedSize);
     }
 
-    addCartItem({
-      productId: Number(product.productId),
-      productType: isSet ? 'set' : (product.productType ?? 'product'),
+    const productType = isSet ? 'set' : (product.productType ?? 'product');
+    const productIdNumber = Number(product.productId);
+    const itemId = [
+      'direct',
+      productType,
+      product.productId,
+      colorValue || 'none',
+      hasSizes ? selectedSize : 'none',
+    ].join(':');
+
+    return {
+      id: itemId,
+      productId: productIdNumber,
+      productType,
       name: product.name,
       imageUrl: normalizeImageUrl(product.images?.thumbnail || product.imageUrl),
       price,
@@ -434,9 +445,34 @@ function ProductDetailPage() {
       quantity,
       stock: availableStock,
       option: optionParts.join(' / '),
-    });
+    };
+  };
 
-    handleAddToCart(setCartMessage);
+  const handleCartAdd = () => {
+    const orderItem = createSelectedOrderItem();
+
+    if (!orderItem) {
+      return;
+    }
+
+    addCartItem(orderItem);
+
+    handleAddToCart(setCartMessages);
+  };
+
+  const handleBuyNow = () => {
+    const orderItem = createSelectedOrderItem();
+
+    if (!orderItem) {
+      return;
+    }
+
+    navigate('/checkout', {
+      state: {
+        orderItems: [orderItem],
+        finalPrice: orderItem.price * orderItem.quantity,
+      },
+    });
   };
 
   if (isLoading) {
@@ -486,6 +522,7 @@ function ProductDetailPage() {
                 type="button"
                 className="thumbnail"
                 aria-label={`상품 이미지 ${index + 1}`}
+                aria-pressed={index === activeImageIndex}
                 onClick={() => setActiveImageIndex(index)}
               >
                 <ProductImage
@@ -667,7 +704,12 @@ function ProductDetailPage() {
           </div>
 
           <div className="purchase-area">
-            <button type="button" className="buy-button" disabled={isUnavailable}>
+            <button
+              type="button"
+              className="buy-button"
+              disabled={isUnavailable}
+              onClick={handleBuyNow}
+            >
               BUY NOW
             </button>
 
@@ -1007,23 +1049,31 @@ function ProductDetailPage() {
         </section>
       )}
 
-      {cartMessage && (
+      {cartMessages.length > 0 && (
         <div className="cart-alert-overlay">
-          <div className="cart-alert">
-            <button
-              type="button"
-              className="cart-alert-close"
-              onClick={() => setCartMessage(false)}
-              aria-label="알림 닫기"
-            >
-              ×
-            </button>
+          <div className="cart-alert-stack">
+            {cartMessages.map((message) => (
+              <div className="cart-alert" key={message.id}>
+                <button
+                  type="button"
+                  className="cart-alert-close"
+                  onClick={() =>
+                    setCartMessages((messages) =>
+                      messages.filter((cartMessage) => cartMessage.id !== message.id)
+                    )
+                  }
+                  aria-label="알림 닫기"
+                >
+                  ×
+                </button>
 
-            <span className="cart-alert-label">CART</span>
+                <span className="cart-alert-label">CART</span>
 
-            <strong className="cart-alert-message">장바구니에 상품을 담았습니다.</strong>
+                <strong className="cart-alert-message">장바구니에 상품을 담았습니다.</strong>
 
-            <div className="cart-alert-progress" />
+                <div className="cart-alert-progress" />
+              </div>
+            ))}
           </div>
         </div>
       )}
