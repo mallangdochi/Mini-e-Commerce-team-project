@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { getProductFilters, getProducts, getSets, searchProducts } from '@/api/products';
 import { addWishlist, getWishlist, removeWishlist } from '@/api/wishlist';
+import { getAccessToken, getStoredProductSort, setStoredProductSort } from '@/utils/storage';
 import '@/styles/product-page.css';
 
 const SEARCH_DEBOUNCE_DELAY = 700;
@@ -265,8 +266,8 @@ function getWishlistId(item, productId) {
   return item?.id ?? item?.wishlistId ?? item?.wishId ?? productId;
 }
 
-function getSortTypeFromParams(searchParams) {
-  const sortParam = searchParams.get('sort');
+function getStoredSortType() {
+  const stored = localStorage.getItem(SORT_STORAGE_KEY);
 
   return SORT_OPTIONS.some((option) => option.value === sortParam) ? sortParam : 'popular';
 }
@@ -928,7 +929,7 @@ function ProductPage() {
   }, [searchQuery]);
 
   useEffect(() => {
-    const accessToken = localStorage.getItem('accessToken');
+    const accessToken = getAccessToken();
 
     if (!accessToken) {
       return;
@@ -972,7 +973,7 @@ function ProductPage() {
   }, []);
 
   const handleWishlist = async (product) => {
-    const accessToken = localStorage.getItem('accessToken');
+    const accessToken = getAccessToken();
 
     if (!accessToken) {
       alert('로그인 후 찜할 수 있습니다.');
@@ -1264,7 +1265,9 @@ function ProductPage() {
                           sortType === option.value ? 'is-active' : ''
                         }`}
                         onClick={() => {
-                          selectSortType(option.value);
+                          setSortType(option.value);
+                          localStorage.setItem(SORT_STORAGE_KEY, option.value);
+                          setIsSortOpen(false);
                         }}
                       >
                         {option.label}

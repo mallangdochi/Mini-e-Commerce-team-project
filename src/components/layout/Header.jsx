@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 
+import LogoutConfirmButton from '@/components/common/LogoutConfirmButton';
+import useAuthStore from '@/store/authStore';
 import { useCartStore } from '@/store/cartStore';
 import '@/styles/header.css';
 
@@ -156,13 +158,10 @@ function Header() {
   const [mobileCategory, setMobileCategory] = useState(null);
   const [activeMenu, setActiveMenu] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(() => Boolean(localStorage.getItem('accessToken')));
-  const cartItemCount = useCartStore((state) =>
-    state.items.reduce((total, item) => total + Number(item.quantity ?? 1), 0)
-  );
   const lastY = useRef(0);
-  const currentNavMenu = getCurrentNavMenu(location.pathname, location.search);
 
   const openDesktopMenu = (menu) => {
+    setAccountMenuOpen(false);
     setActiveMenu(menu);
     setHidden(false);
   };
@@ -193,20 +192,40 @@ function Header() {
   };
 
   useEffect(() => {
-    const updateAuthState = () => {
-      setIsLoggedIn(Boolean(localStorage.getItem('accessToken')));
-    };
+    syncAuthFromStorage();
 
-    updateAuthState();
-
-    window.addEventListener('auth-change', updateAuthState);
-    window.addEventListener('storage', updateAuthState);
+    window.addEventListener('auth-change', syncAuthFromStorage);
+    window.addEventListener('storage', syncAuthFromStorage);
 
     return () => {
-      window.removeEventListener('auth-change', updateAuthState);
-      window.removeEventListener('storage', updateAuthState);
+      window.removeEventListener('auth-change', syncAuthFromStorage);
+      window.removeEventListener('storage', syncAuthFromStorage);
     };
-  }, []);
+  }, [syncAuthFromStorage]);
+
+  useEffect(() => {
+    if (!accountMenuOpen) return undefined;
+
+    const handlePointerDown = (event) => {
+      if (!accountMenuRef.current?.contains(event.target)) {
+        setAccountMenuOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setAccountMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [accountMenuOpen]);
 
   // 스크롤 내리면 헤더 숨김, 올리면 표시. 드롭다운이 열려 있으면 헤더 유지.
   useEffect(() => {
@@ -214,7 +233,7 @@ function Header() {
     const update = () => {
       const y = window.scrollY;
 
-      if (activeMenu) {
+      if (activeMenu || accountMenuOpen) {
         setHidden(false);
       } else {
         setHidden(y >= HEADER_HIDE_THRESHOLD && y > lastY.current);
@@ -233,7 +252,7 @@ function Header() {
 
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
-  }, [activeMenu]);
+  }, [accountMenuOpen, activeMenu]);
 
   // 모바일 메뉴 열림 동안: 배경 스크롤 잠금, 리사이즈 / Esc 시 닫기
   useEffect(() => {
@@ -368,29 +387,53 @@ function Header() {
           )}
 
           {isLoggedIn && (
-            <Link
-              to="/mypage"
-              className="site-header-action site-header-action--mypage"
-              aria-label="마이페이지"
+            <div
+              ref={accountMenuRef}
+              className={`site-account-menu${accountMenuOpen ? ' site-account-menu--open' : ''}`}
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                fill="currentColor"
-                viewBox="0 0 16 16"
+              <button
+                type="button"
+                className="site-header-action site-header-action--mypage"
+                aria-label="마이페이지 빠른 메뉴"
+                aria-expanded={accountMenuOpen}
+                aria-controls="siteAccountDropdown"
+                onClick={() => {
+                  setActiveMenu(null);
+                  setAccountMenuOpen((current) => !current);
+                  setHidden(false);
+                }}
               >
-                <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6m2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0m4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4m-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10s-3.516.68-4.168 1.332c-.678.678-.83 1.418-.832 1.664z" />
-              </svg>
-            </Link>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  fill="currentColor"
+                  viewBox="0 0 16 16"
+                >
+                  <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6m2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0m4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4m-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10s-3.516.68-4.168 1.332c-.678.678-.83 1.418-.832 1.664z" />
+                </svg>
+              </button>
+
+              <div
+                id="siteAccountDropdown"
+                className="site-account-dropdown"
+                aria-label="마이페이지 빠른 메뉴"
+              >
+                <Link to="/mypage" onClick={() => setAccountMenuOpen(false)}>
+                  프로필
+                </Link>
+                <Link to="/mypage/wishlist" onClick={() => setAccountMenuOpen(false)}>
+                  찜한 상품
+                </Link>
+                <LogoutConfirmButton className="site-account-dropdown-logout" />
+              </div>
+            </div>
           )}
 
           <Link
             to="/cart"
             className="site-header-action site-header-action--cart"
-            aria-label={
-              cartItemCount > 0 ? `장바구니, 담긴 상품 ${cartItemCount}개` : '장바구니'
-            }
+            aria-label={cartItemCount > 0 ? `장바구니, 담긴 상품 ${cartItemCount}개` : '장바구니'}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -419,6 +462,7 @@ function Header() {
           onClick={() => {
             setMenuOpen((v) => !v);
             setActiveMenu(null);
+            setAccountMenuOpen(false);
           }}
         >
           <svg
@@ -549,9 +593,17 @@ function Header() {
             )}
 
             {isLoggedIn && (
-              <Link to="/mypage" onClick={closeMobileMenu}>
-                마이페이지
-              </Link>
+              <>
+                <Link to="/mypage" onClick={closeMobileMenu}>
+                  프로필
+                </Link>
+
+                <Link to="/mypage/wishlist" onClick={closeMobileMenu}>
+                  찜한 상품
+                </Link>
+
+                <LogoutConfirmButton className="site-mobile-logout-button" />
+              </>
             )}
 
             <Link to="/cart" onClick={closeMobileMenu}>

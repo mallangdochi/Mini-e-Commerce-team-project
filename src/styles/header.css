@@ -16,7 +16,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .site-header {
+  .site-header,
+  .site-account-dropdown {
     transition: none;
   }
 }
@@ -196,6 +197,102 @@
   align-items: center;
   gap: 18px;
   justify-self: end;
+}
+
+.site-account-menu {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 64px;
+}
+
+.site-account-menu .site-header-action--mypage {
+  appearance: none;
+}
+
+.site-account-dropdown {
+  position: absolute;
+  top: 100%;
+  right: -84px;
+  z-index: 60;
+
+  display: flex;
+  width: 168px;
+  min-height: 184px;
+  flex-direction: column;
+
+  padding: 18px 0;
+
+  background: #ffffff;
+  border: 1px solid #e8e8e8;
+  border-top: 0;
+  border-radius: 0 0 12px 12px;
+  box-shadow: 0 18px 32px rgba(0, 0, 0, 0.14);
+
+  opacity: 0;
+  visibility: hidden;
+  clip-path: inset(0 0 100% 0);
+  transform: translateY(-10px);
+  transform-origin: top;
+  pointer-events: none;
+
+  transition:
+    opacity 0.16s ease,
+    visibility 0.28s ease,
+    clip-path 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.site-account-menu--open .site-account-dropdown {
+  opacity: 1;
+  visibility: visible;
+  clip-path: inset(0 0 0 0);
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.site-account-dropdown a,
+.site-account-dropdown-logout {
+  display: flex;
+  width: 100%;
+  min-height: 48px;
+  align-items: center;
+
+  padding: 0 22px;
+  border: 0;
+  background: transparent;
+
+  color: #111111;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1;
+  text-align: left;
+  text-decoration: none;
+  white-space: nowrap;
+
+  cursor: pointer;
+  transition:
+    background 0.16s ease,
+    color 0.16s ease;
+}
+
+.site-account-dropdown a:hover,
+.site-account-dropdown a:focus-visible,
+.site-account-dropdown-logout:hover,
+.site-account-dropdown-logout:focus-visible {
+  background: #f5f5f5;
+  color: #000000;
+}
+
+.site-account-dropdown-logout {
+  appearance: none;
+}
+
+.site-account-dropdown a:focus-visible,
+.site-account-dropdown-logout:focus-visible {
+  outline: 2px solid #6b4f3a;
+  outline-offset: -2px;
 }
 
 /* 모바일 햄버거 */
@@ -409,6 +506,10 @@
     padding: 0 16px;
   }
 
+  .site-account-menu {
+    display: none;
+  }
+
   .site-header-action--mypage {
     display: none;
   }
@@ -598,6 +699,19 @@
     font-size: 14px;
     letter-spacing: 0.04em;
     text-decoration: none;
+  }
+
+  .site-mobile-logout-button {
+    width: 100%;
+    padding: 10px 0;
+    border: 0;
+    background: transparent;
+    color: #a3a3a3;
+    font-family: inherit;
+    font-size: 14px;
+    letter-spacing: 0.04em;
+    text-align: left;
+    cursor: pointer;
   }
 }
 
