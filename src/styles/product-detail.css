@@ -55,10 +55,20 @@
   align-items: start;
 }
 
+.product-detail-page .thumbnail-carousel {
+  position: relative;
+
+  min-width: 0;
+}
+
 .product-detail-page .thumbnail-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.product-detail-page .thumbnail-arrow {
+  display: none;
 }
 
 .product-detail-page .thumbnail {
@@ -532,17 +542,47 @@
     aspect-ratio: 680 / 745;
   }
 
-  .product-detail-page .thumbnail-list {
+  .product-detail-page .thumbnail-carousel {
     order: 2;
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+
+    display: flex;
+    align-items: center;
+
+    width: 100%;
+
+    padding: 0 34px;
+  }
+
+  .product-detail-page .thumbnail-list {
+    display: flex;
+    flex-direction: row;
+
+    width: 100%;
+
     gap: 8px;
+
+    overflow-x: auto;
+    overflow-y: hidden;
+
+    scroll-behavior: smooth;
+    scroll-snap-type: x mandatory;
+
+    scrollbar-width: none;
+  }
+
+  .product-detail-page .thumbnail-list::-webkit-scrollbar {
+    display: none;
   }
 
   .product-detail-page .thumbnail {
-    width: 100%;
+    flex: 0 0 calc((100% - 24px) / 4);
+
+    width: auto;
     height: auto;
+
     aspect-ratio: 1 / 1;
+
+    scroll-snap-align: start;
   }
 
   .product-detail-page .product-info {
@@ -653,7 +693,8 @@
   }
 }
 
-.product-detail-page .mobile-image-count {
+.product-detail-page .mobile-image-count,
+.product-detail-page .mobile-main-image-arrow {
   display: none;
 }
 
@@ -710,6 +751,54 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+  }
+
+  .product-detail-page .mobile-main-image-arrow {
+    position: absolute;
+    top: 50%;
+    z-index: 3;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 38px;
+    height: 54px;
+
+    padding: 0;
+
+    border: 0;
+    border-radius: 4px;
+
+    background: rgba(255, 255, 255, 0.58);
+
+    color: #111;
+
+    font-size: 32px;
+    font-weight: 300;
+    line-height: 1;
+
+    cursor: pointer;
+
+    transform: translateY(-50%);
+
+    transition:
+      background-color 0.2s ease,
+      opacity 0.2s ease;
+
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .product-detail-page .mobile-main-image-arrow:active {
+    background: rgba(255, 255, 255, 0.82);
+  }
+
+  .product-detail-page .mobile-main-image-arrow--prev {
+    left: 8px;
+  }
+
+  .product-detail-page .mobile-main-image-arrow--next {
+    right: 8px;
   }
 
   /* 현재 이미지 번호 표시 - JSX의 activeImageIndex와 연동 */
@@ -1843,4 +1932,54 @@
 .wish-button:disabled {
   opacity: 0.55;
   cursor: wait;
+}
+
+@media (min-width: 769px) and (max-width: 1199px) {
+  .product-detail-page .thumbnail-arrow {
+    position: absolute;
+    top: 50%;
+    z-index: 3;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 28px;
+    height: 44px;
+
+    padding: 0;
+
+    border: 1px solid #cfcfcf;
+    border-radius: 3px;
+
+    background: rgba(255, 255, 255, 0.96);
+
+    color: #111;
+
+    font-size: 24px;
+    font-weight: 300;
+    line-height: 1;
+
+    cursor: pointer;
+
+    transform: translateY(-50%);
+
+    transition:
+      border-color 0.2s ease,
+      background-color 0.2s ease;
+  }
+
+  .product-detail-page .thumbnail-arrow:hover {
+    border-color: #111;
+
+    background: #fff;
+  }
+
+  .product-detail-page .thumbnail-arrow--prev {
+    left: 0;
+  }
+
+  .product-detail-page .thumbnail-arrow--next {
+    right: 0;
+  }
 }
