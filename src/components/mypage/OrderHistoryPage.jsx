@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import EmptyState from '@/components/common/EmptyState';
 import ErrorState from '@/components/common/ErrorState';
@@ -13,10 +13,22 @@ import OrderDetailModal from './order-history/OrderDetailModal';
 import OrderSummary from './order-history/OrderSummary';
 import OrderToolbar from './order-history/OrderToolbar';
 import ShippingModal from './order-history/ShippingModal';
-import { isWithinPeriod, matchesTab, normalizeImageUrl } from './order-history/orderHistoryUtils';
+import {
+  ORDER_TABS,
+  isWithinPeriod,
+  matchesTab,
+  normalizeImageUrl,
+} from './order-history/orderHistoryUtils';
+
+const ORDER_TAB_VALUES = new Set(ORDER_TABS.map((tab) => tab.value));
+
+function getValidOrderTab(tab) {
+  return ORDER_TAB_VALUES.has(tab) ? tab : 'all';
+}
 
 function OrderHistoryPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const addCartItem = useCartStore((state) => state.addItem);
   const {
     user,
@@ -28,7 +40,7 @@ function OrderHistoryPage() {
     cancelOrderById,
   } = useOrders();
 
-  const [selectedTab, setSelectedTab] = useState('all');
+  const [selectedTab, setSelectedTab] = useState(() => getValidOrderTab(searchParams.get('tab')));
   const [periodMonths, setPeriodMonths] = useState(3);
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [shippingOrderId, setShippingOrderId] = useState(null);

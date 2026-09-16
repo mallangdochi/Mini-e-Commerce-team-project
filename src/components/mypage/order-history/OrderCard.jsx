@@ -79,7 +79,11 @@ function OrderCard({
           )}
         </div>
 
-        <div className="order-history-progress">
+        <div
+          className={`order-history-progress${
+            order.orderStatus === 'cancelled' ? ' is-cancelled' : ''
+          }`}
+        >
           {order.orderStatus === 'cancelled' ? (
             <div className="order-history-progress-cancelled">주문이 취소되었습니다.</div>
           ) : (

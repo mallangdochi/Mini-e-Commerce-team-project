@@ -289,6 +289,22 @@
   font-size: 10px;
 }
 
+.order-history-period-control {
+  display: flex;
+  align-items: center;
+
+  gap: 10px;
+}
+
+.order-history-period-control > span {
+  display: none;
+
+  color: #666;
+
+  font-size: 11px;
+  font-weight: 700;
+}
+
 .order-history-list {
   display: flex;
   flex-direction: column;
@@ -878,6 +894,11 @@
     gap: 12px;
   }
 
+  .order-history-period-control {
+    order: -1;
+    justify-content: flex-start;
+  }
+
   .order-history-tabs {
     flex-wrap: nowrap;
 
@@ -925,10 +946,6 @@
     padding-top: 78px;
   }
 
-  .order-history-summary {
-    grid-template-columns: 1fr;
-  }
-
   .order-history-tabs {
     gap: 18px;
   }
@@ -951,6 +968,380 @@
 
   .order-detail-backdrop {
     padding: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .order-history-content {
+    display: flex;
+    flex-direction: column;
+
+    padding: 14px 0 0;
+
+    gap: 14px;
+  }
+
+  .order-history-heading {
+    padding: 0;
+  }
+
+  .order-history-heading h1 {
+    font-size: 22px;
+    letter-spacing: -0.04em;
+  }
+
+  .order-history-heading p {
+    margin-top: 6px;
+
+    font-size: 10px;
+  }
+
+  .order-history-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 10px;
+  }
+
+  .order-history-summary-card {
+    min-height: 86px;
+    padding: 12px;
+
+    border-radius: 12px;
+
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.025);
+  }
+
+  .order-history-summary-top {
+    margin-bottom: 8px;
+  }
+
+  .order-history-summary-icon,
+  .order-history-summary-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .order-history-summary-top > span:last-child {
+    color: #9a9a9a;
+
+    font-size: 18px;
+  }
+
+  .order-history-summary-card > span {
+    font-size: 10px;
+  }
+
+  .order-history-summary-card > strong {
+    margin-top: 3px;
+
+    font-size: 16px;
+  }
+
+  .order-history-toolbar {
+    margin-top: 0;
+
+    gap: 10px;
+  }
+
+  .order-history-period-control {
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 0 2px;
+  }
+
+  .order-history-period-control > span {
+    display: block;
+  }
+
+  .order-history-tabs {
+    gap: 8px;
+    margin: 0 -14px;
+    padding: 0 14px 4px;
+  }
+
+  .order-history-tabs button {
+    min-width: auto;
+    min-height: 34px;
+    padding: 0 14px;
+
+    border-radius: 999px;
+
+    font-size: 10px;
+  }
+
+  .order-history-toolbar select {
+    width: 116px;
+    height: 34px;
+    padding: 0 10px;
+
+    border-radius: 8px;
+    background-color: #f5f5f5;
+
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  .order-history-list {
+    margin-top: 0;
+
+    gap: 14px;
+  }
+
+  .order-history-card {
+    border-radius: 14px;
+
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.035);
+  }
+
+  .order-history-card-head {
+    align-items: flex-start;
+
+    min-height: auto;
+    padding: 12px;
+
+    gap: 10px;
+  }
+
+  .order-history-card-head > div {
+    align-items: flex-start;
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+
+    min-width: 0;
+
+    gap: 5px;
+  }
+
+  .order-history-card-head strong {
+    width: 100%;
+
+    font-size: 11px;
+  }
+
+  .order-history-head-divider {
+    display: none;
+  }
+
+  .order-history-card-head span {
+    max-width: 160px;
+
+    overflow: hidden;
+
+    font-size: 9px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .order-history-card-head button {
+    flex: 0 0 auto;
+
+    gap: 3px;
+
+    font-size: 10px;
+  }
+
+  .order-history-card-body {
+    min-height: 0;
+    padding: 12px;
+
+    gap: 14px;
+  }
+
+  .order-history-product {
+    align-items: flex-start;
+
+    gap: 12px;
+  }
+
+  .order-history-product-image {
+    flex-basis: 64px;
+
+    width: 64px;
+    height: 64px;
+
+    border-radius: 12px;
+  }
+
+  .order-history-product-info h2 {
+    font-size: 12px;
+    line-height: 1.35;
+
+    white-space: normal;
+  }
+
+  .order-history-product-info p {
+    margin-top: 5px;
+
+    font-size: 9px;
+  }
+
+  .order-history-product-info > div {
+    margin-top: 7px;
+
+    gap: 6px;
+  }
+
+  .order-history-product-info > div strong {
+    font-size: 11px;
+  }
+
+  .order-history-status {
+    align-items: flex-start;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+
+    min-height: auto;
+    padding: 10px 12px;
+
+    border: 1px solid #ededed;
+    border-radius: 12px;
+
+    background: #fafafa;
+
+    text-align: left;
+    gap: 8px;
+  }
+
+  .order-history-status strong {
+    flex: 0 0 auto;
+
+    min-width: 0;
+    height: 26px;
+    padding: 0 12px;
+
+    font-size: 10px;
+  }
+
+  .order-history-status span {
+    min-width: 0;
+    margin-left: auto;
+    margin-top: 0;
+
+    overflow: hidden;
+
+    font-size: 9px;
+    line-height: 26px;
+    text-align: right;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .order-history-progress {
+    padding: 10px 8px;
+
+    border: 1px solid #ededed;
+    border-radius: 12px;
+
+    background: #fafafa;
+  }
+
+  .order-history-progress.is-cancelled {
+    display: none;
+  }
+
+  .order-history-progress-track {
+    margin: 0 8px;
+  }
+
+  .order-history-progress-labels {
+    margin-top: 7px;
+  }
+
+  .order-history-progress-labels > span {
+    font-size: 8px;
+  }
+
+  .order-history-progress-labels small {
+    font-size: 7px;
+  }
+
+  .order-history-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 8px;
+  }
+
+  .order-history-actions button,
+  .order-history-actions a {
+    height: 38px;
+
+    border-radius: 8px;
+
+    font-size: 10px;
+  }
+
+  .order-history-actions button:only-child,
+  .order-history-actions a:only-child {
+    grid-column: 1 / -1;
+  }
+
+  .order-history-empty,
+  .order-history-loading {
+    min-height: 180px;
+
+    border-radius: 12px;
+  }
+
+  .order-detail-modal,
+  .order-panel-modal {
+    border-radius: 14px;
+  }
+
+  .order-detail-header,
+  .order-panel-header {
+    padding: 18px 18px 14px;
+  }
+
+  .order-detail-body,
+  .order-shipping-body,
+  .order-cancel-body {
+    padding: 16px 18px 18px;
+  }
+
+  .order-detail-info > div,
+  .order-shipping-info > div {
+    grid-template-columns: 86px minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 360px) {
+  .order-history-heading h1 {
+    font-size: 21px;
+  }
+
+  .order-history-summary {
+    gap: 8px;
+  }
+
+  .order-history-summary-card {
+    min-height: 82px;
+    padding: 10px;
+  }
+
+  .order-history-summary-card > strong {
+    font-size: 15px;
+  }
+
+  .order-history-card-head {
+    padding: 11px;
+  }
+
+  .order-history-card-head span {
+    max-width: 135px;
+  }
+
+  .order-history-card-body {
+    padding: 11px;
+  }
+
+  .order-history-product-image {
+    flex-basis: 58px;
+
+    width: 58px;
+    height: 58px;
   }
 }
 

@@ -167,7 +167,7 @@
   padding: 18px 18px 16px;
 
   border: 1px solid #e7e7e7;
-  border-radius: 6px;
+  border-radius: 8px;
 
   background: #fff;
   color: #171717;
@@ -243,12 +243,112 @@
   letter-spacing: -0.03em;
 }
 
+.mypage-desktop-order-status {
+  margin-top: 18px;
+  padding: 16px 22px 14px;
+
+  border: 1px solid #e6e6e6;
+  border-radius: 8px;
+
+  background: #fff;
+
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.025);
+}
+
+.mypage-mobile-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding-bottom: 12px;
+
+  border-bottom: 1px solid #ececec;
+}
+
+.mypage-mobile-section-head h2 {
+  margin: 0;
+
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: -0.035em;
+}
+
+.mypage-mobile-section-head a {
+  display: inline-flex;
+  align-items: center;
+
+  color: #666;
+
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.mypage-mobile-section-head a span {
+  margin-left: 3px;
+
+  color: #999;
+  font-size: 15px;
+  line-height: 1;
+}
+
+.mypage-mobile-step-track {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+
+  padding: 18px 0 4px;
+}
+
+.mypage-mobile-step-item {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+
+  min-width: 0;
+
+  color: inherit;
+  text-align: center;
+  text-decoration: none;
+}
+
+.mypage-mobile-step-item strong {
+  color: #666;
+
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.mypage-mobile-step-item span {
+  margin-top: 7px;
+
+  color: #666;
+
+  font-size: 11px;
+  letter-spacing: -0.04em;
+  line-height: 1.2;
+}
+
+.mypage-mobile-step-item i {
+  position: absolute;
+  top: 2px;
+  right: -3px;
+
+  color: #d0d0d0;
+
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 300;
+}
+
 .mypage-info-card {
   margin-top: 18px;
   padding: 16px 22px 10px;
 
   border: 1px solid #e6e6e6;
-  border-radius: 6px;
+  border-radius: 8px;
 
   background: #fff;
 
@@ -395,7 +495,7 @@
   padding: 18px 20px;
 
   border: 1px solid #e7e7e7;
-  border-radius: 6px;
+  border-radius: 8px;
 
   background: #fff;
 }
@@ -583,7 +683,7 @@
   place-items: center;
 
   border: 1px dashed #d8d8d8;
-  border-radius: 6px;
+  border-radius: 8px;
 
   color: #8b8b8b;
 
@@ -609,7 +709,7 @@
   padding: 18px;
 
   border: 1px solid #e6e6e6;
-  border-radius: 6px;
+  border-radius: 8px;
 
   background: #fff;
 }
@@ -737,7 +837,7 @@
   margin-top: 8px;
 
   border: 1px solid #e7e7e7;
-  border-radius: 6px;
+  border-radius: 8px;
 
   background: #fff;
 
@@ -953,7 +1053,7 @@
   place-items: center;
 
   border: 1px solid #e6e6e6;
-  border-radius: 6px;
+  border-radius: 8px;
 
   background: #fff;
   color: #777;
@@ -965,236 +1065,6 @@
   width: 100%;
   min-height: 160px;
   margin: 0;
-}
-
-@media (max-width: 1024px) {
-  .mypage-shell {
-    grid-template-columns: 180px minmax(0, 1fr);
-
-    width: min(100% - 40px, 1000px);
-  }
-
-  .mypage-sidebar {
-    padding-right: 22px;
-  }
-
-  .mypage-content {
-    padding-left: 24px;
-  }
-
-  .mypage-summary-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .mypage-address-card {
-    grid-template-columns: 1fr;
-    grid-template-areas:
-      'title'
-      'info'
-      'actions';
-    row-gap: 14px;
-  }
-
-  .mypage-address-card-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-
-    row-gap: 16px;
-  }
-
-  .mypage-address-card-grid > div {
-    padding: 0 12px;
-
-    border-left: 0;
-  }
-
-  .mypage-address-card-grid > div:first-child {
-    padding-left: 12px;
-  }
-
-  .mypage-address-card-actions {
-    flex-direction: row;
-
-    width: auto;
-  }
-
-  .mypage-address-card-actions button {
-    min-width: 92px;
-  }
-}
-
-@media (max-width: 760px) {
-  .mypage-page {
-    padding: 78px 0 52px;
-  }
-
-  .mypage-shell {
-    grid-template-columns: 1fr;
-
-    width: calc(100% - 32px);
-  }
-
-  .mypage-sidebar {
-    padding: 0 0 20px;
-
-    border-right: 0;
-    border-bottom: 1px solid #e8e8e8;
-  }
-
-  .mypage-user-panel {
-    flex-direction: row;
-    justify-content: flex-start;
-
-    padding: 0 0 16px;
-
-    gap: 12px;
-
-    text-align: left;
-  }
-
-  .mypage-profile-avatar,
-  .mypage-profile-avatar svg {
-    width: 52px;
-    height: 52px;
-  }
-
-  .mypage-user-name {
-    margin: 0;
-  }
-
-  .mypage-user-email {
-    display: none;
-  }
-
-  .mypage-sidebar-divider {
-    display: none;
-  }
-
-  .mypage-nav {
-    flex-direction: row;
-
-    padding-bottom: 4px;
-
-    overflow-x: auto;
-
-    scrollbar-width: none;
-  }
-
-  .mypage-nav::-webkit-scrollbar {
-    display: none;
-  }
-
-  .mypage-nav-link {
-    flex: 0 0 auto;
-
-    width: auto;
-    min-height: 36px;
-    padding: 0 12px;
-
-    white-space: nowrap;
-  }
-
-  .mypage-logout-button {
-    margin: 0;
-  }
-
-  .mypage-content {
-    padding: 28px 0 0;
-  }
-
-  .mypage-heading {
-    padding-bottom: 24px;
-  }
-
-  .mypage-summary-grid {
-    grid-template-columns: 1fr 1fr;
-
-    gap: 10px;
-  }
-
-  .mypage-info-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .mypage-info-item:nth-child(odd) {
-    border-right: 0;
-  }
-
-  .mypage-info-item:nth-child(even) {
-    padding-left: 0;
-  }
-
-  .mypage-info-card {
-    padding: 14px 18px 8px;
-  }
-
-  .mypage-edit-section {
-    padding: 16px;
-  }
-
-  .mypage-edit-section-header,
-  .mypage-address-title-row {
-    flex-direction: column;
-  }
-
-  .mypage-direct-row {
-    grid-template-columns: 112px minmax(0, 1fr);
-  }
-
-  .mypage-address-card-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .mypage-address-card-grid > div,
-  .mypage-address-card-grid > div:first-child {
-    padding: 0 0 12px;
-
-    border-bottom: 1px solid #eeeeee;
-  }
-
-  .mypage-all-save-bar {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .mypage-all-save-button {
-    width: 100%;
-  }
-
-  .mypage-postcode-row {
-    grid-template-columns: 1fr 120px;
-  }
-}
-
-@media (max-width: 480px) {
-  .mypage-summary-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .mypage-info-toolbar {
-    align-items: flex-start;
-
-    gap: 12px;
-  }
-
-  .mypage-security-badge {
-    max-width: 190px;
-  }
-
-  .mypage-edit-button {
-    padding: 0 12px;
-  }
-
-  .mypage-address-modal-backdrop {
-    padding: 10px;
-  }
-
-  .mypage-postcode-row {
-    grid-template-columns: 1fr;
-  }
-
-  .mypage-postcode-row button {
-    height: 42px;
-  }
 }
 
 .mypage-password-toggle-row {
@@ -1254,21 +1124,6 @@
   to {
     opacity: 1;
     transform: translateY(0);
-  }
-}
-
-@media (max-width: 760px) {
-  .mypage-password-toggle-row {
-    align-items: flex-start;
-    flex-direction: column;
-
-    padding: 16px 0;
-
-    gap: 12px;
-  }
-
-  .mypage-outline-button {
-    width: 100%;
   }
 }
 
@@ -1493,17 +1348,6 @@
   color: #fff;
 }
 
-@media (max-width: 480px) {
-  .mypage-postcode-dialog {
-    width: calc(100% - 20px);
-    height: calc(100vh - 20px);
-  }
-
-  .mypage-password-modal-backdrop {
-    padding: 10px;
-  }
-}
-
 .mypage-save-toast {
   position: fixed;
   top: 50%;
@@ -1518,7 +1362,7 @@
   min-height: 52px;
   padding: 0 24px;
 
-  border-radius: 6px;
+  border-radius: 8px;
 
   background: #111;
   color: #fff;
@@ -1545,13 +1389,6 @@
   }
 }
 
-@media (max-width: 480px) {
-  .mypage-save-toast {
-    width: calc(100% - 40px);
-    min-width: 0;
-  }
-}
-
 .mypage-delete-address-backdrop {
   position: fixed;
   z-index: 1600;
@@ -1570,7 +1407,7 @@
   width: min(430px, 100%);
   padding: 32px 28px 26px;
 
-  border-radius: 10px;
+  border-radius: 8px;
 
   background: #fff;
   color: #111;
@@ -1625,7 +1462,7 @@
   padding: 14px 15px;
 
   border: 1px solid #e5e5e5;
-  border-radius: 6px;
+  border-radius: 8px;
 
   background: #fafafa;
 
@@ -1685,16 +1522,6 @@
   opacity: 0.88;
 }
 
-@media (max-width: 480px) {
-  .mypage-delete-address-backdrop {
-    padding: 14px;
-  }
-
-  .mypage-delete-address-modal {
-    padding: 28px 20px 22px;
-  }
-}
-
 .mypage-inline-logout-backdrop {
   position: fixed;
   z-index: 2200;
@@ -1707,7 +1534,7 @@
 .mypage-inline-logout-modal {
   width: min(420px, 100%);
   padding: 34px 30px 28px;
-  border-radius: 10px;
+  border-radius: 8px;
   background: #fff;
   color: #111;
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.22);

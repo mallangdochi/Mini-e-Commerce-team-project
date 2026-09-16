@@ -770,6 +770,10 @@
     grid-template-columns: 1fr;
   }
 
+  .my-review-status-badge {
+    display: none;
+  }
+
   .my-review-card-body {
     grid-template-columns: 78px minmax(0, 1fr);
   }
