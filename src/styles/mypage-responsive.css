@@ -61,7 +61,7 @@
 
 @media (min-width: 768px) and (max-width: 1024px) {
   .mypage-page {
-    padding: 78px 0 64px;
+    padding: 40px 0 64px;
   }
 
   .mypage-shell {
@@ -138,7 +138,7 @@
   }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 767px) {
   .mypage-page {
     padding: 78px 0 52px;
   }
@@ -227,6 +227,31 @@
     gap: 10px;
   }
 
+  .mypage-summary-card {
+    min-height: 96px;
+    padding: 14px;
+  }
+
+  .mypage-summary-top {
+    margin-bottom: 9px;
+  }
+
+  .mypage-summary-icon,
+  .mypage-summary-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .mypage-summary-arrow {
+    font-size: 20px;
+  }
+
+  .mypage-summary-value {
+    margin-top: 3px;
+
+    font-size: 17px;
+  }
+
   .mypage-info-grid {
     grid-template-columns: 1fr;
   }
@@ -281,7 +306,7 @@
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 767px) {
   .mypage-page {
     padding: 0px 0 0;
 
@@ -292,10 +317,11 @@
     display: flex;
     flex-direction: column;
 
-    width: min(100%, 375px);
+    width: 100%;
+    max-width: 767px;
     min-height: calc(100vh - 56px);
     margin: 0 auto;
-    padding: 0 14px 28px;
+    padding: 0 clamp(14px, 4vw, 28px) 32px;
 
     background: #fff;
   }
@@ -344,11 +370,15 @@
     align-items: flex-start;
     justify-content: space-between;
 
-    padding: 30px 20px 30px;
+    padding: clamp(30px, 5vw, 42px) clamp(20px, 5.2vw, 40px);
 
     background: #fff;
 
     gap: 12px;
+  }
+
+  .mypage-mobile-greeting > div {
+    min-width: 0;
   }
 
   .mypage-mobile-greeting h1 {
@@ -374,7 +404,7 @@
   .mypage-mobile-greeting p {
     overflow: hidden;
 
-    max-width: 230px;
+    max-width: 100%;
     margin: 5px 0 0;
 
     color: #777;
@@ -410,12 +440,12 @@
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
 
-    margin: 0 16px;
-    padding: 14px 0 12px;
+    margin: 0 clamp(16px, 5.2vw, 40px);
+    padding: clamp(14px, 2.6vw, 20px) 0 clamp(12px, 2.4vw, 18px);
 
     border-top: 1px solid #f0f0f0;
 
-    gap: 4px;
+    gap: clamp(4px, 1.5vw, 12px);
   }
 
   .mypage-mobile-stat-item {
@@ -425,7 +455,7 @@
     justify-content: center;
 
     min-width: 0;
-    min-height: 64px;
+    min-height: clamp(64px, 11vw, 86px);
     padding: 6px 2px;
 
     border-radius: 8px;
@@ -478,7 +508,7 @@
 
   .mypage-mobile-order-status {
     margin-top: 0;
-    padding: 14px 16px 12px;
+    padding: clamp(14px, 3vw, 22px) clamp(16px, 5.2vw, 40px) clamp(12px, 2.8vw, 20px);
 
     border-top: 10px solid #f4f5f6;
     background: #fff;
@@ -525,7 +555,7 @@
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
 
-    padding: 14px 0 4px;
+    padding: clamp(14px, 3vw, 22px) 0 4px;
   }
 
   .mypage-mobile-step-item {
@@ -577,7 +607,7 @@
   }
 
   .mypage-mobile-menu-group {
-    padding: 14px 16px 4px;
+    padding: clamp(14px, 3vw, 22px) clamp(16px, 5.2vw, 40px) 4px;
 
     border-top: 8px solid #f4f5f6;
   }
@@ -644,7 +674,7 @@
   }
 
   .mypage-mobile-bottom-actions {
-    padding: 18px 16px 26px;
+    padding: 18px clamp(16px, 5.2vw, 40px) 26px;
 
     border-top: 8px solid #f4f5f6;
     background: #fff;
@@ -884,7 +914,7 @@
   }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 767px) {
   .mypage-password-toggle-row {
     align-items: flex-start;
     flex-direction: column;
@@ -899,7 +929,7 @@
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 767px) {
   .mypage-postcode-dialog {
     width: calc(100% - 20px);
     height: calc(100vh - 20px);
@@ -910,14 +940,14 @@
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 767px) {
   .mypage-save-toast {
     width: calc(100% - 40px);
     min-width: 0;
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 767px) {
   .mypage-delete-address-backdrop {
     padding: 14px;
   }
