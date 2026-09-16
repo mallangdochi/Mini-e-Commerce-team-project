@@ -878,6 +878,8 @@
     border-bottom: 1px solid #e6e8eb;
 
     background: #fff;
+
+    overflow: hidden;
   }
 
   .product-page .responsive-category-track {

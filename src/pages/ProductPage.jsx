@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+
 import { getProductFilters, getProducts, getSets, searchProducts } from '@/api/products';
 import { addWishlist, getWishlist, removeWishlist } from '@/api/wishlist';
 import '@/styles/product-page.css';
@@ -350,34 +351,6 @@ function IconChevronDown() {
   );
 }
 
-function IconChevronLeft() {
-  return (
-    <svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M15 18L9 12L15 6"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function IconChevronRight() {
-  return (
-    <svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M9 18L15 12L9 6"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
 function IconFilter() {
   return (
     <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
@@ -508,7 +481,6 @@ function ProductPage() {
   const requestInFlightRef = useRef(false);
   const filterRequestIdRef = useRef(0);
   const sortRef = useRef(null);
-  const responsiveCategoryRef = useRef(null);
   const searchParamsRef = useRef(searchParams);
   const searchDebounceTimerRef = useRef(null);
 
@@ -622,13 +594,6 @@ function ProductPage() {
   const handleCategoryClick = () => {
     cancelPendingSearchSync();
     setSearchInput('');
-  };
-
-  const scrollResponsiveCategory = (direction) => {
-    responsiveCategoryRef.current?.scrollBy({
-      left: direction * 140,
-      behavior: 'smooth',
-    });
   };
 
   const selectSortType = (nextSortType) => {
@@ -820,16 +785,22 @@ function ProductPage() {
           page: targetPage,
           limit: PRODUCTS_PER_LOAD,
         };
+        const hasAllColorsApplied =
+          filterOptions.colors.length > 0 &&
+          appliedFilters.color.length === filterOptions.colors.length;
+        const hasAllSizesApplied =
+          filterOptions.sizes.length > 0 &&
+          appliedFilters.size.length === filterOptions.sizes.length;
 
         if (activeCategory.subCategoryId) {
           params.subCategoryId = activeCategory.subCategoryId;
         }
 
-        if (appliedFilters.color.length > 0) {
+        if (appliedFilters.color.length > 0 && !hasAllColorsApplied) {
           params.color = appliedFilters.color.join(',');
         }
 
-        if (appliedFilters.size.length > 0) {
+        if (appliedFilters.size.length > 0 && !hasAllSizesApplied) {
           params.size = appliedFilters.size.join(',');
         }
 
@@ -1257,6 +1228,8 @@ function ProductPage() {
             <div className="category-heading">
               <h2>{gender === 'men' ? '남성복' : '여성복'}</h2>
             </div>
+
+            <div className="mobile-category-actions" />
           </div>
 
           {/* ================================
@@ -1264,8 +1237,6 @@ function ProductPage() {
           ================================ */}
 
           <div className="product-filter-bar">
-            <span className="product-mobile-result-count">{displayedProducts.length}개</span>
-
             <div className="product-filter-bar-left">
               <div className="product-sort" ref={sortRef}>
                 <button
@@ -1299,11 +1270,7 @@ function ProductPage() {
                 )}
               </div>
 
-              <button
-                type="button"
-                className="filter-btn product-filter-open-btn"
-                onClick={() => setIsFilterOpen(true)}
-              >
+              <button type="button" className="filter-btn" onClick={() => setIsFilterOpen(true)}>
                 <IconFilter />
 
                 <span>전체 필터</span>
@@ -1386,39 +1353,6 @@ function ProductPage() {
   ================================ */}
 
             <form className="filter-drawer-body" onSubmit={(e) => e.preventDefault()}>
-              <section className="filter-section filter-mobile-summary-section">
-                <div className="filter-mobile-summary-row">
-                  <label className="product-stock-toggle product-stock-toggle--drawer">
-                    <input
-                      type="checkbox"
-                      checked={excludeSoldOut}
-                      onChange={(e) => setExcludeSoldOut(e.target.checked)}
-                    />
-
-                    <span className="product-stock-toggle-track" aria-hidden="true" />
-
-                    <span>품절 제외</span>
-                  </label>
-                </div>
-
-                {activeFilterTags.length > 0 && (
-                  <div className="filter-drawer-tags">
-                    {activeFilterTags.map((filter) => (
-                      <FilterTag
-                        key={`drawer-${filter.id}`}
-                        label={filter.label}
-                        color={filter.color}
-                        onRemove={() => removeAppliedFilter(filter.type)}
-                      />
-                    ))}
-
-                    <button type="button" className="product-filter-clear" onClick={clearAllFilters}>
-                      전체 해제
-                    </button>
-                  </div>
-                )}
-              </section>
-
               {/* ================================
         컬러
     ================================ */}
@@ -1639,8 +1573,6 @@ function ProductPage() {
 
           <div className="product-active-filters">
             <div className="product-active-filters-list">
-              <span className="product-result-count">{displayedProducts.length}개 상품</span>
-
               {activeFilterTags.map((filter) => (
                 <FilterTag
                   key={filter.id}
@@ -1676,41 +1608,21 @@ function ProductPage() {
     태블릿 / 모바일 카테고리
 ================================ */}
           <nav className="responsive-category-nav" aria-label="카테고리">
-            <button
-              type="button"
-              className="responsive-category-arrow"
-              onClick={() => scrollResponsiveCategory(-1)}
-              aria-label="이전 카테고리"
-            >
-              <IconChevronLeft />
-            </button>
+            {CATEGORY_NAV.map((item) => {
+              const active = item.value === activeCategory.sidebarValue;
 
-            <div className="responsive-category-track" ref={responsiveCategoryRef}>
-              {CATEGORY_NAV.map((item) => {
-                const active = item.value === activeCategory.sidebarValue;
-
-                return (
-                  <Link
-                    key={`responsive-${item.label}`}
-                    to={getCategoryLink(item)}
-                    onClick={handleCategoryClick}
-                    className={`responsive-category-link${active ? ' is-active' : ''}`}
-                    aria-current={active ? 'page' : undefined}
-                  >
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </div>
-
-            <button
-              type="button"
-              className="responsive-category-arrow"
-              onClick={() => scrollResponsiveCategory(1)}
-              aria-label="다음 카테고리"
-            >
-              <IconChevronRight />
-            </button>
+              return (
+                <Link
+                  key={`responsive-${item.label}`}
+                  to={getCategoryLink(item)}
+                  onClick={handleCategoryClick}
+                  className={`responsive-category-link${active ? ' is-active' : ''}`}
+                  aria-current={active ? 'page' : undefined}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
           </nav>
 
           {/* ================================
