@@ -1,4 +1,5 @@
-import { Route, Routes } from 'react-router-dom';
+import { useLayoutEffect } from 'react';
+import { Route, Routes, useLocation } from 'react-router-dom';
 
 import Layout from '@/components/layout/Layout';
 import CartPage from '@/pages/CartPage';
@@ -21,6 +22,20 @@ import TermsPage from '@/pages/TermsPage';
 import WishlistPage from '@/pages/WishlistPage';
 
 function AppRouter() {
+  const { pathname } = useLocation();
+
+  useLayoutEffect(() => {
+    const previousScrollRestoration = window.history.scrollRestoration;
+    window.history.scrollRestoration = 'manual';
+
+    return () => {
+      window.history.scrollRestoration = previousScrollRestoration;
+    };
+  }, []);
+
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [pathname]);
   return (
     <Routes>
       <Route element={<Layout />}>
