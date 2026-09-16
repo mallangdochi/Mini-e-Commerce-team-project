@@ -100,6 +100,7 @@
 .product-page .product-sidebar-nav {
   display: flex;
   flex-direction: column;
+  padding-top: 55px;
 }
 
 .product-page .product-sidebar-link {
@@ -110,6 +111,8 @@
   margin-left: -14px;
   padding: 17px 14px;
 
+  border-bottom: 1px solid #dadada;
+
   color: #b5bcc7;
 
   font-size: 20px;
@@ -118,25 +121,19 @@
   letter-spacing: 0.05em;
 
   text-decoration: none;
-
-  transition:
-    color 0.25s ease,
-    transform 0.25s ease;
 }
 
-/* 밑줄 */
+/* 기본 보더 위로 채워지는 라인 */
 .product-page .product-sidebar-link::after {
   content: '';
 
   position: absolute;
 
+  right: 0;
+  bottom: -1px;
   left: 0;
-  bottom: 17px;
 
-  width: 123px;
-  height: 2px;
-
-  border-radius: 9999px;
+  height: 1px;
 
   background: #0b0c0e;
 
@@ -149,8 +146,6 @@
 /* 모든 메뉴 hover */
 .product-page .product-sidebar-link:hover {
   color: #111;
-
-  transform: translateX(6px);
 }
 
 .product-page .product-sidebar-link.is-active {
@@ -161,13 +156,10 @@
   color: #111;
 }
 
-.product-page .product-sidebar-link:hover::after {
-  transform: scaleX(1);
-}
-
+.product-page .product-sidebar-link:hover::after,
 .product-page .product-sidebar-link.is-active::after,
 .product-page .product-sidebar-link.is-active:hover::after {
-  transform: scaleX(0);
+  transform: scaleX(1);
 }
 
 /* ===== breadcrumb ===== */
@@ -178,7 +170,7 @@
   gap: 7px;
 
   margin-bottom: 10px;
-
+  padding-top: 40px;
   color: #90959d;
 
   font-size: 12px;
@@ -198,7 +190,7 @@
 
 .product-page .category-heading {
   margin-bottom: 20px;
-  padding-bottom: 16px;
+  padding-bottom: 20px;
 
   border-bottom: 1px solid #dadada;
 }
