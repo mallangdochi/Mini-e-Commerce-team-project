@@ -376,14 +376,11 @@ function Header() {
               xmlns="http://www.w3.org/2000/svg"
               width="16"
               height="16"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth="1.7"
-              strokeLinecap="round"
+              fill="currentColor"
+              viewBox="0 0 256 256"
+              aria-hidden="true"
             >
-              <circle cx="11" cy="11" r="7.5" />
-              <line x1="16.5" x2="21.5" y1="16.5" y2="21.5" />
+              <path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z" />
             </svg>
           </button>
 
@@ -432,7 +429,10 @@ function Header() {
                 <Link to="/mypage/wishlist" onClick={() => setAccountMenuOpen(false)}>
                   찜한 상품
                 </Link>
-                <LogoutConfirmButton className="site-account-dropdown-logout" />
+                <LogoutConfirmButton
+                  className="site-account-dropdown-logout"
+                  onOpen={() => setAccountMenuOpen(false)}
+                />
               </div>
             </div>
           )}
@@ -626,15 +626,11 @@ function Header() {
             <svg
               className="site-mobile-search-icon"
               xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.7"
-              strokeLinecap="round"
+              viewBox="0 0 256 256"
+              fill="currentColor"
               aria-hidden="true"
             >
-              <circle cx="11" cy="11" r="7.5" />
-              <line x1="16.5" x2="21.5" y1="16.5" y2="21.5" />
+              <path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z" />
             </svg>
 
             <input

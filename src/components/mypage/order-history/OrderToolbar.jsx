@@ -16,17 +16,21 @@ function OrderToolbar({ selectedTab, periodMonths, onTabChange, onPeriodChange }
         ))}
       </div>
 
-      <select
-        value={periodMonths}
-        onChange={(event) => onPeriodChange(Number(event.target.value))}
-        aria-label="주문 조회 기간"
-      >
-        {PERIOD_OPTIONS.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+      <div className="order-history-period-control">
+        <span>조회 기간</span>
+
+        <select
+          value={periodMonths}
+          onChange={(event) => onPeriodChange(Number(event.target.value))}
+          aria-label="주문 조회 기간"
+        >
+          {PERIOD_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
     </div>
   );
 }
