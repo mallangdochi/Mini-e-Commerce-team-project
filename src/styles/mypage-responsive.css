@@ -712,7 +712,7 @@
   }
 
   .mypage-summary-label {
-    font-size: 11px;
+    font-size: 13px;
   }
 
   .mypage-summary-value {
@@ -779,7 +779,7 @@
   .mypage-info-item strong {
     min-width: 0;
 
-    font-size: 12px;
+    font-size: 15px;
     text-align: right;
     overflow-wrap: anywhere;
   }
@@ -787,7 +787,7 @@
   .mypage-info-label {
     flex: 0 0 auto;
 
-    font-size: 11px;
+    font-size: 15px;
   }
 
   .mypage-sidebar {

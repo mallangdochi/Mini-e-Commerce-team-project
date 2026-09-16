@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { handleAddToCart } from '@/api/alert';
@@ -70,6 +70,8 @@ function ProductDetailPage() {
   const [loadError, setLoadError] = useState('');
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+
+  const thumbnailListRef = useRef(null);
 
   const [selectedColor, setSelectedColor] = useState('');
   const [selectedSize, setSelectedSize] = useState('');
@@ -240,6 +242,43 @@ function ProductDetailPage() {
       name: `상품 ${id}`,
     })) ??
     [];
+
+  const handleThumbnailScroll = (direction) => {
+    const list = thumbnailListRef.current;
+
+    if (!list) {
+      return;
+    }
+
+    const thumbnail = list.querySelector('.thumbnail');
+
+    if (!thumbnail) {
+      return;
+    }
+
+    const styles = window.getComputedStyle(list);
+    const gap = Number.parseFloat(styles.columnGap || styles.gap || '0') || 0;
+    const scrollAmount = thumbnail.getBoundingClientRect().width + gap;
+
+    list.scrollBy({
+      left: direction === 'next' ? scrollAmount : -scrollAmount,
+      behavior: 'smooth',
+    });
+  };
+
+  const handleMobileImageChange = (direction) => {
+    if (imageList.length <= 1) {
+      return;
+    }
+
+    setActiveImageIndex((currentIndex) => {
+      if (direction === 'next') {
+        return (currentIndex + 1) % imageList.length;
+      }
+
+      return (currentIndex - 1 + imageList.length) % imageList.length;
+    });
+  };
 
   const handleDecreaseQuantity = () => {
     setQuantity((currentQuantity) => Math.max(1, currentQuantity - 1));
@@ -458,27 +497,77 @@ function ProductDetailPage() {
 
       <section className="product-layout">
         <div className="product-gallery">
-          <div className="thumbnail-list">
-            {thumbnailImages.map(({ image, index }) => (
+          <div className="thumbnail-carousel">
+            {thumbnailImages.length > 4 && (
               <button
-                key={`${image}-${index}`}
                 type="button"
-                className="thumbnail"
-                aria-label={`상품 이미지 ${index + 1}`}
-                aria-pressed={index === activeImageIndex}
-                onClick={() => setActiveImageIndex(index)}
+                className="thumbnail-arrow thumbnail-arrow--prev"
+                aria-label="이전 상품 이미지"
+                onClick={() => handleThumbnailScroll('prev')}
               >
-                <ProductImage
-                  src={image}
-                  alt={`${product.name} ${index + 1}`}
-                  placeholder={`IMAGE ${index + 1}`}
-                />
+                ‹
               </button>
-            ))}
+            )}
+
+            <div className="thumbnail-list" ref={thumbnailListRef}>
+              {thumbnailImages.map(({ image, index }) => (
+                <button
+                  key={`${image}-${index}`}
+                  type="button"
+                  className="thumbnail"
+                  aria-label={`상품 이미지 ${index + 1}`}
+                  aria-pressed={index === activeImageIndex}
+                  onClick={() => setActiveImageIndex(index)}
+                >
+                  <ProductImage
+                    src={image}
+                    alt={`${product.name} ${index + 1}`}
+                    placeholder={`IMAGE ${index + 1}`}
+                  />
+                </button>
+              ))}
+            </div>
+
+            {thumbnailImages.length > 4 && (
+              <button
+                type="button"
+                className="thumbnail-arrow thumbnail-arrow--next"
+                aria-label="다음 상품 이미지"
+                onClick={() => handleThumbnailScroll('next')}
+              >
+                ›
+              </button>
+            )}
           </div>
 
           <div className="main-image">
             <ProductImage src={activeImage} alt={product.name} />
+
+            {imageList.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  className="mobile-main-image-arrow mobile-main-image-arrow--prev"
+                  aria-label="이전 상품 이미지"
+                  onClick={() => handleMobileImageChange('prev')}
+                >
+                  ‹
+                </button>
+
+                <button
+                  type="button"
+                  className="mobile-main-image-arrow mobile-main-image-arrow--next"
+                  aria-label="다음 상품 이미지"
+                  onClick={() => handleMobileImageChange('next')}
+                >
+                  ›
+                </button>
+
+                <span className="mobile-image-count" aria-hidden="true">
+                  {activeImageIndex + 1} / {imageList.length}
+                </span>
+              </>
+            )}
           </div>
         </div>
 
