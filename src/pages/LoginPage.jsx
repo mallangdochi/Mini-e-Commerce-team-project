@@ -94,7 +94,12 @@ function LoginPage() {
                   required
                 />
                 {identifier && (
-                  <button type="button" className="clear-btn" onClick={() => setIdentifier('')}>
+                  <button
+                    type="button"
+                    className="clear-btn"
+                    tabIndex={-1}
+                    onClick={() => setIdentifier('')}
+                  >
                     ✕
                   </button>
                 )}
@@ -114,7 +119,12 @@ function LoginPage() {
                   required
                 />
                 {password && (
-                  <button type="button" className="clear-btn" onClick={() => setPassword('')}>
+                  <button
+                    type="button"
+                    className="clear-btn"
+                    tabIndex={-1}
+                    onClick={() => setPassword('')}
+                  >
                     ✕
                   </button>
                 )}
