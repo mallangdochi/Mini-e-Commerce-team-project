@@ -87,7 +87,7 @@ function FooterSection({ section, isOpen, onToggle }) {
               </a>
             ) : (
               <span key={`${section.id}-${item.label}`}>{item.label}</span>
-            ),
+            )
           )}
         </LinkWrapper>
       </div>
@@ -140,9 +140,7 @@ function Footer() {
           </div>
         </div>
 
-        <p className="footer-copyright">
-          © 2026 404.4조를 찾을 수 없음. All rights reserved.
-        </p>
+        <p className="footer-copyright">© 2026 404.4조를 찾을 수 없음. All rights reserved.</p>
       </div>
     </footer>
   );
