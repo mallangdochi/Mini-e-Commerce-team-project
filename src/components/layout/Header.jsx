@@ -429,7 +429,10 @@ function Header() {
                 <Link to="/mypage/wishlist" onClick={() => setAccountMenuOpen(false)}>
                   찜한 상품
                 </Link>
-                <LogoutConfirmButton className="site-account-dropdown-logout" />
+                <LogoutConfirmButton
+                  className="site-account-dropdown-logout"
+                  onOpen={() => setAccountMenuOpen(false)}
+                />
               </div>
             </div>
           )}
