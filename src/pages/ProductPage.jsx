@@ -593,6 +593,11 @@ function ProductPage() {
   const handleCategoryClick = () => {
     cancelPendingSearchSync();
     setSearchInput('');
+
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    });
   };
 
   const selectSortType = (nextSortType) => {
