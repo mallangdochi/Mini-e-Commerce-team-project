@@ -119,7 +119,7 @@
   align-items: center;
   justify-content: center;
 
-  min-width: 96px;
+  min-width: 103px;
   height: 40px;
   padding: 0 18px;
 
@@ -832,7 +832,7 @@
   }
 }
 
-@media (max-width: 620px) {
+@media (max-width: 767px) {
   .inquiry-heading > button {
     width: 100%;
   }
@@ -858,6 +858,16 @@
 
   .inquiry-title {
     padding-right: 8px;
+  }
+
+  .inquiry-tabs button span,
+  .inquiry-status-badge,
+  .inquiry-date,
+  .inquiry-detail-meta span,
+  .inquiry-question-actions button,
+  .inquiry-waiting-note,
+  .inquiry-contact-note {
+    font-size: 10px;
   }
 
   .inquiry-modal-backdrop {
