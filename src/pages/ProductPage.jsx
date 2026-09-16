@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { getProductFilters, getProducts, getSets, searchProducts } from '@/api/products';
-import { addWishlist, getWishlist, removeWishlist } from '@/api/wishlist';
+import useWishlistStore from '@/store/wishlistStore';
 import { getAccessToken } from '@/utils/storage';
 import '@/styles/product-page.css';
 
@@ -242,28 +242,6 @@ function toggleMultiValue(currentValues, nextValue) {
   }
 
   return [...currentValues, nextValue];
-}
-
-function getWishlistItems(response) {
-  const data = response?.data ?? response;
-
-  if (Array.isArray(data)) {
-    return data;
-  }
-
-  if (Array.isArray(data?.items)) {
-    return data.items;
-  }
-
-  if (Array.isArray(data?.wishlist)) {
-    return data.wishlist;
-  }
-
-  return [];
-}
-
-function getWishlistId(item, productId) {
-  return item?.id ?? item?.wishlistId ?? item?.wishId ?? productId;
 }
 
 function getSortTypeFromParams(searchParams) {
@@ -525,9 +503,26 @@ function ProductPage() {
   const [isSortOpen, setIsSortOpen] = useState(false);
 
   const [excludeSoldOut, setExcludeSoldOut] = useState(true);
-  const [wishlistByProductId, setWishlistByProductId] = useState({});
+  const wishlistItems = useWishlistStore((state) => state.items);
+  const toggleWishlistItem = useWishlistStore((state) => state.toggleItem);
   const [wishlistLoadingIds, setWishlistLoadingIds] = useState(() => new Set());
   const [searchInput, setSearchInput] = useState(searchQuery);
+
+  const wishlistByProductId = useMemo(
+    () =>
+      wishlistItems.reduce((acc, item) => {
+        const itemProductId = Number(
+          item?.productId ?? item?.product?.productId ?? item?.product?.id ?? item?.id
+        );
+
+        if (Number.isFinite(itemProductId)) {
+          acc[itemProductId] = item?.wishlistId ?? item?.id ?? `local-${itemProductId}`;
+        }
+
+        return acc;
+      }, {}),
+    [wishlistItems]
+  );
 
   const resetFilters = () => {
     setSelectedColor([]);
@@ -971,51 +966,7 @@ function ProductPage() {
     };
   }, [searchQuery]);
 
-  useEffect(() => {
-    const accessToken = getAccessToken();
-
-    if (!accessToken) {
-      return;
-    }
-
-    let isMounted = true;
-
-    const fetchWishlist = async () => {
-      try {
-        const response = await getWishlist();
-
-        if (!isMounted) {
-          return;
-        }
-
-        const nextWishlist = getWishlistItems(response).reduce((acc, item) => {
-          const productId = Number(
-            item?.productId ?? item?.product?.productId ?? item?.product?.id
-          );
-
-          if (Number.isFinite(productId)) {
-            acc[productId] = getWishlistId(item, productId);
-          }
-
-          return acc;
-        }, {});
-
-        setWishlistByProductId(nextWishlist);
-      } catch {
-        if (isMounted) {
-          setWishlistByProductId({});
-        }
-      }
-    };
-
-    fetchWishlist();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  const handleWishlist = async (product) => {
+  const handleWishlist = (product) => {
     const accessToken = getAccessToken();
 
     if (!accessToken) {
@@ -1023,40 +974,20 @@ function ProductPage() {
       return;
     }
 
-    const productId = Number(product.productId);
+    const productId = Number(product.productId ?? product.id);
 
     if (!Number.isFinite(productId) || wishlistLoadingIds.has(productId)) {
       return;
     }
 
-    const wishlistId = wishlistByProductId[productId];
-    const isFavorite = Boolean(wishlistId);
-
     setWishlistLoadingIds((prev) => new Set(prev).add(productId));
 
     try {
-      if (isFavorite) {
-        await removeWishlist(wishlistId);
-
-        setWishlistByProductId((prev) => {
-          const next = { ...prev };
-
-          delete next[productId];
-
-          return next;
-        });
-
-        return;
-      }
-
-      const response = await addWishlist(productId);
-      const responseData = response?.data ?? response;
-      const nextWishlistId = getWishlistId(responseData, productId);
-
-      setWishlistByProductId((prev) => ({
-        ...prev,
-        [productId]: nextWishlistId,
-      }));
+      toggleWishlistItem({
+        ...product,
+        id: product.id ?? productId,
+        productId,
+      });
     } catch (error) {
       alert(error.message || '찜 상태를 변경하지 못했습니다.');
     } finally {

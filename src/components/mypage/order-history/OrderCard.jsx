@@ -22,7 +22,7 @@ function OrderCard({
     step: -1,
   };
   const imageUrl = getOrderImage(order, detail);
-  const optionText = getOptionText(detail);
+  const optionText = getOptionText(detail, order);
   const finalAmount = Number(order.finalAmount ?? detail?.finalAmount ?? 0);
   const totalItemCount = Number(order.totalItemCount ?? detail?.items?.length ?? 1);
   const canCancel = order.orderStatus === 'paymentCompleted' || order.orderStatus === 'preparing';

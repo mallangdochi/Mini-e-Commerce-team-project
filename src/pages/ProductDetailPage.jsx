@@ -2,10 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { handleAddToCart } from '@/api/alert';
-import { getAccessToken, getStoredUser, updateStoredSummary } from '@/utils/storage';
+import { getAccessToken } from '@/utils/storage';
 import { useCartStore } from '@/store/cartStore';
 import { getProduct, getSet } from '@/api/products';
-import { addWishlist, getWishlist, removeWishlist } from '@/api/wishlist';
+import useWishlistStore from '@/store/wishlistStore';
 import '@/styles/product-detail.css';
 
 const COLOR_MAP = {
@@ -79,9 +79,8 @@ function ProductDetailPage() {
   const [quantity, setQuantity] = useState(1);
 
   const [cartMessages, setCartMessages] = useState([]);
-  const [wishlistId, setWishlistId] = useState(null);
-  const [isWishlisted, setIsWishlisted] = useState(false);
-  const [isWishlistLoading, setIsWishlistLoading] = useState(false);
+  const wishlistItems = useWishlistStore((state) => state.items);
+  const toggleWishlistItem = useWishlistStore((state) => state.toggleItem);
 
   const [activeDetailTab, setActiveDetailTab] = useState('info');
 
@@ -137,50 +136,14 @@ function ProductDetailPage() {
     };
   }, [isSet, productId]);
 
-  useEffect(() => {
-    const accessToken = getAccessToken();
+  const isWishlisted = wishlistItems.some((item) => {
+    const itemProductId = Number(
+      item?.productId ?? item?.product?.productId ?? item?.product?.id ?? item?.id
+    );
+    const currentProductId = Number(product?.productId ?? product?.id ?? productId);
 
-    if (!accessToken || !productId) {
-      return undefined;
-    }
-
-    let isMounted = true;
-
-    const syncWishlist = async () => {
-      try {
-        const response = await getWishlist();
-        const data = response?.data ?? response;
-        const items = Array.isArray(data)
-          ? data
-          : Array.isArray(data?.items)
-            ? data.items
-            : Array.isArray(data?.wishlist)
-              ? data.wishlist
-              : [];
-        const matched = items.find(
-          (item) => Number(item.productId ?? item.product?.id) === Number(productId)
-        );
-
-        if (!isMounted) {
-          return;
-        }
-
-        setWishlistId(matched?.id ?? matched?.wishlistId ?? null);
-        setIsWishlisted(Boolean(matched));
-      } catch {
-        if (isMounted) {
-          setWishlistId(null);
-          setIsWishlisted(false);
-        }
-      }
-    };
-
-    syncWishlist();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [productId]);
+    return itemProductId === currentProductId;
+  });
 
   const imageList = useMemo(() => getImageList(product), [product]);
 
@@ -303,8 +266,8 @@ function ProductDetailPage() {
     });
   };
 
-  const handleWishlistToggle = async () => {
-    if (isWishlistLoading || !product) {
+  const handleWishlistToggle = () => {
+    if (!product) {
       return;
     }
 
@@ -313,69 +276,21 @@ function ProductDetailPage() {
       return;
     }
 
-    setIsWishlistLoading(true);
-
     try {
-      if (isWishlisted) {
-        let targetWishlistId = wishlistId;
+      const normalizedProductId = Number(product.productId ?? product.id ?? productId);
 
-        if (!targetWishlistId) {
-          const wishlistResponse = await getWishlist();
-          const wishlistData = wishlistResponse?.data ?? wishlistResponse;
-          const wishlistItems = Array.isArray(wishlistData)
-            ? wishlistData
-            : Array.isArray(wishlistData?.items)
-              ? wishlistData.items
-              : Array.isArray(wishlistData?.wishlist)
-                ? wishlistData.wishlist
-                : [];
-          const matched = wishlistItems.find(
-            (item) => Number(item.productId ?? item.product?.id) === Number(product.id ?? productId)
-          );
-
-          targetWishlistId = matched?.id ?? matched?.wishlistId ?? null;
-        }
-
-        if (targetWishlistId) {
-          await removeWishlist(targetWishlistId);
-          const currentCount = Number(getStoredUser()?.wishlistCount ?? 0);
-          updateStoredSummary({ wishlistCount: Math.max(0, currentCount - 1) });
-        }
-
-        setWishlistId(null);
-        setIsWishlisted(false);
-        return;
+      if (!Number.isFinite(normalizedProductId)) {
+        throw new Error('상품 정보를 확인할 수 없습니다.');
       }
 
-      const response = await addWishlist(Number(product.id ?? productId));
-      const data = response?.data ?? response;
-      let nextWishlistId = data?.id ?? data?.wishlistId ?? data?.data?.id ?? null;
-
-      if (!nextWishlistId) {
-        const wishlistResponse = await getWishlist();
-        const wishlistData = wishlistResponse?.data ?? wishlistResponse;
-        const wishlistItems = Array.isArray(wishlistData)
-          ? wishlistData
-          : Array.isArray(wishlistData?.items)
-            ? wishlistData.items
-            : Array.isArray(wishlistData?.wishlist)
-              ? wishlistData.wishlist
-              : [];
-        const matched = wishlistItems.find(
-          (item) => Number(item.productId ?? item.product?.id) === Number(product.id ?? productId)
-        );
-
-        nextWishlistId = matched?.id ?? matched?.wishlistId ?? null;
-      }
-
-      const currentCount = Number(getStoredUser()?.wishlistCount ?? 0);
-      updateStoredSummary({ wishlistCount: currentCount + 1 });
-      setWishlistId(nextWishlistId);
-      setIsWishlisted(true);
+      toggleWishlistItem({
+        ...product,
+        id: product.id ?? normalizedProductId,
+        productId: normalizedProductId,
+        productType: isSet ? 'set' : (product.productType ?? 'product'),
+      });
     } catch (error) {
       alert(error.message || '찜한 상품 상태를 변경하지 못했습니다.');
-    } finally {
-      setIsWishlistLoading(false);
     }
   };
 
@@ -750,7 +665,6 @@ function ProductDetailPage() {
                 className={`wish-button${isWishlisted ? ' is-active' : ''}`}
                 aria-label={isWishlisted ? '위시리스트에서 삭제' : '위시리스트에 추가'}
                 aria-pressed={isWishlisted}
-                disabled={isWishlistLoading}
                 onClick={handleWishlistToggle}
               >
                 {isWishlisted ? '♥' : '♡'}

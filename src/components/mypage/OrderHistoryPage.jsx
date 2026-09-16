@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import EmptyState from '@/components/common/EmptyState';
@@ -15,6 +15,7 @@ import OrderToolbar from './order-history/OrderToolbar';
 import ShippingModal from './order-history/ShippingModal';
 import {
   ORDER_TABS,
+  hasOrderDisplayMetadata,
   isWithinPeriod,
   matchesTab,
   normalizeImageUrl,
@@ -36,6 +37,7 @@ function OrderHistoryPage() {
     orderDetails,
     errorMessage,
     loadOrderDetail,
+    loadOrderDetails,
     isOrderDetailLoading,
     cancelOrderById,
   } = useOrders();
@@ -50,6 +52,7 @@ function OrderHistoryPage() {
   const [cancelStage, setCancelStage] = useState('idle');
   const [cancelError, setCancelError] = useState('');
   const [repurchaseOrderId, setRepurchaseOrderId] = useState(null);
+  const displayPrefetchRef = useRef(new Set());
 
   const couponCount = Number(user?.couponCount ?? user?.availableCouponCount ?? 0);
   const pointBalance = Number(user?.points ?? user?.pointBalance ?? user?.mileage ?? 0);
@@ -62,6 +65,26 @@ function OrderHistoryPage() {
       );
     });
   }, [orders, periodMonths, selectedTab]);
+
+  const missingDisplayOrderIds = useMemo(() => {
+    return filteredOrders
+      .filter((order) => !hasOrderDisplayMetadata(order, orderDetails[order.orderId]))
+      .map((order) => order.orderId)
+      .filter(Boolean);
+  }, [filteredOrders, orderDetails]);
+
+  useEffect(() => {
+    const targetIds = missingDisplayOrderIds.filter(
+      (orderId) => !displayPrefetchRef.current.has(String(orderId))
+    );
+
+    if (targetIds.length === 0) {
+      return;
+    }
+
+    targetIds.forEach((orderId) => displayPrefetchRef.current.add(String(orderId)));
+    void loadOrderDetails(targetIds, { force: true });
+  }, [loadOrderDetails, missingDisplayOrderIds]);
 
   const selectedOrder = selectedOrderId
     ? orders.find((order) => order.orderId === selectedOrderId)
