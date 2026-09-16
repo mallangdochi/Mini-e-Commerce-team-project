@@ -1,12 +1,14 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { cloneElement, isValidElement, useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 import ConfirmModal from '@/components/common/ConfirmModal';
 import MyPageSidebar from '@/components/mypage/MyPageSidebar';
 import useAuthStore from '@/store/authStore';
 import '@/styles/mypage.css';
+import '@/styles/mypage-responsive.css';
 
 function MyPageLayout({ children }) {
+  const { pathname } = useLocation();
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const fetchMe = useAuthStore((state) => state.fetchMe);
@@ -25,9 +27,11 @@ function MyPageLayout({ children }) {
 
   return (
     <main className="mypage-page">
-      <div className="mypage-shell">
+      <div className={`mypage-shell${pathname === '/mypage' ? ' mypage-shell--home' : ''}`}>
         <MyPageSidebar user={user} onLogout={() => setIsLogoutPanelOpen(true)} />
-        {children}
+        {isValidElement(children)
+          ? cloneElement(children, { onLogout: () => setIsLogoutPanelOpen(true) })
+          : children}
       </div>
 
       <ConfirmModal
