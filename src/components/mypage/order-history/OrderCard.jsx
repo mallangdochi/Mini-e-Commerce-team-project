@@ -11,10 +11,12 @@ function OrderCard({
   order,
   detail,
   isRepurchasing,
+  hasReview,
   onOpenDetail,
   onShippingInfo,
   onCancel,
   onRepurchase,
+  onReview,
 }) {
   const firstItem = detail?.items?.[0];
   const status = STATUS_META[order.orderStatus] ?? {
@@ -127,8 +129,8 @@ function OrderCard({
             </button>
           )}
 
-          {order.orderStatus === 'delivered' && (
-            <button type="button" className="is-primary">
+          {order.orderStatus === 'delivered' && !hasReview && (
+            <button type="button" className="is-primary" onClick={() => onReview(order.orderId)}>
               리뷰 작성
             </button>
           )}

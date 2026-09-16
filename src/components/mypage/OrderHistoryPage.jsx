@@ -5,6 +5,7 @@ import EmptyState from '@/components/common/EmptyState';
 import ErrorState from '@/components/common/ErrorState';
 import useOrders from '@/hooks/useOrders';
 import { useCartStore } from '@/store/cartStore';
+import { getStoredReviews } from '@/utils/storage';
 import '@/styles/order-history.css';
 
 import CancelOrderModal from './order-history/CancelOrderModal';
@@ -57,6 +58,15 @@ function OrderHistoryPage() {
   const couponCount = Number(user?.couponCount ?? user?.availableCouponCount ?? 0);
   const pointBalance = Number(user?.points ?? user?.pointBalance ?? user?.mileage ?? 0);
   const wishlistCount = Number(user?.wishlistCount ?? user?.wishCount ?? 0);
+
+  const reviewedOrderIds = useMemo(() => {
+    return new Set(
+      getStoredReviews()
+        .map((review) => review?.orderId)
+        .filter((orderId) => orderId !== undefined && orderId !== null)
+        .map(String)
+    );
+  }, []);
 
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
@@ -178,6 +188,10 @@ function OrderHistoryPage() {
     }
   };
 
+  const handleReview = (orderId) => {
+    navigate(`/mypage/reviews?orderId=${encodeURIComponent(orderId)}`);
+  };
+
   const handleRepurchase = async (order) => {
     if (repurchaseOrderId) {
       return;
@@ -257,10 +271,12 @@ function OrderHistoryPage() {
                 order={order}
                 detail={orderDetails[order.orderId]}
                 isRepurchasing={repurchaseOrderId === order.orderId}
+                hasReview={reviewedOrderIds.has(String(order.orderId))}
                 onOpenDetail={(orderId) => void openOrderDetail(orderId)}
                 onShippingInfo={(orderId) => void handleShippingInfo(orderId)}
                 onCancel={openCancelPanel}
                 onRepurchase={(targetOrder) => void handleRepurchase(targetOrder)}
+                onReview={handleReview}
               />
             ))}
           </div>
