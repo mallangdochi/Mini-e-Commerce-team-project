@@ -88,11 +88,9 @@ function CheckoutPage() {
     }
 
     if (name === 'detailAddress') {
-      const filteredValue = value.replace(/[^가-힣a-zA-Z0-9\s(),#.-]/g, '').slice(0, 50);
-
       setShippingInfo((prev) => ({
         ...prev,
-        detailAddress: filteredValue,
+        detailAddress: value.slice(0, 50),
       }));
 
       return;

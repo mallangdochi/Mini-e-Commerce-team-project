@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { createOrder } from '@/api/orders';
+import { registerCreatedOrder } from '@/hooks/useOrders';
 import { useCartStore } from '@/store/cartStore';
 import '@/styles/checkout.css';
 
@@ -95,14 +96,35 @@ function CheckoutPage2() {
 
   const getShippingPayload = () => {
     return {
-      receiverName: shippingInfo.name?.trim() ?? '',
-      phone: shippingInfo.phone?.replace(/[^\d]/g, '') ?? '',
-      postcode: shippingInfo.zonecode?.trim() ?? '',
-      address: shippingInfo.address?.trim() ?? '',
-      detailAddress: shippingInfo.detailAddress?.trim() ?? '',
+      receiverName: (shippingInfo.name ?? shippingInfo.receiverName ?? '').trim(),
+      phone: String(shippingInfo.phone ?? '').replace(/[^\d]/g, ''),
+      postcode: String(shippingInfo.zonecode ?? shippingInfo.postcode ?? '').trim(),
+      address: String(shippingInfo.address ?? '').trim(),
+      detailAddress: String(shippingInfo.detailAddress ?? '').trim(),
       memo: getShippingMemo(shippingInfo.memo),
     };
   };
+
+  const formatPhoneNumber = (phone) => {
+    const numbers = String(phone ?? '')
+      .replace(/[^\d]/g, '')
+      .slice(0, 11);
+
+    if (numbers.length <= 3) {
+      return numbers;
+    }
+
+    if (numbers.length <= 7) {
+      return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
+    }
+
+    return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
+  };
+
+  const shippingSummary = getShippingPayload();
+  const shippingAddress = [shippingSummary.address, shippingSummary.detailAddress]
+    .filter(Boolean)
+    .join(' ');
 
   const handlePayment = () => {
     if (orderItems.length === 0) {
@@ -189,6 +211,17 @@ function CheckoutPage2() {
         throw new Error(response?.message || '주문을 완료하지 못했습니다.');
       }
 
+      registerCreatedOrder({
+        order,
+        orderItems,
+        shipping: shippingPayload,
+        paymentMethod,
+        finalAmount: finalPrice,
+        productTotal,
+        couponId: selectedCoupon || undefined,
+        pointsUsed: 0,
+      });
+
       setModalState('complete');
 
       window.setTimeout(() => {
@@ -198,6 +231,7 @@ function CheckoutPage2() {
           state: {
             order,
             orderItems,
+            shippingInfo: shippingPayload,
           },
         });
       }, 1200);
@@ -242,6 +276,32 @@ function CheckoutPage2() {
 
         <div className="checkout-grid">
           <div className="checkout-left">
+            <section className="checkout-box-section checkout-shipping-summary-section">
+              <div className="checkout-shipping-summary-head">
+                <div>
+                  <span className="checkout-shipping-summary-label">배송지 정보</span>
+                  <strong>{shippingSummary.receiverName || '받는 사람 정보 없음'}</strong>
+                </div>
+
+                <button type="button" onClick={handleBack}>
+                  수정
+                </button>
+              </div>
+
+              <div className="checkout-shipping-summary-body">
+                <p>{formatPhoneNumber(shippingSummary.phone) || '연락처 정보 없음'}</p>
+
+                <p className="checkout-shipping-address">
+                  {shippingSummary.postcode && <span>[{shippingSummary.postcode}]</span>}
+                  {shippingAddress || '주소 정보 없음'}
+                </p>
+
+                {shippingSummary.memo && (
+                  <p className="checkout-shipping-memo">배송 요청: {shippingSummary.memo}</p>
+                )}
+              </div>
+            </section>
+
             <section className="checkout-box-section">
               <div className="checkout-box-title">
                 <span>A</span>

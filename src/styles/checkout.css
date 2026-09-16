@@ -111,6 +111,85 @@
   font-size: 10px;
 }
 
+.checkout-shipping-summary-section {
+  padding-top: 22px;
+  padding-bottom: 22px;
+}
+
+.checkout-shipping-summary-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.checkout-shipping-summary-head > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.checkout-shipping-summary-label {
+  color: #777;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.checkout-shipping-summary-head strong {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.checkout-shipping-summary-head button {
+  flex-shrink: 0;
+  padding: 7px 12px;
+  border: 1px solid #cfcfcf;
+  background: #fff;
+  color: #222;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    background-color 0.18s ease;
+}
+
+.checkout-shipping-summary-head button:hover {
+  border-color: #111;
+  background: #f7f7f7;
+}
+
+.checkout-shipping-summary-body {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #eee;
+}
+
+.checkout-shipping-summary-body p {
+  margin: 0;
+  color: #555;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.checkout-shipping-address {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.checkout-shipping-address span {
+  flex-shrink: 0;
+  color: #888;
+}
+
+.checkout-shipping-memo {
+  margin-top: 6px;
+  color: #888;
+}
+
 .checkout-pay-option {
   display: flex;
   align-items: center;
