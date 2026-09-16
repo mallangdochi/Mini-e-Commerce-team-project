@@ -36,6 +36,7 @@ function CheckoutPage() {
     shippingInfo: savedShippingInfo,
     paymentMethod,
     selectedCoupon,
+    pointsToUse,
   } = location.state || {};
 
   const addressDialog = useRef(null);
@@ -242,6 +243,7 @@ function CheckoutPage() {
         shippingInfo,
         paymentMethod,
         selectedCoupon,
+        pointsToUse,
       },
     });
   };
