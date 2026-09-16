@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
+import { useCartStore } from '@/store/cartStore';
 import '@/styles/header.css';
 
 const CATEGORY_MENUS = {
@@ -110,13 +111,56 @@ const NAV_ITEMS = [
 // 스크롤이 이 값을 넘어간 뒤부터 스크롤 다운 시 헤더 숨김
 const HEADER_HIDE_THRESHOLD = 80;
 
+const ACCESSORY_CATEGORIES = new Set(['accessories', 'sunglasses', 'cap', 'hat']);
+
+function getCurrentNavMenu(pathname, search) {
+  if (pathname === '/') {
+    return 'HOME';
+  }
+
+  if (pathname !== '/products') {
+    return '';
+  }
+
+  const searchParams = new URLSearchParams(search);
+  const category = (
+    searchParams.get('categoryId') ??
+    searchParams.get('category') ??
+    ''
+  ).toLowerCase();
+
+  if (ACCESSORY_CATEGORIES.has(category)) {
+    return 'ACCESSORIES';
+  }
+
+  const gender = searchParams.get('gender');
+
+  if (gender === 'men') {
+    return 'MEN';
+  }
+
+  if (gender === 'women' || !gender) {
+    return 'WOMEN';
+  }
+
+  return '';
+}
+
 function Header() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [hidden, setHidden] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [mobileSearchQuery, setMobileSearchQuery] = useState('');
   const [mobileCategory, setMobileCategory] = useState(null);
   const [activeMenu, setActiveMenu] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(() => Boolean(localStorage.getItem('accessToken')));
+  const cartItemCount = useCartStore((state) =>
+    state.items.reduce((total, item) => total + Number(item.quantity ?? 1), 0)
+  );
   const lastY = useRef(0);
+  const currentNavMenu = getCurrentNavMenu(location.pathname, location.search);
 
   const openDesktopMenu = (menu) => {
     setActiveMenu(menu);
@@ -126,6 +170,26 @@ function Header() {
   const closeMobileMenu = () => {
     setMenuOpen(false);
     setMobileCategory(null);
+  };
+
+  const closeMobileSearch = () => {
+    setMobileSearchOpen(false);
+  };
+
+  const handleMobileSearchSubmit = (event) => {
+    event.preventDefault();
+
+    const query = mobileSearchQuery.trim();
+    const nextParams = new URLSearchParams();
+
+    nextParams.set('gender', 'women');
+
+    if (query) {
+      nextParams.set('q', query);
+    }
+
+    setMobileSearchOpen(false);
+    navigate(`/products?${nextParams.toString()}`);
   };
 
   useEffect(() => {
@@ -195,6 +259,22 @@ function Header() {
     };
   }, [menuOpen]);
 
+  useEffect(() => {
+    if (!mobileSearchOpen) return undefined;
+
+    const onKey = (e) => {
+      if (e.key === 'Escape') closeMobileSearch();
+    };
+
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKey);
+
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [mobileSearchOpen]);
+
   return (
     <header
       className={`site-header${hidden ? ' site-header--hidden' : ''}`}
@@ -228,14 +308,16 @@ function Header() {
         {/* NAVIGATION (데스크톱 / 태블릿) */}
         <nav className="site-nav" aria-label="주요 메뉴">
           {NAV_ITEMS.map((item) => {
-            const isActive = item.menu && activeMenu === item.menu;
+            const isMenuOpen = item.menu && activeMenu === item.menu;
+            const isActive = item.label === currentNavMenu || isMenuOpen;
 
             return (
               <Link
                 key={item.label}
                 to={item.to}
                 className={isActive ? 'site-nav-link site-nav-link--active' : 'site-nav-link'}
-                aria-expanded={item.menu ? isActive : undefined}
+                aria-current={item.label === currentNavMenu ? 'page' : undefined}
+                aria-expanded={item.menu ? Boolean(isMenuOpen) : undefined}
                 onMouseEnter={() => {
                   if (item.menu) openDesktopMenu(item.menu);
                   else setActiveMenu(null);
@@ -254,6 +336,31 @@ function Header() {
 
         {/* HEADER ACTIONS */}
         <div className="site-header-actions">
+          <button
+            type="button"
+            className="site-header-action site-header-action--search"
+            aria-label="상품 검색"
+            aria-expanded={mobileSearchOpen}
+            onClick={() => {
+              setMobileSearchOpen(true);
+              setMenuOpen(false);
+            }}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth="1.7"
+              strokeLinecap="round"
+            >
+              <circle cx="11" cy="11" r="7.5" />
+              <line x1="16.5" x2="21.5" y1="16.5" y2="21.5" />
+            </svg>
+          </button>
+
           {!isLoggedIn && (
             <Link to="/login" className="site-header-action header-login-btn">
               로그인
@@ -278,7 +385,13 @@ function Header() {
             </Link>
           )}
 
-          <Link to="/cart" className="site-header-action" aria-label="장바구니">
+          <Link
+            to="/cart"
+            className="site-header-action site-header-action--cart"
+            aria-label={
+              cartItemCount > 0 ? `장바구니, 담긴 상품 ${cartItemCount}개` : '장바구니'
+            }
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="16"
@@ -288,6 +401,12 @@ function Header() {
             >
               <path d="M216,42H40A14,14,0,0,0,26,56V200a14,14,0,0,0,14,14H216a14,14,0,0,0,14-14V56A14,14,0,0,0,216,42Zm2,158a2,2,0,0,1-2,2H40a2,2,0,0,1-2-2V56a2,2,0,0,1,2-2H216a2,2,0,0,1,2,2ZM174,88a46,46,0,0,1-92,0,6,6,0,0,1,12,0,34,34,0,0,0,68,0,6,6,0,0,1,12,0Z" />
             </svg>
+
+            {cartItemCount > 0 && (
+              <span className="site-header-cart-badge" aria-hidden="true">
+                {cartItemCount}
+              </span>
+            )}
           </Link>
         </div>
 
@@ -439,6 +558,39 @@ function Header() {
               장바구니
             </Link>
           </div>
+        </div>
+      )}
+
+      {mobileSearchOpen && (
+        <div className="site-mobile-search" role="dialog" aria-modal="true" aria-label="상품 검색">
+          <form className="site-mobile-search-form" onSubmit={handleMobileSearchSubmit}>
+            <svg
+              className="site-mobile-search-icon"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.7"
+              strokeLinecap="round"
+              aria-hidden="true"
+            >
+              <circle cx="11" cy="11" r="7.5" />
+              <line x1="16.5" x2="21.5" y1="16.5" y2="21.5" />
+            </svg>
+
+            <input
+              type="search"
+              value={mobileSearchQuery}
+              onChange={(event) => setMobileSearchQuery(event.target.value)}
+              placeholder="검색어를 입력하세요."
+              aria-label="검색어 입력"
+              autoFocus
+            />
+
+            <button type="submit" className="site-mobile-search-submit" aria-label="검색">
+              →
+            </button>
+          </form>
         </div>
       )}
     </header>
