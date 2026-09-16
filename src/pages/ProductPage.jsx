@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { getProductFilters, getProducts, getSets, searchProducts } from '@/api/products';
 import { addWishlist, getWishlist, removeWishlist } from '@/api/wishlist';
-import { getAccessToken, getStoredProductSort, setStoredProductSort } from '@/utils/storage';
+import { getAccessToken } from '@/utils/storage';
 import '@/styles/product-page.css';
 
 const SEARCH_DEBOUNCE_DELAY = 700;
@@ -266,8 +266,8 @@ function getWishlistId(item, productId) {
   return item?.id ?? item?.wishlistId ?? item?.wishId ?? productId;
 }
 
-function getStoredSortType() {
-  const stored = localStorage.getItem(SORT_STORAGE_KEY);
+function getSortTypeFromParams(searchParams) {
+  const sortParam = searchParams.get('sort');
 
   return SORT_OPTIONS.some((option) => option.value === sortParam) ? sortParam : 'popular';
 }
@@ -1265,9 +1265,7 @@ function ProductPage() {
                           sortType === option.value ? 'is-active' : ''
                         }`}
                         onClick={() => {
-                          setSortType(option.value);
-                          localStorage.setItem(SORT_STORAGE_KEY, option.value);
-                          setIsSortOpen(false);
+                          selectSortType(option.value);
                         }}
                       >
                         {option.label}

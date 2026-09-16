@@ -157,8 +157,15 @@ function Header() {
   const [mobileSearchQuery, setMobileSearchQuery] = useState('');
   const [mobileCategory, setMobileCategory] = useState(null);
   const [activeMenu, setActiveMenu] = useState(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(() => Boolean(localStorage.getItem('accessToken')));
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
+  const syncAuthFromStorage = useAuthStore((state) => state.syncAuthFromStorage);
+  const cartItemCount = useCartStore((state) =>
+    state.items.reduce((total, item) => total + Number(item.quantity ?? 1), 0)
+  );
   const lastY = useRef(0);
+  const accountMenuRef = useRef(null);
+  const currentNavMenu = getCurrentNavMenu(location.pathname, location.search);
 
   const openDesktopMenu = (menu) => {
     setAccountMenuOpen(false);
