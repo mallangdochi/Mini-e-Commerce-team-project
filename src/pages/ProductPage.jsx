@@ -640,20 +640,25 @@ function ProductPage() {
     };
   }, []);
 
-  const removeAppliedFilter = (type) => {
+  const removeAppliedFilter = (filter) => {
     const nextFilters = { ...appliedFilters };
+    const { type, value } = filter;
 
     if (type === 'color') {
-      setSelectedColor([]);
-      nextFilters.color = [];
+      const nextColors = appliedFilters.color.filter((color) => color !== value);
+
+      setSelectedColor(nextColors);
+      nextFilters.color = nextColors;
       setSearchParams(syncFilterParams(searchParams, nextFilters));
 
       return;
     }
 
     if (type === 'size') {
-      setSelectedSize([]);
-      nextFilters.size = [];
+      const nextSizes = appliedFilters.size.filter((size) => size !== value);
+
+      setSelectedSize(nextSizes);
+      nextFilters.size = nextSizes;
       setSearchParams(syncFilterParams(searchParams, nextFilters));
 
       return;
@@ -899,6 +904,8 @@ function ProductPage() {
       activeCategory.categoryId,
       activeCategory.subCategoryId,
       appliedFilters,
+      filterOptions.colors.length,
+      filterOptions.sizes.length,
       isAccessorySearchScope,
       searchQuery,
       searchParamsKey,
@@ -1114,6 +1121,7 @@ function ProductPage() {
     ...appliedFilters.color.map((color) => ({
       id: `color-${color}`,
       type: 'color',
+      value: color,
       label: filterOptions.colors.find((item) => item.filterGroup === color)?.label ?? color,
       color: COLOR_MAP[color] ?? '#d9d9d9',
     })),
@@ -1121,6 +1129,7 @@ function ProductPage() {
     ...appliedFilters.size.map((size) => ({
       id: `size-${size}`,
       type: 'size',
+      value: size,
       label: size,
     })),
 
@@ -1583,7 +1592,7 @@ function ProductPage() {
                   key={filter.id}
                   label={filter.label}
                   color={filter.color}
-                  onRemove={() => removeAppliedFilter(filter.type)}
+                  onRemove={() => removeAppliedFilter(filter)}
                 />
               ))}
 
