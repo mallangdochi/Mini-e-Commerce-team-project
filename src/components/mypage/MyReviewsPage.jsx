@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 
 import ConfirmModal from '@/components/common/ConfirmModal';
 import EmptyState from '@/components/common/EmptyState';
@@ -20,10 +20,6 @@ const SIZE_FIT_OPTIONS = [
   { label: '정사이즈', value: 'true' },
   { label: '커요', value: 'large' },
 ];
-
-const INITIAL_REVIEWED_ORDER_ITEM_IDS = new Set(['OI-000004']);
-
-const INITIAL_CLAIMED_ORDER_ITEM_IDS = new Set(['OI-000006', 'OI-000007']);
 
 function IconBag() {
   return (
@@ -118,11 +114,14 @@ function getProductPath(item) {
 }
 
 function MyReviewsPage() {
+  const [searchParams] = useSearchParams();
   const { user, orders, orderDetails, errorMessage, loadOrderDetails } = useOrders();
   const [reviews, setReviews] = useState(() => getStoredReviews());
   const [claims] = useState(() => getStoredClaims());
   const [selectedTab, setSelectedTab] = useState('available');
   const [detailErrorMessage, setDetailErrorMessage] = useState('');
+  const refreshedOrderIdsRef = useRef(new Set());
+  const targetOrderId = searchParams.get('orderId');
   const [reviewTarget, setReviewTarget] = useState(null);
   const [editingReview, setEditingReview] = useState(null);
   const [deleteReview, setDeleteReview] = useState(null);
@@ -132,38 +131,56 @@ function MyReviewsPage() {
   const [reviewError, setReviewError] = useState('');
 
   useEffect(() => {
-    const missingDetailIds = orders
-      .filter((order) => order.orderStatus === 'delivered')
-      .filter((order) => !Array.isArray(order.items) || order.items.length === 0)
-      .filter((order) => !orderDetails[order.orderId])
-      .map((order) => order.orderId);
+    const deliveredOrders = orders.filter((order) => order.orderStatus === 'delivered');
 
-    if (missingDetailIds.length === 0) {
+    const targetIds = deliveredOrders
+      .filter((order) => {
+        const orderId = String(order.orderId);
+        const detail = orderDetails[order.orderId];
+        const detailFirstItem = detail?.items?.[0];
+        const representative = order.representativeProduct;
+        const isTargetOrder = targetOrderId && orderId === String(targetOrderId);
+        const isMissingDetail = !Array.isArray(detail?.items) || detail.items.length === 0;
+        const hasRepresentativeMismatch =
+          representative?.productId &&
+          detailFirstItem?.productId &&
+          Number(representative.productId) !== Number(detailFirstItem.productId);
+
+        return isTargetOrder || isMissingDetail || hasRepresentativeMismatch;
+      })
+      .map((order) => order.orderId)
+      .filter((orderId) => !refreshedOrderIdsRef.current.has(String(orderId)));
+
+    if (targetIds.length === 0) {
       return;
     }
 
+    targetIds.forEach((orderId) => refreshedOrderIdsRef.current.add(String(orderId)));
+
     let isActive = true;
 
-    const loadMissingDetails = async () => {
+    const refreshDetails = async () => {
       try {
-        await loadOrderDetails(missingDetailIds);
+        await loadOrderDetails(targetIds, { force: true });
 
         if (isActive) {
           setDetailErrorMessage('');
         }
       } catch (error) {
+        targetIds.forEach((orderId) => refreshedOrderIdsRef.current.delete(String(orderId)));
+
         if (isActive) {
           setDetailErrorMessage(error.message || '리뷰 상품 정보를 불러오지 못했습니다.');
         }
       }
     };
 
-    void loadMissingDetails();
+    void refreshDetails();
 
     return () => {
       isActive = false;
     };
-  }, [loadOrderDetails, orderDetails, orders]);
+  }, [loadOrderDetails, orderDetails, orders, targetOrderId]);
 
   const couponCount = Number(user?.couponCount ?? user?.availableCouponCount ?? 0);
   const pointBalance = Number(user?.points ?? user?.pointBalance ?? user?.mileage ?? 0);
@@ -208,29 +225,44 @@ function MyReviewsPage() {
 
         const items = detail?.items ?? order.items ?? [];
 
-        return items.map((item, index) => {
-          const fallbackOrderItemId = [
-            order.orderId,
-            item.productType ?? 'product',
-            item.productId,
-            typeof item.color === 'string' ? item.color : (item.color?.value ?? 'none'),
-            item.size ?? 'none',
-            index,
-          ].join(':');
+        if (items.length === 0) {
+          return [];
+        }
 
-          return {
-            ...item,
-            orderItemId: item.orderItemId ?? fallbackOrderItemId,
+        const representativeProductId = Number(
+          order.representativeProduct?.productId ??
+            order.representativeProduct?.id ??
+            items[0]?.productId
+        );
+
+        const representativeItem =
+          items.find((item) => Number(item.productId) === representativeProductId) ?? items[0];
+        const representativeIndex = Math.max(items.indexOf(representativeItem), 0);
+        const fallbackOrderItemId = [
+          order.orderId,
+          representativeItem.productType ?? 'product',
+          representativeItem.productId,
+          typeof representativeItem.color === 'string'
+            ? representativeItem.color
+            : (representativeItem.color?.value ?? 'none'),
+          representativeItem.size ?? 'none',
+          representativeIndex,
+        ].join(':');
+
+        return [
+          {
+            ...representativeItem,
+            orderItemId: representativeItem.orderItemId ?? fallbackOrderItemId,
             orderId: order.orderId,
             orderDate: detail?.orderDate ?? order.orderDate,
             orderStatus: detail?.orderStatus ?? order.orderStatus,
-          };
-        });
+          },
+        ];
       });
   }, [orderDetails, orders]);
 
   const claimItemIds = useMemo(() => {
-    const ids = new Set(INITIAL_CLAIMED_ORDER_ITEM_IDS);
+    const ids = new Set();
 
     claims
       .filter(
@@ -247,7 +279,7 @@ function MyReviewsPage() {
   }, [claims]);
 
   const reviewedItemIds = useMemo(() => {
-    const ids = new Set(INITIAL_REVIEWED_ORDER_ITEM_IDS);
+    const ids = new Set();
 
     reviews
       .map((review) => review.orderItemId)
@@ -280,7 +312,13 @@ function MyReviewsPage() {
   const writtenReviews = useMemo(() => {
     return [...reviews]
       .map((review) => {
-        const orderItem = deliveredItems.find((item) => item.orderItemId === review.orderItemId);
+        const orderItem =
+          deliveredItems.find((item) => item.orderItemId === review.orderItemId) ??
+          deliveredItems.find(
+            (item) =>
+              String(item.orderId) === String(review.orderId) &&
+              Number(item.productId) === Number(review.productId)
+          );
 
         return {
           ...review,
@@ -294,6 +332,22 @@ function MyReviewsPage() {
         );
       });
   }, [deliveredItems, reviews]);
+
+  const visibleAvailableItems = useMemo(() => {
+    if (!targetOrderId) {
+      return availableItems;
+    }
+
+    return availableItems.filter((item) => String(item.orderId) === String(targetOrderId));
+  }, [availableItems, targetOrderId]);
+
+  const visibleWrittenReviews = useMemo(() => {
+    if (!targetOrderId) {
+      return writtenReviews;
+    }
+
+    return writtenReviews.filter((review) => String(review.orderId) === String(targetOrderId));
+  }, [targetOrderId, writtenReviews]);
 
   const openWriteReview = (item) => {
     setEditingReview(null);
@@ -360,6 +414,11 @@ function MyReviewsPage() {
         orderItemId: reviewTarget.orderItemId,
         productId: reviewTarget.productId,
         productType: reviewTarget.productType ?? 'product',
+        productName: reviewTarget.name ?? '',
+        imageUrl: normalizeImageUrl(reviewTarget.imageUrl),
+        color: reviewTarget.color ?? '',
+        size: reviewTarget.size ?? '',
+        price: Number(reviewTarget.price ?? 0),
         rating,
         sizeFit,
         content,
@@ -445,7 +504,7 @@ function MyReviewsPage() {
         {errorMessage || detailErrorMessage ? (
           <ErrorState className="my-reviews-empty" message={errorMessage || detailErrorMessage} />
         ) : selectedTab === 'available' ? (
-          availableItems.length === 0 ? (
+          visibleAvailableItems.length === 0 ? (
             <EmptyState
               className="my-reviews-empty"
               title="작성 가능한 리뷰가 없습니다."
@@ -453,7 +512,7 @@ function MyReviewsPage() {
             />
           ) : (
             <div className="my-reviews-list">
-              {availableItems.map((item) => {
+              {visibleAvailableItems.map((item) => {
                 const imageUrl = normalizeImageUrl(item.imageUrl);
                 const optionText = getOptionText(item);
 
@@ -497,7 +556,7 @@ function MyReviewsPage() {
               })}
             </div>
           )
-        ) : writtenReviews.length === 0 ? (
+        ) : visibleWrittenReviews.length === 0 ? (
           <EmptyState
             className="my-reviews-empty"
             title="아직 작성한 리뷰가 없습니다."
@@ -505,8 +564,16 @@ function MyReviewsPage() {
           />
         ) : (
           <div className="my-reviews-list">
-            {writtenReviews.map((review) => {
-              const item = review.orderItem;
+            {visibleWrittenReviews.map((review) => {
+              const item = review.orderItem ?? {
+                productId: review.productId,
+                productType: review.productType,
+                name: review.productName,
+                imageUrl: review.imageUrl,
+                color: review.color,
+                size: review.size,
+                price: review.price,
+              };
               const imageUrl = normalizeImageUrl(item?.imageUrl);
               const optionText = getOptionText(item);
               const fitLabel =

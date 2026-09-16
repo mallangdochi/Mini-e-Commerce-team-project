@@ -1,11 +1,101 @@
 import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { getProductFilters, getProducts, getSets, searchProducts } from '@/api/products';
+import {
+  getProduct,
+  getProductFilters,
+  getProducts,
+  getSet,
+  getSets,
+  searchProducts,
+} from '@/api/products';
 import useWishlistStore from '@/store/wishlistStore';
 import { getAccessToken } from '@/utils/storage';
 import '@/styles/product-page.css';
 
 const SEARCH_DEBOUNCE_DELAY = 700;
+
+const SEARCH_CATEGORY_ALIASES = {
+  top: [
+    'top',
+    '상의',
+    '탑',
+    '티',
+    '티셔츠',
+    '반팔',
+    '반팔티',
+    '긴팔',
+    '긴팔티',
+    '맨투맨',
+    '후드',
+    '후드티',
+    '집업',
+    '반집업',
+    '하프집업',
+  ],
+  bottom: [
+    'bottom',
+    '하의',
+    '바지',
+    '팬츠',
+    '긴바지',
+    '반바지',
+    '숏팬츠',
+    '쇼츠',
+    '조거',
+    '조거팬츠',
+    '트레이닝바지',
+    '트랙팬츠',
+    '와이드팬츠',
+  ],
+  outer: [
+    'outer',
+    '아우터',
+    '자켓',
+    '재킷',
+    '점퍼',
+    '잠바',
+    '바람막이',
+    '윈드브레이커',
+    '후드집업',
+    '아노락',
+    '트랙자켓',
+  ],
+  shoes: [
+    'shoes',
+    '신발',
+    '슈즈',
+    '운동화',
+    '스니커즈',
+    '러닝화',
+    '런닝화',
+    '워킹화',
+    '트레이닝화',
+  ],
+  sets: [
+    'sets',
+    'set',
+    '세트',
+    '셋트',
+    '셋업',
+    '상하의',
+    '상하세트',
+    '상하의세트',
+    '트레이닝세트',
+    '운동복세트',
+  ],
+  hat: ['hat', 'cap', '모자', '캡', '볼캡', '야구모자', '스포츠캡', '러닝캡', '버킷햇'],
+  sunglasses: [
+    'sunglasses',
+    'sunglass',
+    '선글라스',
+    '썬글라스',
+    '고글',
+    '스포츠고글',
+    '스포츠선글라스',
+    '러닝선글라스',
+  ],
+};
+
 const CATEGORY_NAV = [
   { label: 'ALL', to: '/products?category=ALL', value: 'all' },
   { label: 'OUTER', to: '/products?category=outer', value: 'outer' },
@@ -205,6 +295,34 @@ const WISHLIST_HEART_PATHS = {
     'M178,40c-20.65,0-38.73,8.88-50,23.89C116.73,48.88,98.65,40,78,40a62.07,62.07,0,0,0-62,62c0,70,103.79,126.66,108.21,129a8,8,0,0,0,7.58,0C136.21,228.66,240,172,240,102A62.07,62.07,0,0,0,178,40ZM128,214.8C109.74,204.16,32,155.69,32,102A46.06,46.06,0,0,1,78,56c19.45,0,35.78,10.36,42.6,27a8,8,0,0,0,14.8,0c6.82-16.67,23.15-27,42.6-27a46.06,46.06,0,0,1,46,46C224,155.61,146.24,204.15,128,214.8Z',
 };
 
+function normalizeSearchKeyword(value) {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_-]+/g, '');
+}
+
+function getSearchCategoryIntent(query) {
+  const normalizedQuery = normalizeSearchKeyword(query);
+
+  if (!normalizedQuery) {
+    return null;
+  }
+
+  for (const [category, aliases] of Object.entries(SEARCH_CATEGORY_ALIASES)) {
+    const matched = aliases.some((alias) => normalizeSearchKeyword(alias) === normalizedQuery);
+
+    if (matched) {
+      return {
+        category,
+        isAccessory: category === 'hat' || category === 'sunglasses',
+      };
+    }
+  }
+
+  return null;
+}
+
 function normalizeColorOption(color) {
   if (typeof color === 'string') {
     return {
@@ -273,6 +391,60 @@ function getPriceValueFromParams(searchParams, key, fallback) {
   const value = Number(rawValue);
 
   return rawValue !== null && Number.isFinite(value) ? value : fallback;
+}
+
+function normalizeProductSizes(product) {
+  const sizes = Array.isArray(product?.sizes) ? product.sizes : [];
+
+  return sizes
+    .map((sizeData) => {
+      if (typeof sizeData === 'string' || typeof sizeData === 'number') {
+        return {
+          size: String(sizeData),
+          isSoldOut: Boolean(product?.isSoldOut),
+        };
+      }
+
+      const size = sizeData?.size ?? sizeData?.label ?? sizeData?.value;
+      const stockValue = sizeData?.stock ?? sizeData?.quantity;
+      const hasStockValue = stockValue !== undefined && stockValue !== null;
+
+      if (size === undefined || size === null || size === '') {
+        return null;
+      }
+
+      return {
+        size: String(size),
+        isSoldOut: Boolean(product?.isSoldOut) || (hasStockValue && Number(stockValue) <= 0),
+      };
+    })
+    .filter(Boolean);
+}
+
+function getProductSoldOutState(product, sizeOptions) {
+  if (product?.isSoldOut) {
+    return true;
+  }
+
+  if (sizeOptions.length > 0) {
+    return sizeOptions.every((item) => item.isSoldOut);
+  }
+
+  const stockValue = product?.stock ?? product?.quantity;
+
+  if (stockValue === undefined || stockValue === null) {
+    return false;
+  }
+
+  return Number(stockValue) <= 0;
+}
+
+function getProductHoverCacheKey(product) {
+  const productId = Number(product?.productId ?? product?.id);
+  const productType =
+    String(product?.productType ?? '').toLowerCase() === 'set' ? 'set' : 'product';
+
+  return Number.isFinite(productId) ? `${productType}:${productId}` : '';
 }
 
 function syncFilterParams(searchParams, filters) {
@@ -437,6 +609,7 @@ function ProductPage() {
 
   const gender = searchParams.get('gender') ?? 'women';
   const searchQuery = searchParams.get('q')?.trim() ?? '';
+  const searchCategoryIntent = useMemo(() => getSearchCategoryIntent(searchQuery), [searchQuery]);
   const sortType = getSortTypeFromParams(searchParams);
   const searchParamsKey = searchParams.toString();
   const requestGender = gender;
@@ -507,6 +680,8 @@ function ProductPage() {
   const toggleWishlistItem = useWishlistStore((state) => state.toggleItem);
   const [wishlistLoadingIds, setWishlistLoadingIds] = useState(() => new Set());
   const [searchInput, setSearchInput] = useState(searchQuery);
+  const [hoverProductDetails, setHoverProductDetails] = useState({});
+  const hoverProductRequestsRef = useRef(new Map());
 
   const wishlistByProductId = useMemo(
     () =>
@@ -571,16 +746,25 @@ function ProductPage() {
     const nextParams = new URLSearchParams(searchParamsRef.current);
 
     if (nextQuery) {
-      nextParams.set('q', nextQuery);
+      const categoryIntent = getSearchCategoryIntent(nextQuery);
 
-      if (isAccessorySearchScope) {
+      nextParams.set('q', nextQuery);
+      nextParams.delete('categoryId');
+
+      if (categoryIntent) {
+        nextParams.set('category', categoryIntent.category);
+
+        if (categoryIntent.isAccessory) {
+          nextParams.delete('gender');
+        } else {
+          nextParams.set('gender', gender);
+        }
+      } else if (isAccessorySearchScope) {
         nextParams.set('category', 'accessories');
-        nextParams.delete('categoryId');
         nextParams.delete('gender');
       } else {
         nextParams.set('gender', gender);
         nextParams.set('category', 'ALL');
-        nextParams.delete('categoryId');
       }
     } else {
       nextParams.delete('q');
@@ -859,7 +1043,29 @@ function ProductPage() {
 
         let response;
 
-        if (searchQuery) {
+        if (searchCategoryIntent) {
+          const intentConfig = CATEGORY_CONFIG[searchCategoryIntent.category];
+          const intentParams = { ...params };
+
+          delete intentParams.subCategoryId;
+
+          if (intentConfig?.subCategoryId) {
+            intentParams.subCategoryId = intentConfig.subCategoryId;
+          }
+
+          if (searchCategoryIntent.isAccessory) {
+            delete intentParams.gender;
+          }
+
+          if (intentConfig?.categoryId === 'sets') {
+            response = await getSets(intentParams);
+          } else {
+            response = await getProducts({
+              ...intentParams,
+              ...(intentConfig?.categoryId ? { categoryId: intentConfig.categoryId } : {}),
+            });
+          }
+        } else if (searchQuery) {
           const searchRequestParams = { ...params };
 
           delete searchRequestParams.subCategoryId;
@@ -938,6 +1144,7 @@ function ProductPage() {
       filterOptions.colors.length,
       filterOptions.sizes.length,
       isAccessorySearchScope,
+      searchCategoryIntent,
       searchQuery,
       searchParamsKey,
       sortType,
@@ -1000,6 +1207,54 @@ function ProductPage() {
       });
     }
   };
+
+  const ensureHoverProductDetail = useCallback(
+    async (product) => {
+      if (Array.isArray(product?.sizes)) {
+        return;
+      }
+
+      const cacheKey = getProductHoverCacheKey(product);
+      const productId = Number(product?.productId ?? product?.id);
+
+      if (!cacheKey || !Number.isFinite(productId)) {
+        return;
+      }
+
+      if (
+        Object.prototype.hasOwnProperty.call(hoverProductDetails, cacheKey) ||
+        hoverProductRequestsRef.current.has(cacheKey)
+      ) {
+        return;
+      }
+
+      const isSetProduct = String(product?.productType ?? '').toLowerCase() === 'set';
+
+      const request = (isSetProduct ? getSet(productId) : getProduct(productId))
+        .then((response) => response?.data ?? response ?? null)
+        .catch(() => null);
+
+      hoverProductRequestsRef.current.set(cacheKey, request);
+
+      try {
+        const detail = await request;
+
+        setHoverProductDetails((prev) => ({
+          ...prev,
+          [cacheKey]: detail,
+        }));
+      } finally {
+        hoverProductRequestsRef.current.delete(cacheKey);
+      }
+    },
+    [hoverProductDetails]
+  );
+
+  useEffect(() => {
+    productItems.forEach((product) => {
+      void ensureHoverProductDetail(product);
+    });
+  }, [ensureHoverProductDetail, productItems]);
 
   const handleSearchSubmit = (event) => {
     event.preventDefault();
@@ -1130,16 +1385,20 @@ function ProductPage() {
   const hasActiveFilters = activeFilterTags.length > 0;
   const isLengthFilterVisible =
     activeCategory.categoryId === null || activeCategory.categoryId === 'bottom';
-  const emptyMessage = searchQuery
-    ? `"${searchQuery}"에 대한 검색 결과가 없습니다.`
-    : hasActiveFilters
-      ? '조건에 맞는 상품이 없습니다.'
-      : '등록된 상품이 없습니다.';
-  const emptySubMessage = searchQuery
-    ? `${searchScopeLabel} 안에서 다른 검색어를 입력해 보세요.`
-    : hasActiveFilters
-      ? '필터를 조정하거나 전체 해제해 주세요.'
-      : '';
+  const emptyMessage = searchCategoryIntent
+    ? `"${searchQuery}"에 맞는 ${CATEGORY_CONFIG[searchCategoryIntent.category]?.label ?? '카테고리'} 상품이 없습니다.`
+    : searchQuery
+      ? `"${searchQuery}"에 대한 검색 결과가 없습니다.`
+      : hasActiveFilters
+        ? '조건에 맞는 상품이 없습니다.'
+        : '등록된 상품이 없습니다.';
+  const emptySubMessage = searchCategoryIntent
+    ? '필터를 조정하거나 다른 카테고리를 확인해 보세요.'
+    : searchQuery
+      ? `${searchScopeLabel} 안에서 다른 검색어를 입력해 보세요.`
+      : hasActiveFilters
+        ? '필터를 조정하거나 전체 해제해 주세요.'
+        : '';
 
   const priceRangeSpan = PRICE_MAX - PRICE_MIN;
 
@@ -1696,9 +1955,32 @@ function ProductPage() {
               const heartPath = isFavorite
                 ? WISHLIST_HEART_PATHS.filled
                 : WISHLIST_HEART_PATHS.outline;
+              const hoverCacheKey = getProductHoverCacheKey(product);
+              const hasHoverDetail = Object.prototype.hasOwnProperty.call(
+                hoverProductDetails,
+                hoverCacheKey
+              );
+              const hoverDetail = hasHoverDetail ? hoverProductDetails[hoverCacheKey] : null;
+              const sizeSource = hoverDetail ?? product;
+              const sizeOptions = normalizeProductSizes(sizeSource);
+              const isProductSoldOut = getProductSoldOutState(sizeSource, sizeOptions);
+              const isSizeBarReady = Array.isArray(product?.sizes) || hasHoverDetail;
+              const displaySizeOptions =
+                sizeOptions.length > 0
+                  ? sizeOptions
+                  : isSizeBarReady
+                    ? [{ size: 'ONE SIZE', isSoldOut: isProductSoldOut }]
+                    : [];
 
               return (
-                <article className="product-card" key={product.productId}>
+                <article
+                  className={`product-card${isSizeBarReady ? ' has-size-hover' : ''}${
+                    isProductSoldOut ? ' is-sold-out' : ''
+                  }`}
+                  key={product.productId}
+                  onMouseEnter={() => void ensureHoverProductDetail(product)}
+                  onFocusCapture={() => void ensureHoverProductDetail(product)}
+                >
                   {/* 이미지 */}
 
                   <div className="product-image">
@@ -1709,6 +1991,27 @@ function ProductPage() {
                         <div className="product-image-placeholder" />
                       )}
                     </Link>
+
+                    {isProductSoldOut && (
+                      <span className="product-soldout-badge" aria-label="품절">
+                        SOLD OUT
+                      </span>
+                    )}
+
+                    {isSizeBarReady && (
+                      <div className="product-size-hover" aria-hidden="true">
+                        {displaySizeOptions.map((sizeOption) => (
+                          <span
+                            key={sizeOption.size}
+                            className={`product-size-hover-item${
+                              sizeOption.isSoldOut ? ' is-sold-out' : ''
+                            }`}
+                          >
+                            {sizeOption.size}
+                          </span>
+                        ))}
+                      </div>
+                    )}
 
                     <button
                       type="button"
