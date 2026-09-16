@@ -12,6 +12,14 @@ const LIMITS = {
   address: 100,
   detailAddress: 50,
 };
+
+const FIELD_IDS = {
+  name: 'signupName',
+  email: 'signupEmail',
+  password: 'signupPassword',
+  passwordCheck: 'signupPasswordCheck',
+};
+
 const NAME_PATTERN = /^[가-힣a-zA-Z ]+$/;
 const EMAIL_PATTERN = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 const PASSWORD_PATTERN = /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[.!@#$%^&*?])[a-zA-Z\d.!@#$%^&*?]{8,12}$/;
@@ -48,6 +56,7 @@ function SignupPage() {
   const [emailStatus, setEmailStatus] = useState('idle');
   const [emailMessage, setEmailMessage] = useState('');
   const [submitError, setSubmitError] = useState('');
+  const [validationError, setValidationError] = useState(null);
   const [isCheckingEmail, setIsCheckingEmail] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -62,9 +71,63 @@ function SignupPage() {
   }, [form.password, form.passwordCheck]);
 
   const allAgreed = Object.values(agreements).every(Boolean);
+
+  const clearValidationError = (targetId) => {
+    setValidationError((previous) => (previous?.targetId === targetId ? null : previous));
+  };
+
   const updateForm = (name, value) => {
     setForm((previous) => ({ ...previous, [name]: value }));
     setSubmitError('');
+
+    const targetId = FIELD_IDS[name];
+    if (targetId) clearValidationError(targetId);
+  };
+
+  const updateAgreement = (name, checked) => {
+    setAgreements((previous) => ({
+      ...previous,
+      [name]: checked,
+    }));
+    setSubmitError('');
+
+    if (checked) {
+      clearValidationError(`signupAgreement-${name}`);
+    }
+  };
+
+  const focusAndFlashField = (targetId) => {
+    window.requestAnimationFrame(() => {
+      const target = document.getElementById(targetId);
+      if (!target) return;
+
+      const flashTarget =
+        target.type === 'checkbox' ? target.closest('.signup-term-row') || target : target;
+
+      target.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+
+      // 같은 오류를 다시 제출해도 애니메이션이 다시 실행되도록 초기화
+      flashTarget.classList.remove('signup-error-flash');
+      void flashTarget.offsetWidth;
+      flashTarget.classList.add('signup-error-flash');
+
+      window.setTimeout(() => {
+        target.focus({ preventScroll: true });
+      }, 250);
+
+      window.setTimeout(() => {
+        flashTarget.classList.remove('signup-error-flash');
+      }, 1000);
+    });
+  };
+
+  const showFieldError = (targetId, message) => {
+    setValidationError({ targetId, message });
+    setSubmitError('');
+    focusAndFlashField(targetId);
   };
 
   const handleEmailChange = (event) => {
@@ -81,27 +144,42 @@ function SignupPage() {
 
   const handleCheckDuplicate = async () => {
     if (!EMAIL_PATTERN.test(form.email)) {
+      const message = '올바른 이메일 형식으로 입력해 주세요.';
       setEmailStatus('error');
-      setEmailMessage('올바른 이메일 형식으로 입력해 주세요.');
+      setEmailMessage(message);
+      showFieldError(FIELD_IDS.email, message);
       return;
     }
+
     const revision = emailRevision.current;
     setEmailMessage('');
     setIsCheckingEmail(true);
     setEmailStatus('idle');
+
     try {
       const response = await checkIdAvailability(form.email);
       if (revision !== emailRevision.current) return;
+
       const available = response.available === true;
-      setEmailStatus(available ? 'success' : 'error');
-      setEmailMessage(
+      const message =
         response.message ||
-          (available ? '사용 가능한 아이디입니다.' : '이미 사용 중인 아이디입니다.')
-      );
+        (available ? '사용 가능한 아이디입니다.' : '이미 사용 중인 아이디입니다.');
+
+      setEmailStatus(available ? 'success' : 'error');
+      setEmailMessage(message);
+
+      if (available) {
+        clearValidationError(FIELD_IDS.email);
+      } else {
+        showFieldError(FIELD_IDS.email, message);
+      }
     } catch (error) {
       if (revision !== emailRevision.current) return;
+
+      const message = error?.message || '아이디 중복확인에 실패했습니다.';
       setEmailStatus('error');
-      setEmailMessage(error.message);
+      setEmailMessage(message);
+      showFieldError(FIELD_IDS.email, message);
     } finally {
       setIsCheckingEmail(false);
     }
@@ -160,24 +238,86 @@ function SignupPage() {
   };
 
   const validateForm = () => {
-    if (!form.name.trim()) return '이름을 입력해 주세요.';
-    if (!NAME_PATTERN.test(form.name)) return '이름은 한글과 영문만 입력할 수 있습니다.';
-    if (emailStatus !== 'success') return '아이디 중복확인을 완료해 주세요.';
-    if (passwordStatus !== 'success') return '비밀번호 입력 조건을 확인해 주세요.';
-    if (passwordCheckStatus !== 'success') return '비밀번호가 일치하지 않습니다.';
-    if (!agreements.service || !agreements.privacy) return '필수 약관에 동의해 주세요.';
-    return '';
+    if (!form.name.trim()) {
+      return {
+        targetId: FIELD_IDS.name,
+        message: '이름을 입력해 주세요.',
+      };
+    }
+
+    if (!NAME_PATTERN.test(form.name)) {
+      return {
+        targetId: FIELD_IDS.name,
+        message: '이름은 한글과 영문만 입력할 수 있습니다.',
+      };
+    }
+
+    if (emailStatus !== 'success') {
+      return {
+        targetId: FIELD_IDS.email,
+        message: '아이디 중복확인을 완료해 주세요.',
+      };
+    }
+
+    if (passwordStatus !== 'success') {
+      return {
+        targetId: FIELD_IDS.password,
+        message: '영문, 숫자, 특수문자를 포함한 8~12자 비밀번호를 입력해 주세요.',
+      };
+    }
+
+    if (passwordCheckStatus !== 'success') {
+      return {
+        targetId: FIELD_IDS.passwordCheck,
+        message: '비밀번호가 일치하지 않습니다.',
+      };
+    }
+
+    if (!agreements.service) {
+      return {
+        targetId: 'signupAgreement-service',
+        message: 'ARC 이용약관에 동의해 주세요.',
+      };
+    }
+
+    if (!agreements.privacy) {
+      return {
+        targetId: 'signupAgreement-privacy',
+        message: '개인정보 수집 및 이용에 동의해 주세요.',
+      };
+    }
+
+    return null;
+  };
+
+  const getServerErrorTarget = (message = '') => {
+    if (/아이디|이메일|email|중복/i.test(message)) return FIELD_IDS.email;
+    if (/비밀번호 확인|password confirmation|confirm password/i.test(message)) {
+      return FIELD_IDS.passwordCheck;
+    }
+    if (/비밀번호|password/i.test(message)) return FIELD_IDS.password;
+    if (/이름|name/i.test(message)) return FIELD_IDS.name;
+    if (/개인정보|privacy/i.test(message)) return 'signupAgreement-privacy';
+    if (/이용약관|service terms|terms of service/i.test(message)) {
+      return 'signupAgreement-service';
+    }
+    return null;
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    const message = validateForm();
-    if (message) {
-      setSubmitError(message);
+
+    const error = validateForm();
+
+    if (error) {
+      showFieldError(error.targetId, error.message);
       return;
     }
+
+    setValidationError(null);
     setIsSubmitting(true);
     setSubmitError('');
+
     try {
       const response = await signup({
         id: form.email,
@@ -189,6 +329,7 @@ function SignupPage() {
         detailAddress: form.detailAddress.trim() || null,
         agreements,
       });
+
       navigate('/login', {
         replace: true,
         state: {
@@ -196,7 +337,15 @@ function SignupPage() {
         },
       });
     } catch (error) {
-      setSubmitError(error.message);
+      const message = error?.message || '회원가입에 실패했습니다.';
+      const targetId = getServerErrorTarget(message);
+
+      if (targetId) {
+        showFieldError(targetId, message);
+      } else {
+        setValidationError(null);
+        setSubmitError(message);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -297,6 +446,11 @@ function SignupPage() {
                   <StatusIcon status={NAME_PATTERN.test(form.name) ? 'success' : 'error'} />
                 )}
               </div>
+              {validationError?.targetId === FIELD_IDS.name && (
+                <p className="signup-field-error-message" role="alert">
+                  {validationError.message}
+                </p>
+              )}
             </div>
             <div className="signup-form-group">
               <label htmlFor="signupEmail">
@@ -326,7 +480,11 @@ function SignupPage() {
                 </button>
               </div>
               <div className="signup-feedback-row">
-                {emailMessage ? (
+                {validationError?.targetId === FIELD_IDS.email ? (
+                  <p className="signup-message error" role="alert">
+                    {validationError.message}
+                  </p>
+                ) : emailMessage ? (
                   <p className={`signup-message ${emailStatus}`}>{emailMessage}</p>
                 ) : (
                   <span />
@@ -351,8 +509,17 @@ function SignupPage() {
                 <StatusIcon status={passwordStatus} />
               </div>
               <div className="signup-feedback-row">
-                <p className={`signup-message ${passwordStatus === 'error' ? 'error' : ''}`}>
-                  영문, 숫자, 특수문자(.!@#$%^&*?)를 포함한 8~12자
+                <p
+                  className={`signup-message ${
+                    validationError?.targetId === FIELD_IDS.password || passwordStatus === 'error'
+                      ? 'error'
+                      : ''
+                  }`}
+                  role={validationError?.targetId === FIELD_IDS.password ? 'alert' : undefined}
+                >
+                  {validationError?.targetId === FIELD_IDS.password
+                    ? validationError.message
+                    : '영문, 숫자, 특수문자(.!@#$%^&*?)를 포함한 8~12자'}
                 </p>
               </div>
             </div>
@@ -374,7 +541,11 @@ function SignupPage() {
                 <StatusIcon status={passwordCheckStatus} />
               </div>
               <div className="signup-feedback-row">
-                {passwordCheckStatus === 'error' ? (
+                {validationError?.targetId === FIELD_IDS.passwordCheck ? (
+                  <p className="signup-message error" role="alert">
+                    {validationError.message}
+                  </p>
+                ) : passwordCheckStatus === 'error' ? (
                   <p className="signup-message error">비밀번호가 일치하지 않습니다.</p>
                 ) : (
                   <span />
@@ -448,6 +619,13 @@ function SignupPage() {
                       privacy: checked,
                       marketing: checked,
                     });
+                    setSubmitError('');
+
+                    if (checked) {
+                      setValidationError((previous) =>
+                        previous?.targetId?.startsWith('signupAgreement-') ? null : previous
+                      );
+                    }
                   }}
                 />
                 <span>모두 동의합니다.</span>
@@ -457,14 +635,10 @@ function SignupPage() {
                   <div className="signup-term-row" key={item.name}>
                     <label className="signup-checkbox-label">
                       <input
+                        id={`signupAgreement-${item.name}`}
                         type="checkbox"
                         checked={agreements[item.name]}
-                        onChange={(event) =>
-                          setAgreements((previous) => ({
-                            ...previous,
-                            [item.name]: event.target.checked,
-                          }))
-                        }
+                        onChange={(event) => updateAgreement(item.name, event.target.checked)}
                       />
                       <span>
                         <strong>[{item.required ? '필수' : '선택'}]</strong> {item.text}
@@ -483,8 +657,13 @@ function SignupPage() {
                   </div>
                 ))}
               </div>
+              {validationError?.targetId?.startsWith('signupAgreement-') && (
+                <p className="signup-field-error-message signup-terms-error-message" role="alert">
+                  {validationError.message}
+                </p>
+              )}
             </div>
-            {submitError && (
+            {submitError && !validationError && (
               <p className="signup-submit-error" role="alert">
                 {submitError}
               </p>
