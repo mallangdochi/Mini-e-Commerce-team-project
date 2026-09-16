@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { handleAddToCart } from '@/api/alert';
-import { getStoredUser, updateStoredSummary } from '@/api/authApi';
+import { getAccessToken, getStoredUser, updateStoredSummary } from '@/utils/storage';
 import { useCartStore } from '@/store/cartStore';
 import { getProduct, getSet } from '@/api/products';
 import { addWishlist, getWishlist, removeWishlist } from '@/api/wishlist';
@@ -136,7 +136,7 @@ function ProductDetailPage() {
   }, [isSet, productId]);
 
   useEffect(() => {
-    const accessToken = localStorage.getItem('accessToken');
+    const accessToken = getAccessToken();
 
     if (!accessToken || !productId) {
       return undefined;
@@ -183,63 +183,6 @@ function ProductDetailPage() {
   const imageList = useMemo(() => getImageList(product), [product]);
 
   const activeImage = imageList[activeImageIndex] ?? '';
-
-  const touchStartX = useRef(null);
-  const touchStartY = useRef(null);
-
-  const handlePreviousImage = () => {
-    if (imageList.length <= 1) {
-      return;
-    }
-
-    setActiveImageIndex((currentIndex) =>
-      currentIndex === 0 ? imageList.length - 1 : currentIndex - 1
-    );
-  };
-
-  const handleNextImage = () => {
-    if (imageList.length <= 1) {
-      return;
-    }
-
-    setActiveImageIndex((currentIndex) =>
-      currentIndex === imageList.length - 1 ? 0 : currentIndex + 1
-    );
-  };
-
-  const handleImageTouchStart = (event) => {
-    const touch = event.touches[0];
-
-    touchStartX.current = touch.clientX;
-    touchStartY.current = touch.clientY;
-  };
-
-  const handleImageTouchEnd = (event) => {
-    if (touchStartX.current === null || touchStartY.current === null || imageList.length <= 1) {
-      touchStartX.current = null;
-      touchStartY.current = null;
-      return;
-    }
-
-    const touch = event.changedTouches[0];
-    const distanceX = touchStartX.current - touch.clientX;
-    const distanceY = touchStartY.current - touch.clientY;
-
-    touchStartX.current = null;
-    touchStartY.current = null;
-
-    // 세로 스크롤은 그대로 두고, 가로로 충분히 밀었을 때만 이미지를 변경합니다.
-    if (Math.abs(distanceX) < 40 || Math.abs(distanceX) <= Math.abs(distanceY)) {
-      return;
-    }
-
-    if (distanceX > 0) {
-      handleNextImage();
-      return;
-    }
-
-    handlePreviousImage();
-  };
 
   const thumbnailImages = imageList
     .map((image, index) => ({
@@ -326,7 +269,7 @@ function ProductDetailPage() {
       return;
     }
 
-    if (!localStorage.getItem('accessToken')) {
+    if (!getAccessToken()) {
       navigate('/login');
       return;
     }
@@ -497,18 +440,8 @@ function ProductDetailPage() {
             ))}
           </div>
 
-          <div
-            className="main-image"
-            onTouchStart={handleImageTouchStart}
-            onTouchEnd={handleImageTouchEnd}
-          >
-            <ProductImage src={activeImage} alt={`${product.name} ${activeImageIndex + 1}`} />
-
-            {imageList.length > 1 && (
-              <span className="mobile-image-count" aria-live="polite">
-                {activeImageIndex + 1} / {imageList.length}
-              </span>
-            )}
+          <div className="main-image">
+            <ProductImage src={activeImage} alt={product.name} />
           </div>
         </div>
 

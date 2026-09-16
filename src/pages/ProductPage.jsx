@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 
 import { getProductFilters, getProducts, getSets, searchProducts } from '@/api/products';
 import { addWishlist, getWishlist, removeWishlist } from '@/api/wishlist';
+import { getAccessToken, getStoredProductSort, setStoredProductSort } from '@/utils/storage';
 import '@/styles/product-page.css';
 
 const CATEGORY_NAV = [
@@ -192,8 +193,6 @@ const EMPTY_APPLIED_FILTERS = {
   maxPrice: null,
 };
 
-const SORT_STORAGE_KEY = 'arc-product-sort';
-
 const LENGTH_LABELS = {
   long: '롱',
   short: '숏',
@@ -249,7 +248,7 @@ function getWishlistId(item, productId) {
 }
 
 function getStoredSortType() {
-  const stored = localStorage.getItem(SORT_STORAGE_KEY);
+  const stored = getStoredProductSort();
 
   return SORT_OPTIONS.some((option) => option.value === stored) ? stored : 'popular';
 }
@@ -840,7 +839,7 @@ function ProductPage() {
   }, [gender, isAccessorySearchScope, searchInput, searchParams, searchQuery, setSearchParams]);
 
   useEffect(() => {
-    const accessToken = localStorage.getItem('accessToken');
+    const accessToken = getAccessToken();
 
     if (!accessToken) {
       return;
@@ -884,7 +883,7 @@ function ProductPage() {
   }, []);
 
   const handleWishlist = async (product) => {
-    const accessToken = localStorage.getItem('accessToken');
+    const accessToken = getAccessToken();
 
     if (!accessToken) {
       alert('로그인 후 찜할 수 있습니다.');
@@ -1185,7 +1184,7 @@ function ProductPage() {
                         }`}
                         onClick={() => {
                           setSortType(option.value);
-                          localStorage.setItem(SORT_STORAGE_KEY, option.value);
+                          setStoredProductSort(option.value);
                           setIsSortOpen(false);
                         }}
                       >
