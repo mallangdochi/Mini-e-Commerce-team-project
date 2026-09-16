@@ -54,6 +54,45 @@ export function normalizeImageUrl(url) {
   return url.trim().replace(/^<|>$/g, '');
 }
 
+function getFirstOrderItem(order, detail) {
+  return detail?.items?.[0] ?? order?.items?.[0] ?? null;
+}
+
+function getRepresentativeProduct(order) {
+  return order?.representativeProduct ?? order?.product ?? null;
+}
+
+function getItemName(item) {
+  return item?.name ?? item?.productName ?? item?.product?.name ?? '';
+}
+
+function getItemImage(item) {
+  return normalizeImageUrl(
+    item?.imageUrl ??
+      item?.thumbnailUrl ??
+      item?.thumbnail ??
+      item?.product?.imageUrl ??
+      item?.product?.images?.thumbnail ??
+      ''
+  );
+}
+
+function getRepresentativeName(representative) {
+  return representative?.name ?? representative?.productName ?? representative?.product?.name ?? '';
+}
+
+function getRepresentativeImage(representative) {
+  return normalizeImageUrl(
+    representative?.imageUrl ??
+      representative?.thumbnailUrl ??
+      representative?.thumbnail ??
+      representative?.images?.thumbnail ??
+      representative?.product?.imageUrl ??
+      representative?.product?.images?.thumbnail ??
+      ''
+  );
+}
+
 export function formatDate(dateString) {
   if (!dateString) {
     return '-';
@@ -89,10 +128,10 @@ export function formatShortDate(dateString) {
 }
 
 export function getOrderName(order, detail) {
-  const firstItem = detail?.items?.[0];
-  const representative = order.representativeProduct;
-  const baseName = firstItem?.name ?? representative?.name ?? '상품';
-  const totalItemCount = Number(order.totalItemCount ?? detail?.items?.length ?? 1);
+  const firstItem = getFirstOrderItem(order, detail);
+  const representative = getRepresentativeProduct(order);
+  const baseName = getItemName(firstItem) || getRepresentativeName(representative) || '상품';
+  const totalItemCount = Number(order?.totalItemCount ?? detail?.items?.length ?? 1);
 
   if (totalItemCount <= 1) {
     return baseName;
@@ -102,19 +141,32 @@ export function getOrderName(order, detail) {
 }
 
 export function getOrderImage(order, detail) {
-  return normalizeImageUrl(detail?.items?.[0]?.imageUrl ?? order.representativeProduct?.imageUrl);
+  const firstItem = getFirstOrderItem(order, detail);
+  const representative = getRepresentativeProduct(order);
+
+  return getItemImage(firstItem) || getRepresentativeImage(representative);
 }
 
-export function getOptionText(detail) {
-  const firstItem = detail?.items?.[0];
+export function getOptionText(detail, order) {
+  const firstItem = getFirstOrderItem(order, detail);
 
   if (!firstItem) {
     return '';
   }
 
-  const color = typeof firstItem.color === 'string' ? firstItem.color : firstItem.color?.label;
+  const color =
+    typeof firstItem.color === 'string'
+      ? firstItem.color
+      : (firstItem.color?.label ?? firstItem.color?.value ?? firstItem.colorLabel ?? '');
 
   return [color?.toUpperCase(), firstItem.size].filter(Boolean).join(' / ');
+}
+
+export function hasOrderDisplayMetadata(order, detail) {
+  const name = getOrderName(order, detail);
+  const image = getOrderImage(order, detail);
+
+  return Boolean(name && name !== '상품' && image);
 }
 
 export function isWithinPeriod(dateString, months) {
