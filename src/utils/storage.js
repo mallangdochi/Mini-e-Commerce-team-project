@@ -14,6 +14,8 @@ const STORAGE_KEYS = {
   cancelReasons: 'arc-order-cancel-reasons',
   passwordChangeDraft: 'arc-password-change-draft',
   productSort: 'arc-product-sort',
+  legacyCart: 'arc-cart',
+  cartPrefix: 'arc-cart-v2',
 };
 
 function getStorage() {
@@ -218,4 +220,124 @@ export const setStoredProductSort = (sortType) => {
 
   writeText(STORAGE_KEYS.productSort, sortType);
   return sortType;
+};
+
+const getCartOwnerCandidate = (userInfo) => {
+  if (!userInfo || typeof userInfo !== 'object') {
+    return null;
+  }
+
+  return (
+    userInfo.userId ??
+    userInfo.id ??
+    userInfo.memberId ??
+    userInfo.loginId ??
+    userInfo.identifier ??
+    userInfo.email ??
+    userInfo.username ??
+    userInfo.name ??
+    null
+  );
+};
+
+export const getCartOwnerId = () => {
+  if (!getAccessToken()) {
+    return 'guest';
+  }
+
+  const ownerCandidate = getCartOwnerCandidate(getStoredUserInfo());
+
+  if (ownerCandidate === null || ownerCandidate === undefined || ownerCandidate === '') {
+    return 'authenticated';
+  }
+
+  return `user-${encodeURIComponent(String(ownerCandidate))}`;
+};
+
+export const getCartStorageKey = (ownerId = getCartOwnerId()) => {
+  return `${STORAGE_KEYS.cartPrefix}:${ownerId}`;
+};
+
+const normalizeCartSnapshot = (value, ownerId) => {
+  const snapshot = asObject(value);
+
+  return {
+    ownerId,
+    items: asArray(snapshot.items),
+    updatedAt: Number(snapshot.updatedAt) || 0,
+  };
+};
+
+const getLegacyCartItems = () => {
+  const legacyValue = readJson(STORAGE_KEYS.legacyCart, null);
+
+  if (!legacyValue) {
+    return [];
+  }
+
+  if (Array.isArray(legacyValue)) {
+    return legacyValue;
+  }
+
+  if (Array.isArray(legacyValue.items)) {
+    return legacyValue.items;
+  }
+
+  return asArray(legacyValue.state?.items);
+};
+
+export const getStoredCartSnapshot = (ownerId = getCartOwnerId()) => {
+  const storageKey = getCartStorageKey(ownerId);
+  const storedValue = readJson(storageKey, null);
+
+  if (storedValue !== null) {
+    return normalizeCartSnapshot(storedValue, ownerId);
+  }
+
+  const legacyItems = getLegacyCartItems();
+
+  if (legacyItems.length === 0) {
+    return {
+      ownerId,
+      items: [],
+      updatedAt: 0,
+    };
+  }
+
+  const migratedSnapshot = {
+    ownerId,
+    items: legacyItems,
+    updatedAt: Date.now(),
+  };
+
+  writeJson(storageKey, migratedSnapshot);
+  removeValue(STORAGE_KEYS.legacyCart);
+
+  return migratedSnapshot;
+};
+
+export const setStoredCartSnapshot = (snapshot) => {
+  const ownerId = snapshot?.ownerId ?? getCartOwnerId();
+  const nextSnapshot = {
+    ownerId,
+    items: asArray(snapshot?.items),
+    updatedAt: Number(snapshot?.updatedAt) || Date.now(),
+  };
+
+  writeJson(getCartStorageKey(ownerId), nextSnapshot);
+  return nextSnapshot;
+};
+
+export const clearStoredCartSnapshot = (ownerId = getCartOwnerId()) => {
+  removeValue(getCartStorageKey(ownerId));
+};
+
+export const isCartStorageKey = (storageKey) => {
+  if (!storageKey) {
+    return false;
+  }
+
+  return (
+    storageKey === STORAGE_KEYS.legacyCart || storageKey.startsWith(`${STORAGE_KEYS.cartPrefix}:`)
+  );
 };

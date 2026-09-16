@@ -1,29 +1,44 @@
+/* Header / mobile logout confirmation.
+   The modal is rendered into document.body with createPortal(), so it is
+   always centered against the viewport instead of the dropdown container. */
+
 .logout-confirm-backdrop {
   position: fixed;
-  z-index: 2000;
   inset: 0;
+  z-index: 2147483000;
 
-  display: grid;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
+  width: 100%;
+  height: 100dvh;
+  margin: 0;
   padding: 24px;
 
-  place-items: center;
+  background: rgba(0, 0, 0, 0.46);
+  backdrop-filter: blur(2px);
 
-  background: rgba(0, 0, 0, 0.44);
+  animation: logout-backdrop-in 0.18s ease both;
 }
 
 .logout-confirm-modal {
-  width: min(420px, 100%);
+  position: relative;
+
+  width: min(420px, calc(100vw - 48px));
+  margin: 0;
   padding: 34px 30px 28px;
 
-  border-radius: 10px;
+  border-radius: 12px;
 
-  background: #fff;
-  color: #111;
+  background: #ffffff;
+  color: #111111;
 
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.22);
+  box-shadow: 0 26px 80px rgba(0, 0, 0, 0.24);
 
   text-align: center;
+
+  animation: logout-modal-in 0.24s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .logout-confirm-icon {
@@ -81,24 +96,61 @@
   font-weight: 800;
 
   cursor: pointer;
+
+  transition:
+    opacity 0.16s ease,
+    transform 0.16s ease;
 }
 
 .logout-confirm-actions .is-cancel {
   border: 1px solid #c8c8c8;
 
-  background: #fff;
-  color: #333;
+  background: #ffffff;
+  color: #333333;
 }
 
 .logout-confirm-actions .is-confirm {
-  border: 1px solid #111;
+  border: 1px solid #111111;
 
-  background: #111;
-  color: #fff;
+  background: #111111;
+  color: #ffffff;
 }
 
 .logout-confirm-actions button:hover {
   opacity: 0.88;
+}
+
+.logout-confirm-actions button:active {
+  transform: translateY(1px);
+}
+
+@keyframes logout-backdrop-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes logout-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logout-confirm-backdrop,
+  .logout-confirm-modal {
+    animation: none;
+  }
 }
 
 @media (max-width: 480px) {
@@ -107,6 +159,7 @@
   }
 
   .logout-confirm-modal {
+    width: min(420px, calc(100vw - 28px));
     padding: 30px 20px 22px;
   }
 }
