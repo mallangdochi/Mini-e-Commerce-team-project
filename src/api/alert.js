@@ -1,7 +1,9 @@
-export const handleAddToCart = (setCartMessage) => {
-  setCartMessage(true);
+export const handleAddToCart = (setCartMessages) => {
+  const messageId = `${Date.now()}-${Math.random()}`;
+
+  setCartMessages((messages) => [...messages, { id: messageId }]);
 
   setTimeout(() => {
-    setCartMessage(false);
+    setCartMessages((messages) => messages.filter((message) => message.id !== messageId));
   }, 4500);
 };
