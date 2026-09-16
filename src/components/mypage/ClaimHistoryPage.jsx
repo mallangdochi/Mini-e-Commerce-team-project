@@ -78,14 +78,6 @@ function IconHeart() {
   );
 }
 
-function normalizeImageUrl(url) {
-  if (!url || typeof url !== 'string') {
-    return '';
-  }
-
-  return url.trim().replace(/^<|>$/g, '');
-}
-
 function formatDate(dateString) {
   if (!dateString) {
     return '-';
