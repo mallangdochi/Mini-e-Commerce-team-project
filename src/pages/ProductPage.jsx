@@ -1251,6 +1251,8 @@ function ProductPage() {
           ================================ */}
 
           <div className="product-filter-bar">
+            <span className="product-mobile-result-count">{displayedProducts.length}개</span>
+
             <div className="product-filter-bar-left">
               <div className="product-sort" ref={sortRef}>
                 <button
@@ -1284,7 +1286,11 @@ function ProductPage() {
                 )}
               </div>
 
-              <button type="button" className="filter-btn" onClick={() => setIsFilterOpen(true)}>
+              <button
+                type="button"
+                className="filter-btn product-filter-open-btn"
+                onClick={() => setIsFilterOpen(true)}
+              >
                 <IconFilter />
 
                 <span>전체 필터</span>
