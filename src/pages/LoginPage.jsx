@@ -17,13 +17,24 @@ function LoginPage() {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
+    const trimmedIdentifier = identifier.trim();
+    const trimmedPassword = password.trim();
+
+    setIdentifier(trimmedIdentifier);
+    setPassword(trimmedPassword);
     setLoginError('');
+
+    if (!trimmedIdentifier || !trimmedPassword) {
+      setLoginError('아이디 또는 이메일과 비밀번호를 입력해주세요.');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       const response = await login({
-        identifier,
-        password,
+        identifier: trimmedIdentifier,
+        password: trimmedPassword,
       });
 
       setSession({

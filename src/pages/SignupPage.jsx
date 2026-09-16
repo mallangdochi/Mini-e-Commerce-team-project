@@ -61,13 +61,18 @@ function SignupPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const passwordStatus = useMemo(() => {
-    if (!form.password) return 'idle';
-    return PASSWORD_PATTERN.test(form.password) ? 'success' : 'error';
+    const trimmedPassword = form.password.trim();
+
+    if (!trimmedPassword) return 'idle';
+    return PASSWORD_PATTERN.test(trimmedPassword) ? 'success' : 'error';
   }, [form.password]);
 
   const passwordCheckStatus = useMemo(() => {
-    if (!form.passwordCheck) return 'idle';
-    return form.password === form.passwordCheck ? 'success' : 'error';
+    const trimmedPassword = form.password.trim();
+    const trimmedPasswordCheck = form.passwordCheck.trim();
+
+    if (!trimmedPasswordCheck) return 'idle';
+    return trimmedPassword === trimmedPasswordCheck ? 'success' : 'error';
   }, [form.password, form.passwordCheck]);
 
   const allAgreed = Object.values(agreements).every(Boolean);
@@ -319,9 +324,18 @@ function SignupPage() {
     setSubmitError('');
 
     try {
+      const trimmedPassword = form.password.trim();
+      const trimmedPasswordCheck = form.passwordCheck.trim();
+
+      setForm((previous) => ({
+        ...previous,
+        password: trimmedPassword,
+        passwordCheck: trimmedPasswordCheck,
+      }));
+
       const response = await signup({
-        id: form.email,
-        password: form.password,
+        id: form.email.trim(),
+        password: trimmedPassword,
         name: form.name.trim(),
         birthDate: form.birthDate || null,
         postcode: form.postcode || null,

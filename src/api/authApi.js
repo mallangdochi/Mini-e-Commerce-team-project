@@ -2,11 +2,14 @@ import apiClient from './client';
 
 export const login = async ({ id, identifier, password }) => {
   try {
+    const normalizedIdentifier = String(identifier ?? id ?? '').trim();
+    const normalizedPassword = String(password ?? '').trim();
+
     const response = await apiClient.post(
       '/auth/login',
       {
-        identifier: identifier ?? id,
-        password,
+        identifier: normalizedIdentifier,
+        password: normalizedPassword,
       },
       {
         skipAuth: true,
@@ -46,7 +49,13 @@ export const checkIdAvailability = async (id) => {
 
 export const signup = async (signupData) => {
   try {
-    const response = await apiClient.post('/auth/signup', signupData, {
+    const normalizedSignupData = {
+      ...signupData,
+      id: String(signupData?.id ?? '').trim(),
+      password: String(signupData?.password ?? '').trim(),
+    };
+
+    const response = await apiClient.post('/auth/signup', normalizedSignupData, {
       skipAuth: true,
     });
     return response.data;
