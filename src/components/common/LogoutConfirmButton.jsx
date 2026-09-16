@@ -1,18 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import useAuthStore from '@/store/authStore';
 import '@/styles/logout-confirm.css';
 
 function LogoutConfirmButton({ className = '' }) {
   const navigate = useNavigate();
+  const logout = useAuthStore((state) => state.logout);
   const [isOpen, setIsOpen] = useState(false);
 
   const handleLogout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('userInfo');
-
-    window.dispatchEvent(new Event('auth-change'));
-
+    logout();
     setIsOpen(false);
     navigate('/login');
   };

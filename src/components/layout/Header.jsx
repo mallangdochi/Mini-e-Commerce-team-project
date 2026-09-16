@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
+import useAuthStore from '@/store/authStore';
 import '@/styles/header.css';
 
 const CATEGORY_MENUS = {
@@ -115,7 +116,8 @@ function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileCategory, setMobileCategory] = useState(null);
   const [activeMenu, setActiveMenu] = useState(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(() => Boolean(localStorage.getItem('accessToken')));
+  const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
+  const syncAuthFromStorage = useAuthStore((state) => state.syncAuthFromStorage);
   const lastY = useRef(0);
 
   const openDesktopMenu = (menu) => {
@@ -129,20 +131,16 @@ function Header() {
   };
 
   useEffect(() => {
-    const updateAuthState = () => {
-      setIsLoggedIn(Boolean(localStorage.getItem('accessToken')));
-    };
+    syncAuthFromStorage();
 
-    updateAuthState();
-
-    window.addEventListener('auth-change', updateAuthState);
-    window.addEventListener('storage', updateAuthState);
+    window.addEventListener('auth-change', syncAuthFromStorage);
+    window.addEventListener('storage', syncAuthFromStorage);
 
     return () => {
-      window.removeEventListener('auth-change', updateAuthState);
-      window.removeEventListener('storage', updateAuthState);
+      window.removeEventListener('auth-change', syncAuthFromStorage);
+      window.removeEventListener('storage', syncAuthFromStorage);
     };
-  }, []);
+  }, [syncAuthFromStorage]);
 
   // 스크롤 내리면 헤더 숨김, 올리면 표시. 드롭다운이 열려 있으면 헤더 유지.
   useEffect(() => {

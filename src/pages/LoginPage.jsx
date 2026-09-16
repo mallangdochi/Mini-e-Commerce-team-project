@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { login } from '@/api/authApi';
+import useAuthStore from '@/store/authStore';
 import '@/styles/login.css';
 
 function LoginPage() {
   const navigate = useNavigate();
+  const setSession = useAuthStore((state) => state.setSession);
 
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -24,10 +26,10 @@ function LoginPage() {
         password,
       });
 
-      localStorage.setItem('accessToken', response.token);
-      localStorage.setItem('userInfo', JSON.stringify(response.userInfo));
-
-      window.dispatchEvent(new Event('auth-change'));
+      setSession({
+        accessToken: response.token,
+        user: response.userInfo,
+      });
 
       navigate('/');
     } catch (error) {
