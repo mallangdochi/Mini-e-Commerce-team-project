@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import EmptyState from '@/components/common/EmptyState';
 import ErrorState from '@/components/common/ErrorState';
 import { getStoredCancelReasons, getStoredClaims } from '@/utils/storage';
 import useOrders from '@/hooks/useOrders';
+import { getOptionText, getOrderImage, getOrderName } from './order-history/orderHistoryUtils';
 import '@/styles/order-history.css';
 import '@/styles/claim-history.css';
 
@@ -77,14 +78,6 @@ function IconHeart() {
   );
 }
 
-function normalizeImageUrl(url) {
-  if (!url || typeof url !== 'string') {
-    return '';
-  }
-
-  return url.trim().replace(/^<|>$/g, '');
-}
-
 function formatDate(dateString) {
   if (!dateString) {
     return '-';
@@ -123,7 +116,8 @@ function isWithinPeriod(dateString, months) {
 }
 
 function ClaimHistoryPage() {
-  const { user, orders, orderDetails, errorMessage } = useOrders();
+  const { user, orders, orderDetails, errorMessage, loadOrderDetails, isOrderDetailLoading } =
+    useOrders();
   const [localClaims] = useState(getStoredClaims);
   const [cancelReasons] = useState(getStoredCancelReasons);
   const [selectedTab, setSelectedTab] = useState('all');
@@ -198,6 +192,30 @@ function ClaimHistoryPage() {
       return tabMatched && periodMatched;
     });
   }, [claims, periodMonths, selectedTab]);
+
+  const missingVisibleOrderIds = useMemo(() => {
+    return filteredClaims
+      .map((claim) => claim.orderId)
+      .filter((orderId) => {
+        const order = orders.find((item) => String(item.orderId) === String(orderId));
+        const detail = orderDetails[orderId];
+        const representative = order?.representativeProduct;
+
+        if (detail?.items?.length) {
+          return false;
+        }
+
+        return !representative?.name || !representative?.imageUrl;
+      });
+  }, [filteredClaims, orderDetails, orders]);
+
+  useEffect(() => {
+    if (missingVisibleOrderIds.length === 0) {
+      return;
+    }
+
+    void loadOrderDetails(missingVisibleOrderIds);
+  }, [loadOrderDetails, missingVisibleOrderIds]);
 
   const claimCountByType = useMemo(() => {
     return claims.reduce(
@@ -284,23 +302,15 @@ function ClaimHistoryPage() {
         ) : (
           <div className="claim-history-list">
             {filteredClaims.map((claim) => {
-              const order = orders.find((item) => item.orderId === claim.orderId);
+              const order = orders.find((item) => String(item.orderId) === String(claim.orderId));
               const detail = orderDetails[claim.orderId];
               const firstItem = detail?.items?.[0];
-              const imageUrl = normalizeImageUrl(
-                firstItem?.imageUrl ?? order?.representativeProduct?.imageUrl
-              );
-              const productName =
-                firstItem?.name ?? order?.representativeProduct?.name ?? '상품 정보 없음';
+              const imageUrl = getOrderImage(order ?? {}, detail);
+              const productName = getOrderName(order ?? {}, detail);
               const totalItemCount = Number(order?.totalItemCount ?? detail?.items?.length ?? 1);
-              const optionText = [
-                typeof firstItem?.color === 'string'
-                  ? firstItem.color.toUpperCase()
-                  : (firstItem?.color?.label ?? firstItem?.color?.value?.toUpperCase()),
-                firstItem?.size,
-              ]
-                .filter(Boolean)
-                .join(' / ');
+              const optionText = getOptionText(detail);
+              const isProductLoading =
+                !detail?.items?.length && isOrderDetailLoading(claim.orderId);
 
               return (
                 <article className="claim-history-card" key={claim.claimId}>
@@ -325,9 +335,11 @@ function ClaimHistoryPage() {
 
                       <div className="claim-history-product-info">
                         <h2>
-                          {totalItemCount > 1
-                            ? `${productName} 외 ${totalItemCount - 1}개`
-                            : productName}
+                          {isProductLoading
+                            ? '상품 정보를 불러오는 중입니다.'
+                            : totalItemCount > 1
+                              ? `${productName} 외 ${totalItemCount - 1}개`
+                              : productName}
                         </h2>
 
                         {optionText && <p>{optionText}</p>}
