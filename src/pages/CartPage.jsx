@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 import { useCartStore } from '@/store/cartStore';
 import '@/styles/cart.css';
@@ -74,6 +74,12 @@ function CartPage() {
     });
   };
 
+  const getProductPath = (item) => {
+    const query = item.productType === 'set' ? '?type=set' : '';
+
+    return `/products/${item.productId}${query}`;
+  };
+
   return (
     <section className="cart-page">
       <div className="cart-container">
@@ -132,7 +138,7 @@ function CartPage() {
                     />
                   </div>
 
-                  <div className="cart-product-cell">
+                  <Link to={getProductPath(item)} className="cart-product-cell">
                     {item.imageUrl ? (
                       <img className="cart-item-img" src={item.imageUrl} alt={item.name} />
                     ) : (
@@ -144,7 +150,7 @@ function CartPage() {
 
                       {item.option && <div className="cart-item-sub">{item.option}</div>}
                     </div>
-                  </div>
+                  </Link>
 
                   <div className="cart-item-price">₩ {item.price.toLocaleString()}</div>
 
