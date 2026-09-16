@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-
 import { getProductFilters, getProducts, getSets, searchProducts } from '@/api/products';
 import { addWishlist, getWishlist, removeWishlist } from '@/api/wishlist';
 import '@/styles/product-page.css';
