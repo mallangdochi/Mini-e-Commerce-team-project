@@ -325,14 +325,24 @@ function getSearchCategoryIntent(query) {
 
 function normalizeColorOption(color) {
   if (typeof color === 'string') {
+    const colorKey = color.toLowerCase();
+
     return {
       value: color,
-      label: COLOR_LABELS[color] ?? color,
+      label: COLOR_LABELS[colorKey] ?? color,
       filterGroup: color,
     };
   }
 
-  return color;
+  const filterGroup = color?.filterGroup ?? color?.value ?? color?.label ?? '';
+  const colorKey = String(filterGroup).toLowerCase();
+
+  return {
+    ...color,
+    value: color?.value ?? filterGroup,
+    label: COLOR_LABELS[colorKey] ?? color?.label ?? filterGroup,
+    filterGroup,
+  };
 }
 
 function toggleSingleValue(currentValue, nextValue) {
@@ -1344,8 +1354,11 @@ function ProductPage() {
       id: `color-${color}`,
       type: 'color',
       value: color,
-      label: filterOptions.colors.find((item) => item.filterGroup === color)?.label ?? color,
-      color: COLOR_MAP[color] ?? '#d9d9d9',
+      label:
+        filterOptions.colors.find((item) => item.filterGroup === color)?.label ??
+        COLOR_LABELS[String(color).toLowerCase()] ??
+        color,
+      color: COLOR_MAP[String(color).toLowerCase()] ?? '#d9d9d9',
     })),
 
     ...appliedFilters.size.map((size) => ({
@@ -1667,7 +1680,7 @@ function ProductPage() {
 
                         const checked = selectedColor.includes(value);
 
-                        const backgroundColor = COLOR_MAP[value] ?? '#d9d9d9';
+                        const backgroundColor = COLOR_MAP[String(value).toLowerCase()] ?? '#d9d9d9';
 
                         return (
                           <label className="color-filter-item" key={value}>
@@ -1683,7 +1696,10 @@ function ProductPage() {
                               className="color-filter-swatch"
                               style={{
                                 backgroundColor,
-                                border: value === 'white' ? '1px solid #d1d1d1' : undefined,
+                                border:
+                                  String(value).toLowerCase() === 'white'
+                                    ? '1px solid #d1d1d1'
+                                    : undefined,
                               }}
                             />
 
