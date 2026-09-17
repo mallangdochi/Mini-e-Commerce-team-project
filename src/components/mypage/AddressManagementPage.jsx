@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 
 import ConfirmModal from '@/components/common/ConfirmModal';
 import EmptyState from '@/components/common/EmptyState';
+import useAddresses from '@/hooks/useAddresses';
 import useAuthStore from '@/store/authStore';
-import { getStoredAddresses, setStoredAddresses } from '@/utils/storage';
 import '@/styles/mypage.css';
 
 const EMPTY_ADDRESS_FORM = {
@@ -73,61 +73,17 @@ function loadPostcodeScript() {
   });
 }
 
-function getInitialAddresses(user) {
-  const storedAddresses = getStoredAddresses();
-
-  if (!user) {
-    return storedAddresses;
-  }
-
-  const signupPostcode = user.postcode ?? user.zonecode ?? user.address?.postcode ?? '';
-  const signupAddress =
-    typeof user.address === 'string'
-      ? user.address
-      : (user.address?.address ?? user.address?.roadAddress ?? '');
-  const signupDetailAddress = user.detailAddress ?? user.address?.detailAddress ?? '';
-  const signupPhone = user.phone ?? user.phoneNumber ?? user.mobile ?? '';
-
-  if (!signupPostcode && !signupAddress && !signupDetailAddress) {
-    return storedAddresses;
-  }
-
-  if (storedAddresses.some((item) => item.id === 'signup-default')) {
-    return storedAddresses;
-  }
-
-  const hasDefaultAddress = storedAddresses.some((item) => item.isDefault);
-
-  return [
-    {
-      id: 'signup-default',
-      label: '기본 배송지',
-      receiverName: user.name ?? '',
-      phone: formatPhoneNumber(signupPhone),
-      postcode: signupPostcode,
-      address: signupAddress,
-      detailAddress: signupDetailAddress,
-      isDefault: !hasDefaultAddress,
-    },
-    ...storedAddresses,
-  ];
-}
-
 function AddressManagementPage() {
   const user = useAuthStore((state) => state.user);
   const postcodeDialogRef = useRef(null);
   const postcodeContainerRef = useRef(null);
 
   const [addressLoading, setAddressLoading] = useState(false);
-  const [addresses, setAddresses] = useState(() => getInitialAddresses(user));
+  const { addresses, saveAddress, removeAddress, makeDefault } = useAddresses();
   const [isAddressEditorOpen, setIsAddressEditorOpen] = useState(false);
   const [editingAddressId, setEditingAddressId] = useState(null);
   const [addressForm, setAddressForm] = useState(EMPTY_ADDRESS_FORM);
   const [deleteAddressId, setDeleteAddressId] = useState(null);
-
-  useEffect(() => {
-    setStoredAddresses(addresses);
-  }, [addresses]);
 
   const handleAddressInputChange = (event) => {
     const { name, value, checked, type } = event.target;
@@ -193,7 +149,7 @@ function AddressManagementPage() {
   };
 
   const openEditAddressEditor = (addressItem) => {
-    setEditingAddressId(addressItem.id);
+    setEditingAddressId(addressItem.addressId ?? addressItem.id);
     setAddressForm({
       label: addressItem.label ?? '',
       receiverName: addressItem.receiverName ?? '',
@@ -212,7 +168,7 @@ function AddressManagementPage() {
     setAddressForm(EMPTY_ADDRESS_FORM);
   };
 
-  const handleAddressSave = () => {
+  const handleAddressSave = async () => {
     if (
       !addressForm.receiverName.trim() ||
       !addressForm.phone.trim() ||
@@ -223,78 +179,45 @@ function AddressManagementPage() {
       return;
     }
 
-    const nextAddress = {
-      ...addressForm,
-      phone: formatPhoneNumber(addressForm.phone),
-      id: editingAddressId ?? `address-${Date.now()}`,
-      label: addressForm.label.trim() || '배송지',
-    };
+    try {
+      await saveAddress({
+        addressId: editingAddressId,
+        ...addressForm,
+        phone: addressForm.phone.replace(/[^\d]/g, ''),
+        label: addressForm.label.trim() || '배송지',
+      });
 
-    setAddresses((prev) => {
-      let nextItems;
-
-      if (editingAddressId) {
-        nextItems = prev.map((item) => (item.id === editingAddressId ? nextAddress : item));
-      } else {
-        nextItems = [...prev, nextAddress];
-      }
-
-      if (nextAddress.isDefault) {
-        return nextItems.map((item) => ({
-          ...item,
-          isDefault: item.id === nextAddress.id,
-        }));
-      }
-
-      if (!nextItems.some((item) => item.isDefault) && nextItems.length > 0) {
-        return nextItems.map((item, index) => ({
-          ...item,
-          isDefault: index === 0,
-        }));
-      }
-
-      return nextItems;
-    });
-
-    closeAddressEditor();
+      closeAddressEditor();
+    } catch (error) {
+      alert(error.message || '배송지를 저장하지 못했습니다.');
+    }
   };
 
   const closeAddressDeletePanel = () => {
     setDeleteAddressId(null);
   };
 
-  const confirmAddressDelete = () => {
+  const confirmAddressDelete = async () => {
     if (!deleteAddressId) return;
 
-    const target = addresses.find((item) => item.id === deleteAddressId);
-
-    setAddresses((prev) => {
-      const nextItems = prev.filter((item) => item.id !== deleteAddressId);
-
-      if (target?.isDefault && nextItems.length > 0) {
-        return nextItems.map((item, index) => ({
-          ...item,
-          isDefault: index === 0,
-        }));
-      }
-
-      return nextItems;
-    });
-
-    setDeleteAddressId(null);
+    try {
+      await removeAddress(deleteAddressId);
+      setDeleteAddressId(null);
+    } catch (error) {
+      alert(error.message || '배송지를 삭제하지 못했습니다.');
+    }
   };
 
-  const handleSetDefaultAddress = (addressId) => {
-    setAddresses((prev) =>
-      prev.map((item) => ({
-        ...item,
-        isDefault: item.id === addressId,
-      }))
-    );
+  const handleSetDefaultAddress = async (addressId) => {
+    try {
+      await makeDefault(addressId);
+    } catch (error) {
+      alert(error.message || '기본 배송지를 변경하지 못했습니다.');
+    }
   };
 
   const deleteTargetAddress = deleteAddressId
-    ? addresses.find((item) => item.id === deleteAddressId)
+    ? addresses.find((item) => String(item.addressId ?? item.id) === String(deleteAddressId))
     : null;
 
   return (
@@ -325,7 +248,10 @@ function AddressManagementPage() {
           ) : (
             <div className="mypage-address-list">
               {addresses.map((addressItem) => (
-                <article className="mypage-address-card" key={addressItem.id}>
+                <article
+                  className="mypage-address-card"
+                  key={addressItem.addressId ?? addressItem.id}
+                >
                   <div className="mypage-address-card-title">
                     <div>
                       <h3>{addressItem.label || '배송지'}</h3>
@@ -365,7 +291,9 @@ function AddressManagementPage() {
                       <button
                         type="button"
                         className="is-primary"
-                        onClick={() => handleSetDefaultAddress(addressItem.id)}
+                        onClick={() =>
+                          handleSetDefaultAddress(addressItem.addressId ?? addressItem.id)
+                        }
                       >
                         기본으로 설정
                       </button>
@@ -375,7 +303,10 @@ function AddressManagementPage() {
                       수정
                     </button>
 
-                    <button type="button" onClick={() => setDeleteAddressId(addressItem.id)}>
+                    <button
+                      type="button"
+                      onClick={() => setDeleteAddressId(addressItem.addressId ?? addressItem.id)}
+                    >
                       삭제
                     </button>
                   </div>

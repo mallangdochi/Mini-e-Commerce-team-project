@@ -1,6 +1,8 @@
 import { cloneElement, isValidElement, useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
+import { getCoupons } from '@/api/coupons';
+import { getWishlist } from '@/api/wishlist';
 import ConfirmModal from '@/components/common/ConfirmModal';
 import MyPageSidebar from '@/components/mypage/MyPageSidebar';
 import useAuthStore from '@/store/authStore';
@@ -12,12 +14,64 @@ function MyPageLayout({ children }) {
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const fetchMe = useAuthStore((state) => state.fetchMe);
+  const patchUserSummary = useAuthStore((state) => state.patchUserSummary);
   const logout = useAuthStore((state) => state.logout);
   const [isLogoutPanelOpen, setIsLogoutPanelOpen] = useState(false);
 
   useEffect(() => {
-    fetchMe().catch(() => null);
-  }, [fetchMe]);
+    let isActive = true;
+
+    const loadMyPageSummary = async () => {
+      const [, couponResult, wishlistResult] = await Promise.allSettled([
+        fetchMe(),
+        getCoupons(),
+        getWishlist(),
+      ]);
+
+      if (!isActive) {
+        return;
+      }
+
+      const coupons =
+        couponResult.status === 'fulfilled' && Array.isArray(couponResult.value?.data)
+          ? couponResult.value.data
+          : [];
+
+      const now = Date.now();
+
+      const availableCouponCount = coupons.filter((coupon) => {
+        const expiresAt = coupon?.expiresAt ? new Date(coupon.expiresAt).getTime() : null;
+
+        const isExpired =
+          coupon?.status === 'expired' || (Number.isFinite(expiresAt) && expiresAt < now);
+
+        const isUsed = coupon?.status === 'used' || Boolean(coupon?.usedAt);
+
+        return !isExpired && !isUsed;
+      }).length;
+
+      const wishlistData =
+        wishlistResult.status === 'fulfilled' ? (wishlistResult.value?.data ?? {}) : {};
+
+      const wishlistItems = Array.isArray(wishlistData)
+        ? wishlistData
+        : Array.isArray(wishlistData?.items)
+          ? wishlistData.items
+          : [];
+
+      patchUserSummary({
+        availableCouponCount,
+        couponCount: availableCouponCount,
+        wishlistCount: wishlistItems.length,
+      });
+    };
+
+    void loadMyPageSummary();
+
+    return () => {
+      isActive = false;
+    };
+  }, [fetchMe, patchUserSummary]);
 
   const confirmLogout = () => {
     logout();
@@ -29,8 +83,11 @@ function MyPageLayout({ children }) {
     <main className="mypage-page">
       <div className={`mypage-shell${pathname === '/mypage' ? ' mypage-shell--home' : ''}`}>
         <MyPageSidebar user={user} onLogout={() => setIsLogoutPanelOpen(true)} />
+
         {isValidElement(children)
-          ? cloneElement(children, { onLogout: () => setIsLogoutPanelOpen(true) })
+          ? cloneElement(children, {
+              onLogout: () => setIsLogoutPanelOpen(true),
+            })
           : children}
       </div>
 

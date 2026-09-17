@@ -1,15 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+import { changePassword, updateMe } from '@/api/authApi';
+import useAddresses from '@/hooks/useAddresses';
 import useAuthStore from '@/store/authStore';
-import {
-  getStoredAddresses,
-  getStoredNoticeSettings,
-  getStoredProfileOverrides,
-  setStoredNoticeSettings,
-  setStoredPasswordChangeDraft,
-  setStoredProfileOverrides,
-  setStoredUserInfo,
-} from '@/utils/storage';
+import { getStoredNoticeSettings, setStoredNoticeSettings } from '@/utils/storage';
 import '@/styles/mypage.css';
 
 const PASSWORD_MAX_LENGTH = 12;
@@ -129,46 +123,51 @@ function getInitialNoticeSetting(key, fallbackValue) {
 }
 
 function createInitialProfileForm(user) {
-  const overrides = getStoredProfileOverrides();
-
   return {
-    name: overrides.name ?? user?.name ?? '',
-    loginId: overrides.loginId ?? user?.loginId ?? user?.identifier ?? user?.id ?? '',
-    email: overrides.email ?? user?.email ?? '',
-    phone: formatPhoneNumber(
-      overrides.phone ?? user?.phone ?? user?.phoneNumber ?? user?.mobile ?? ''
-    ),
-    birthday: overrides.birthday ?? user?.birthday ?? user?.birthDate ?? user?.dateOfBirth ?? '',
+    name: user?.name ?? '',
+    loginId: user?.loginId ?? user?.identifier ?? user?.id ?? '',
+    email: user?.email ?? '',
+    phone: formatPhoneNumber(user?.phone ?? user?.phoneNumber ?? user?.mobile ?? ''),
+    birthday: user?.birthday ?? user?.birthDate ?? user?.dateOfBirth ?? '',
   };
 }
 
 function ProfilePage() {
   const user = useAuthStore((state) => state.user);
-  const syncAuthFromStorage = useAuthStore((state) => state.syncAuthFromStorage);
+  const fetchMe = useAuthStore((state) => state.fetchMe);
   const saveToastTimerRef = useRef(null);
-  const [addresses] = useState(getStoredAddresses);
+  const { addresses } = useAddresses();
+
   const [isProfileEditorOpen, setIsProfileEditorOpen] = useState(false);
 
   const [emailNotice, setEmailNotice] = useState(() =>
     getInitialNoticeSetting('emailNotice', true)
   );
+
   const [smsNotice, setSmsNotice] = useState(() => getInitialNoticeSetting('smsNotice', true));
+
   const [pushNotice, setPushNotice] = useState(() => getInitialNoticeSetting('pushNotice', false));
+
   const [profileForm, setProfileForm] = useState(() => createInitialProfileForm(user));
+
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
     newPassword: '',
     newPasswordConfirm: '',
   });
+
   const [isPasswordEditorOpen, setIsPasswordEditorOpen] = useState(false);
   const [passwordSaveMessage, setPasswordSaveMessage] = useState('');
   const [saveMessage, setSaveMessage] = useState('');
   const [isSaveToastVisible, setIsSaveToastVisible] = useState(false);
 
   const userName = user?.name ?? user?.nickname ?? user?.loginId ?? user?.id ?? '회원';
+
   const loginId = user?.loginId ?? user?.identifier ?? user?.id ?? '';
+
   const email = user?.email ?? '';
   const phone = user?.phone ?? user?.phoneNumber ?? user?.mobile ?? '';
+
   const defaultAddress = addresses.find((item) => item.isDefault) ?? addresses[0] ?? null;
 
   useEffect(
@@ -208,6 +207,7 @@ function ProfilePage() {
 
   const handlePasswordInputChange = (event) => {
     const { name, value } = event.target;
+
     const nextValue =
       name === 'currentPassword'
         ? value
@@ -225,20 +225,24 @@ function ProfilePage() {
     const trimmedNewPassword = passwordForm.newPassword.trim();
 
     if (!trimmedNewPassword) return 'idle';
+
     return PASSWORD_PATTERN.test(trimmedNewPassword) ? 'success' : 'error';
   }, [passwordForm.newPassword]);
 
   const passwordCheckStatus = useMemo(() => {
     const trimmedNewPassword = passwordForm.newPassword.trim();
+
     const trimmedNewPasswordConfirm = passwordForm.newPasswordConfirm.trim();
 
     if (!trimmedNewPasswordConfirm) return 'idle';
+
     return trimmedNewPassword === trimmedNewPasswordConfirm ? 'success' : 'error';
   }, [passwordForm.newPassword, passwordForm.newPasswordConfirm]);
 
   const closePasswordEditor = () => {
     setIsPasswordEditorOpen(false);
     setPasswordSaveMessage('');
+
     setPasswordForm({
       currentPassword: '',
       newPassword: '',
@@ -246,16 +250,12 @@ function ProfilePage() {
     });
   };
 
-  const handlePasswordSave = () => {
+  const handlePasswordSave = async () => {
     const trimmedCurrentPassword = passwordForm.currentPassword.trim();
-    const trimmedNewPassword = passwordForm.newPassword.trim();
-    const trimmedNewPasswordConfirm = passwordForm.newPasswordConfirm.trim();
 
-    setPasswordForm({
-      currentPassword: trimmedCurrentPassword,
-      newPassword: trimmedNewPassword,
-      newPasswordConfirm: trimmedNewPasswordConfirm,
-    });
+    const trimmedNewPassword = passwordForm.newPassword.trim();
+
+    const trimmedNewPasswordConfirm = passwordForm.newPasswordConfirm.trim();
 
     if (!trimmedCurrentPassword) {
       setPasswordSaveMessage('현재 비밀번호를 입력해주세요.');
@@ -272,18 +272,21 @@ function ProfilePage() {
       return;
     }
 
-    setStoredPasswordChangeDraft({
-      changedAt: new Date().toISOString(),
-    });
+    try {
+      await changePassword({
+        currentPassword: trimmedCurrentPassword,
+        newPassword: trimmedNewPassword,
+      });
 
-    setPasswordSaveMessage('비밀번호 변경 값이 저장되었습니다.');
+      setPasswordSaveMessage('비밀번호가 변경되었습니다.');
 
-    window.setTimeout(() => {
-      closePasswordEditor();
-    }, 600);
+      window.setTimeout(() => closePasswordEditor(), 600);
+    } catch (error) {
+      setPasswordSaveMessage(error.message || '비밀번호를 변경하지 못했습니다.');
+    }
   };
 
-  const handleSaveAll = () => {
+  const handleSaveAll = async () => {
     const phoneNumbers = profileForm.phone.replace(/[^\d]/g, '');
 
     if (phoneNumbers.length !== 11) {
@@ -291,52 +294,46 @@ function ProfilePage() {
       return;
     }
 
-    const profileOverrides = {
-      name: profileForm.name,
-      loginId: profileForm.loginId,
-      email: profileForm.email,
-      phone: formatPhoneNumber(profileForm.phone),
-      birthday: profileForm.birthday,
-    };
+    try {
+      await updateMe({
+        name: profileForm.name,
+        email: profileForm.email,
+        phone: phoneNumbers,
+      });
 
-    const nextUser = {
-      ...(user ?? {}),
-      ...profileOverrides,
-    };
+      setStoredNoticeSettings({
+        emailNotice,
+        smsNotice,
+        pushNotice,
+      });
 
-    setStoredUserInfo(nextUser);
-    setStoredProfileOverrides(profileOverrides);
-    setStoredNoticeSettings({
-      emailNotice,
-      smsNotice,
-      pushNotice,
-    });
+      await fetchMe({ force: true });
 
-    syncAuthFromStorage();
-    window.dispatchEvent(new Event('auth-change'));
-    setSaveMessage('');
+      setSaveMessage('');
+      setIsProfileEditorOpen(false);
+      setIsSaveToastVisible(true);
 
-    if (saveToastTimerRef.current) {
-      window.clearTimeout(saveToastTimerRef.current);
-    }
+      if (saveToastTimerRef.current) {
+        window.clearTimeout(saveToastTimerRef.current);
+      }
 
-    setIsProfileEditorOpen(false);
-    setIsSaveToastVisible(true);
-
-    window.requestAnimationFrame(() => {
       window.requestAnimationFrame(() => {
-        window.scrollTo({
-          top: 0,
-          left: 0,
-          behavior: 'smooth',
+        window.requestAnimationFrame(() => {
+          window.scrollTo({
+            top: 0,
+            left: 0,
+            behavior: 'smooth',
+          });
         });
       });
-    });
 
-    saveToastTimerRef.current = window.setTimeout(() => {
-      setIsSaveToastVisible(false);
-      saveToastTimerRef.current = null;
-    }, 2000);
+      saveToastTimerRef.current = window.setTimeout(() => {
+        setIsSaveToastVisible(false);
+        saveToastTimerRef.current = null;
+      }, 2000);
+    } catch (error) {
+      setSaveMessage(error.message || '회원 정보를 저장하지 못했습니다.');
+    }
   };
 
   return (
@@ -439,12 +436,7 @@ function ProfilePage() {
 
                 <label className="mypage-direct-row">
                   <span>아이디</span>
-                  <input
-                    type="text"
-                    name="loginId"
-                    value={profileForm.loginId}
-                    onChange={handleProfileInputChange}
-                  />
+                  <input type="text" name="loginId" value={profileForm.loginId} readOnly />
                 </label>
 
                 <label className="mypage-direct-row">
@@ -472,12 +464,7 @@ function ProfilePage() {
 
                 <label className="mypage-direct-row">
                   <span>생일</span>
-                  <input
-                    type="date"
-                    name="birthday"
-                    value={profileForm.birthday}
-                    onChange={handleProfileInputChange}
-                  />
+                  <input type="date" name="birthday" value={profileForm.birthday} readOnly />
                 </label>
               </div>
 
@@ -514,6 +501,7 @@ function ProfilePage() {
                     <strong>이메일 수신</strong>
                     <small>이메일로 마케팅 소식과 이벤트 정보를 받습니다.</small>
                   </span>
+
                   <input
                     type="checkbox"
                     checked={emailNotice}
@@ -526,6 +514,7 @@ function ProfilePage() {
                     <strong>SMS 수신</strong>
                     <small>SMS로 주요 혜택 및 이벤트 정보를 받습니다.</small>
                   </span>
+
                   <input
                     type="checkbox"
                     checked={smsNotice}
@@ -538,6 +527,7 @@ function ProfilePage() {
                     <strong>푸시 알림 수신</strong>
                     <small>앱 푸시 알림으로 실시간 소식을 받습니다.</small>
                   </span>
+
                   <input
                     type="checkbox"
                     checked={pushNotice}
@@ -602,6 +592,7 @@ function ProfilePage() {
             <div className="mypage-password-modal-body">
               <label>
                 <span>현재 비밀번호</span>
+
                 <input
                   type="password"
                   name="currentPassword"
@@ -614,6 +605,7 @@ function ProfilePage() {
 
               <label>
                 <span>새 비밀번호</span>
+
                 <input
                   type="password"
                   name="newPassword"
@@ -623,13 +615,15 @@ function ProfilePage() {
                   maxLength={PASSWORD_MAX_LENGTH}
                   autoComplete="new-password"
                 />
+
                 <small className={passwordStatus === 'error' ? 'is-error' : ''}>
-                  영문, 숫자, 특수문자(.!@#$%^&amp;*?)를 포함한 8~12자
+                  영문, 숫자, 특수문자 (.!@#$%^&amp;*?)를 포함한 8~12자
                 </small>
               </label>
 
               <label>
                 <span>새 비밀번호 확인</span>
+
                 <input
                   type="password"
                   name="newPasswordConfirm"
@@ -639,6 +633,7 @@ function ProfilePage() {
                   maxLength={PASSWORD_MAX_LENGTH}
                   autoComplete="new-password"
                 />
+
                 {passwordCheckStatus === 'error' && (
                   <small className="is-error">비밀번호가 일치하지 않습니다.</small>
                 )}
