@@ -273,6 +273,25 @@
   min-width: 0;
 }
 
+.checkout-coupon-empty {
+  margin: 8px 0 0;
+
+  color: #8b8b8b;
+
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.checkout-point-minimum-message {
+  margin: 8px 0 0;
+
+  color: #d63b3b;
+
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
 .checkout-point-section {
   flex: none;
 }
