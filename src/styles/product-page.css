@@ -344,6 +344,9 @@
   align-items: center;
   gap: 6px;
 
+  width: auto;
+  min-width: 0;
+
   flex-wrap: wrap;
 }
 
@@ -424,9 +427,14 @@
   align-items: center;
   gap: 8px;
 
+  flex: 0 0 auto;
+  width: max-content;
+
   color: #2b2f36;
 
   font-size: 14px;
+
+  white-space: nowrap;
 
   cursor: pointer;
 }
