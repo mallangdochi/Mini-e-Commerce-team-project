@@ -39,13 +39,17 @@ function getProductImage(product) {
 
 function getFirstAvailableSize(product) {
   const sizes = Array.isArray(product?.sizes) ? product.sizes : [];
+
   return sizes.find((item) => Number(item?.stock ?? item?.quantity ?? 0) > 0) ?? null;
 }
 
 function getFirstColor(product) {
   const color = Array.isArray(product?.colors) ? product.colors[0] : null;
+
   if (!color) return '';
+
   if (typeof color === 'string') return color;
+
   return color?.value ?? color?.id ?? color?.name ?? '';
 }
 
@@ -55,52 +59,71 @@ function getProductType(product) {
 
 function isSoldOut(product) {
   const sizes = Array.isArray(product?.sizes) ? product.sizes : [];
-  if (sizes.length === 0) return Number(product?.stock ?? 1) <= 0;
+
+  if (sizes.length === 0) {
+    return Number(product?.stock ?? 1) <= 0;
+  }
+
   return sizes.every((item) => Number(item?.stock ?? item?.quantity ?? 0) <= 0);
 }
 
 function WishlistPage() {
   const navigate = useNavigate();
   const addCartItem = useCartStore((state) => state.addItem);
+
   const { wishlistItems, errorMessage, isLoading, removeWishlistItem } = useWishlist();
 
   const [sortType, setSortType] = useState('recent');
+
   const [cartLoadingId, setCartLoadingId] = useState(null);
 
   const sortedItems = useMemo(() => {
     const next = [...wishlistItems];
-    if (sortType === 'priceAsc')
+
+    if (sortType === 'priceAsc') {
       return next.sort((a, b) => Number(a.product.price) - Number(b.product.price));
-    if (sortType === 'priceDesc')
+    }
+
+    if (sortType === 'priceDesc') {
       return next.sort((a, b) => Number(b.product.price) - Number(a.product.price));
-    if (sortType === 'name')
+    }
+
+    if (sortType === 'name') {
       return next.sort((a, b) =>
         String(a.product.name).localeCompare(String(b.product.name), 'ko')
       );
+    }
+
     return next.sort(
       (a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime()
     );
   }, [sortType, wishlistItems]);
 
-  const handleRemoveWishlist = async (wishlistId) => {
+  const handleRemoveWishlist = async (productId) => {
     try {
-      await removeWishlistItem(wishlistId);
+      await removeWishlistItem(productId);
     } catch (error) {
       alert(error.message || '찜한 상품을 삭제하지 못했습니다.');
     }
   };
 
   const getProductPath = (item) => {
-    return `/products/${item.productId}${getProductType(item.product) === 'set' ? '?type=set' : ''}`;
+    return `/products/${item.productId}${
+      getProductType(item.product) === 'set' ? '?type=set' : ''
+    }`;
   };
 
   const handleAddCart = (item) => {
     const { product } = item;
+
     const availableSize = getFirstAvailableSize(product);
+
     const color = getFirstColor(product);
+
     if (isSoldOut(product)) return;
 
     setCartLoadingId(item.wishlistId);
+
     addCartItem({
       productId: Number(product.id ?? item.productId),
       productType: getProductType(product),
@@ -133,6 +156,7 @@ function WishlistPage() {
 
         <div className="wishlist-toolbar">
           <strong>총 {wishlistItems.length}개</strong>
+
           <select
             value={sortType}
             onChange={(event) => setSortType(event.target.value)}
@@ -163,8 +187,11 @@ function WishlistPage() {
             {sortedItems.map((item) => {
               const product = item.product;
               const soldOut = isSoldOut(product);
+
               const imageUrl = getProductImage(product);
+
               const color = getFirstColor(product);
+
               const size = getFirstAvailableSize(product)?.size;
 
               return (
@@ -177,23 +204,30 @@ function WishlistPage() {
                         <span className="wishlist-image-empty">IMAGE</span>
                       )}
                     </Link>
+
                     {soldOut && <span className="wishlist-soldout">SOLD OUT</span>}
+
                     <button
                       type="button"
                       className="wishlist-heart-button"
-                      onClick={() => handleRemoveWishlist(item.wishlistId)}
+                      onClick={() => handleRemoveWishlist(item.productId)}
                       aria-label={`${product.name} 찜 해제`}
                     >
                       <HeartIcon filled />
                     </button>
                   </div>
+
                   <div className="wishlist-card-info">
                     <h2>{product.name}</h2>
+
                     {(color || size) && <p>{[color, size].filter(Boolean).join(' / ')}</p>}
+
                     <strong>₩ {Number(product.price ?? 0).toLocaleString()}</strong>
                   </div>
+
                   <div className="wishlist-card-actions">
                     <Link to={getProductPath(item)}>상품 보기</Link>
+
                     <button
                       type="button"
                       disabled={soldOut || cartLoadingId === item.wishlistId}
