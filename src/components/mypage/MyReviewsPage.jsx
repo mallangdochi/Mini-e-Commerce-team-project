@@ -1,11 +1,17 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
+import {
+  createReview,
+  deleteReview as deleteReviewApi,
+  getEligibleReviews,
+  getMyReviews,
+  updateReview,
+} from '@/api/reviews';
 import ConfirmModal from '@/components/common/ConfirmModal';
 import EmptyState from '@/components/common/EmptyState';
 import ErrorState from '@/components/common/ErrorState';
-
-import { getStoredClaims, getStoredReviews, setStoredReviews } from '@/utils/storage';
+import LoadingState from '@/components/common/LoadingState';
 import useOrders from '@/hooks/useOrders';
 import '@/styles/order-history.css';
 import '@/styles/my-reviews.css';
@@ -13,12 +19,6 @@ import '@/styles/my-reviews.css';
 const REVIEW_TABS = [
   { label: '작성 가능한 리뷰', value: 'available' },
   { label: '작성한 리뷰', value: 'written' },
-];
-
-const SIZE_FIT_OPTIONS = [
-  { label: '작아요', value: 'small' },
-  { label: '정사이즈', value: 'true' },
-  { label: '커요', value: 'large' },
 ];
 
 function IconBag() {
@@ -69,21 +69,13 @@ function StarIcon({ filled }) {
 }
 
 function normalizeImageUrl(url) {
-  if (!url || typeof url !== 'string') {
-    return '';
-  }
-
-  return url.trim().replace(/^<|>$/g, '');
+  return typeof url === 'string' ? url.trim().replace(/^<|>$/g, '') : '';
 }
 
-function formatDate(dateString) {
-  if (!dateString) {
-    return '-';
-  }
+function formatDate(value) {
+  const date = new Date(value);
 
-  const date = new Date(dateString);
-
-  if (Number.isNaN(date.getTime())) {
+  if (!value || Number.isNaN(date.getTime())) {
     return '-';
   }
 
@@ -97,94 +89,102 @@ function formatDate(dateString) {
 }
 
 function getOptionText(item) {
-  if (!item) {
-    return '';
-  }
-
   const color =
-    typeof item.color === 'string' ? item.color : (item.color?.label ?? item.color?.value ?? '');
+    typeof item?.color === 'string' ? item.color : (item?.color?.label ?? item?.color?.value ?? '');
 
-  return [color ? String(color).toUpperCase() : '', item.size].filter(Boolean).join(' / ');
+  return [color ? String(color).toUpperCase() : '', item?.size].filter(Boolean).join(' / ');
 }
 
 function getProductPath(item) {
-  const query = item.productType === 'set' ? '?type=set' : '';
+  const query = item?.productType === 'set' ? '?type=set' : '';
+  return `/products/${item?.productId}${query}`;
+}
 
-  return `/products/${item.productId}${query}`;
+function extractArray(response, candidates = []) {
+  const data = response?.data ?? response ?? [];
+
+  if (Array.isArray(data)) {
+    return data;
+  }
+
+  for (const key of candidates) {
+    if (Array.isArray(data?.[key])) {
+      return data[key];
+    }
+  }
+
+  return [];
+}
+
+function normalizeReviewItem(item) {
+  const product = item?.product ?? {};
+
+  return {
+    ...item,
+    productId: Number(item?.productId ?? product?.productId ?? product?.id),
+    productType: item?.productType ?? product?.productType ?? 'product',
+    name: item?.name ?? item?.productName ?? product?.name ?? '구매 상품',
+    imageUrl: item?.imageUrl ?? product?.imageUrl ?? product?.images?.thumbnail ?? '',
+    price: Number(item?.price ?? product?.price ?? 0),
+    color: item?.color ?? product?.color ?? '',
+    size: item?.size ?? '',
+  };
 }
 
 function MyReviewsPage() {
   const [searchParams] = useSearchParams();
-  const { user, orders, orderDetails, errorMessage, loadOrderDetails } = useOrders();
-  const [reviews, setReviews] = useState(() => getStoredReviews());
-  const [claims] = useState(() => getStoredClaims());
-  const [selectedTab, setSelectedTab] = useState('available');
-  const [detailErrorMessage, setDetailErrorMessage] = useState('');
-  const refreshedOrderIdsRef = useRef(new Set());
+  const { user, orders } = useOrders();
+
   const targetOrderId = searchParams.get('orderId');
+
+  const [selectedTab, setSelectedTab] = useState('available');
+  const [availableItems, setAvailableItems] = useState([]);
+  const [reviews, setReviews] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [reviewTarget, setReviewTarget] = useState(null);
   const [editingReview, setEditingReview] = useState(null);
   const [deleteReview, setDeleteReview] = useState(null);
   const [rating, setRating] = useState(5);
-  const [sizeFit, setSizeFit] = useState('true');
   const [reviewText, setReviewText] = useState('');
   const [reviewError, setReviewError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  const loadReviewData = async () => {
+    setIsLoading(true);
+    setLoadError('');
+
+    try {
+      const [eligibleResponse, myReviewsResponse] = await Promise.all([
+        getEligibleReviews(),
+        getMyReviews(),
+      ]);
+
+      setAvailableItems(
+        extractArray(eligibleResponse, ['items', 'reviews']).map(normalizeReviewItem)
+      );
+
+      setReviews(extractArray(myReviewsResponse, ['items', 'reviews']).map(normalizeReviewItem));
+    } catch (error) {
+      setLoadError(error.message || '리뷰 정보를 불러오지 못했습니다.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const deliveredOrders = orders.filter((order) => order.orderStatus === 'delivered');
+    const timer = window.setTimeout(() => {
+      void loadReviewData();
+    }, 0);
 
-    const targetIds = deliveredOrders
-      .filter((order) => {
-        const orderId = String(order.orderId);
-        const detail = orderDetails[order.orderId];
-        const detailFirstItem = detail?.items?.[0];
-        const representative = order.representativeProduct;
-        const isTargetOrder = targetOrderId && orderId === String(targetOrderId);
-        const isMissingDetail = !Array.isArray(detail?.items) || detail.items.length === 0;
-        const hasRepresentativeMismatch =
-          representative?.productId &&
-          detailFirstItem?.productId &&
-          Number(representative.productId) !== Number(detailFirstItem.productId);
-
-        return isTargetOrder || isMissingDetail || hasRepresentativeMismatch;
-      })
-      .map((order) => order.orderId)
-      .filter((orderId) => !refreshedOrderIdsRef.current.has(String(orderId)));
-
-    if (targetIds.length === 0) {
-      return;
-    }
-
-    targetIds.forEach((orderId) => refreshedOrderIdsRef.current.add(String(orderId)));
-
-    let isActive = true;
-
-    const refreshDetails = async () => {
-      try {
-        await loadOrderDetails(targetIds, { force: true });
-
-        if (isActive) {
-          setDetailErrorMessage('');
-        }
-      } catch (error) {
-        targetIds.forEach((orderId) => refreshedOrderIdsRef.current.delete(String(orderId)));
-
-        if (isActive) {
-          setDetailErrorMessage(error.message || '리뷰 상품 정보를 불러오지 못했습니다.');
-        }
-      }
-    };
-
-    void refreshDetails();
-
-    return () => {
-      isActive = false;
-    };
-  }, [loadOrderDetails, orderDetails, orders, targetOrderId]);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   const couponCount = Number(user?.couponCount ?? user?.availableCouponCount ?? 0);
-  const pointBalance = Number(user?.points ?? user?.pointBalance ?? user?.mileage ?? 0);
-  const wishlistCount = Number(user?.wishlistCount ?? user?.wishCount ?? 0);
+
+  const pointBalance = Number(user?.points ?? 0);
+
+  const wishlistCount = Number(user?.wishlistCount ?? 0);
 
   const summaryItems = [
     {
@@ -213,126 +213,6 @@ function MyReviewsPage() {
     },
   ];
 
-  const deliveredItems = useMemo(() => {
-    return orders
-      .filter((order) => order.orderStatus === 'delivered')
-      .flatMap((order) => {
-        const detail = orderDetails[order.orderId];
-
-        if (detail?.orderStatus && detail.orderStatus !== 'delivered') {
-          return [];
-        }
-
-        const items = detail?.items ?? order.items ?? [];
-
-        if (items.length === 0) {
-          return [];
-        }
-
-        const representativeProductId = Number(
-          order.representativeProduct?.productId ??
-            order.representativeProduct?.id ??
-            items[0]?.productId
-        );
-
-        const representativeItem =
-          items.find((item) => Number(item.productId) === representativeProductId) ?? items[0];
-        const representativeIndex = Math.max(items.indexOf(representativeItem), 0);
-        const fallbackOrderItemId = [
-          order.orderId,
-          representativeItem.productType ?? 'product',
-          representativeItem.productId,
-          typeof representativeItem.color === 'string'
-            ? representativeItem.color
-            : (representativeItem.color?.value ?? 'none'),
-          representativeItem.size ?? 'none',
-          representativeIndex,
-        ].join(':');
-
-        return [
-          {
-            ...representativeItem,
-            orderItemId: representativeItem.orderItemId ?? fallbackOrderItemId,
-            orderId: order.orderId,
-            orderDate: detail?.orderDate ?? order.orderDate,
-            orderStatus: detail?.orderStatus ?? order.orderStatus,
-          },
-        ];
-      });
-  }, [orderDetails, orders]);
-
-  const claimItemIds = useMemo(() => {
-    const ids = new Set();
-
-    claims
-      .filter(
-        (claim) =>
-          (claim.type === 'exchange' || claim.type === 'return') && claim.status !== 'rejected'
-      )
-      .map((claim) => claim.orderItemId)
-      .filter(Boolean)
-      .forEach((orderItemId) => {
-        ids.add(orderItemId);
-      });
-
-    return ids;
-  }, [claims]);
-
-  const reviewedItemIds = useMemo(() => {
-    const ids = new Set();
-
-    reviews
-      .map((review) => review.orderItemId)
-      .filter(Boolean)
-      .forEach((orderItemId) => {
-        ids.add(orderItemId);
-      });
-
-    return ids;
-  }, [reviews]);
-
-  const availableItems = useMemo(() => {
-    return deliveredItems.filter((item) => {
-      if (item.orderStatus !== 'delivered') {
-        return false;
-      }
-
-      if (reviewedItemIds.has(item.orderItemId)) {
-        return false;
-      }
-
-      if (claimItemIds.has(item.orderItemId)) {
-        return false;
-      }
-
-      return true;
-    });
-  }, [claimItemIds, deliveredItems, reviewedItemIds]);
-
-  const writtenReviews = useMemo(() => {
-    return [...reviews]
-      .map((review) => {
-        const orderItem =
-          deliveredItems.find((item) => item.orderItemId === review.orderItemId) ??
-          deliveredItems.find(
-            (item) =>
-              String(item.orderId) === String(review.orderId) &&
-              Number(item.productId) === Number(review.productId)
-          );
-
-        return {
-          ...review,
-          orderItem,
-        };
-      })
-      .sort((a, b) => {
-        return (
-          new Date(b.updatedAt ?? b.createdAt).getTime() -
-          new Date(a.updatedAt ?? a.createdAt).getTime()
-        );
-      });
-  }, [deliveredItems, reviews]);
-
   const visibleAvailableItems = useMemo(() => {
     if (!targetOrderId) {
       return availableItems;
@@ -342,27 +222,31 @@ function MyReviewsPage() {
   }, [availableItems, targetOrderId]);
 
   const visibleWrittenReviews = useMemo(() => {
+    const sorted = [...reviews].sort(
+      (a, b) =>
+        new Date(b.updatedAt ?? b.createdAt).getTime() -
+        new Date(a.updatedAt ?? a.createdAt).getTime()
+    );
+
     if (!targetOrderId) {
-      return writtenReviews;
+      return sorted;
     }
 
-    return writtenReviews.filter((review) => String(review.orderId) === String(targetOrderId));
-  }, [targetOrderId, writtenReviews]);
+    return sorted.filter((review) => String(review.orderId) === String(targetOrderId));
+  }, [reviews, targetOrderId]);
 
   const openWriteReview = (item) => {
     setEditingReview(null);
     setReviewTarget(item);
     setRating(5);
-    setSizeFit('true');
     setReviewText('');
     setReviewError('');
   };
 
   const openEditReview = (review) => {
     setEditingReview(review);
-    setReviewTarget(review.orderItem ?? null);
+    setReviewTarget(review);
     setRating(Number(review.rating ?? 5));
-    setSizeFit(review.sizeFit ?? 'true');
     setReviewText(review.content ?? '');
     setReviewError('');
   };
@@ -373,75 +257,57 @@ function MyReviewsPage() {
     setReviewError('');
   };
 
-  const saveReviews = (nextReviews) => {
-    setStoredReviews(nextReviews);
-    setReviews(nextReviews);
-  };
-
-  const handleReviewSave = () => {
+  const handleReviewSave = async () => {
     const content = reviewText.trim();
-
-    if (!reviewTarget?.orderItemId && !editingReview?.orderItemId) {
-      setReviewError('리뷰 상품 정보를 확인할 수 없습니다.');
-      return;
-    }
 
     if (content.length < 10) {
       setReviewError('리뷰는 10자 이상 작성해주세요.');
       return;
     }
 
-    const now = new Date().toISOString();
-
-    if (editingReview) {
-      const nextReviews = reviews.map((review) =>
-        review.reviewId === editingReview.reviewId
-          ? {
-              ...review,
-              rating,
-              sizeFit,
-              content,
-              updatedAt: now,
-            }
-          : review
-      );
-
-      saveReviews(nextReviews);
-    } else {
-      const nextReview = {
-        reviewId: `RV-${Date.now()}`,
-        orderId: reviewTarget.orderId,
-        orderItemId: reviewTarget.orderItemId,
-        productId: reviewTarget.productId,
-        productType: reviewTarget.productType ?? 'product',
-        productName: reviewTarget.name ?? '',
-        imageUrl: normalizeImageUrl(reviewTarget.imageUrl),
-        color: reviewTarget.color ?? '',
-        size: reviewTarget.size ?? '',
-        price: Number(reviewTarget.price ?? 0),
-        rating,
-        sizeFit,
-        content,
-        createdAt: now,
-        updatedAt: now,
-      };
-
-      saveReviews([nextReview, ...reviews]);
+    if (!editingReview && !reviewTarget?.orderItemId) {
+      setReviewError('리뷰 상품 정보를 확인할 수 없습니다.');
+      return;
     }
 
-    setSelectedTab('written');
-    closeReviewModal();
+    setIsSaving(true);
+
+    try {
+      if (editingReview) {
+        await updateReview(editingReview.reviewId, {
+          rating,
+          content,
+        });
+      } else {
+        await createReview({
+          orderItemId: reviewTarget.orderItemId,
+          rating,
+          content,
+        });
+      }
+
+      await loadReviewData();
+      setSelectedTab('written');
+      closeReviewModal();
+    } catch (error) {
+      setReviewError(error.message || '리뷰를 저장하지 못했습니다.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleReviewDelete = () => {
+  const handleReviewDelete = async () => {
     if (!deleteReview) {
       return;
     }
 
-    const nextReviews = reviews.filter((review) => review.reviewId !== deleteReview.reviewId);
-
-    saveReviews(nextReviews);
-    setDeleteReview(null);
+    try {
+      await deleteReviewApi(deleteReview.reviewId);
+      setDeleteReview(null);
+      await loadReviewData();
+    } catch (error) {
+      alert(error.message || '리뷰를 삭제하지 못했습니다.');
+    }
   };
 
   return (
@@ -457,6 +323,7 @@ function MyReviewsPage() {
             <Link key={item.label} to={item.to} className="order-history-summary-card">
               <div className="order-history-summary-top">
                 <span className="order-history-summary-icon">{item.icon}</span>
+
                 <span aria-hidden="true">›</span>
               </div>
 
@@ -466,64 +333,46 @@ function MyReviewsPage() {
           ))}
         </section>
 
-        <section className="my-reviews-overview">
-          <div>
-            <span>작성 가능한 리뷰</span>
-            <strong>{availableItems.length}</strong>
-            <small>배송 완료 상품</small>
-          </div>
-
-          <div>
-            <span>작성한 리뷰</span>
-            <strong>{writtenReviews.length}</strong>
-            <small>수정 및 삭제 가능</small>
-          </div>
-        </section>
-
-        <div className="order-history-toolbar my-reviews-toolbar">
-          <div className="order-history-tabs">
-            {REVIEW_TABS.map((tab) => {
-              const count =
-                tab.value === 'available' ? availableItems.length : writtenReviews.length;
-
-              return (
-                <button
-                  type="button"
-                  key={tab.value}
-                  className={selectedTab === tab.value ? 'is-active' : ''}
-                  onClick={() => setSelectedTab(tab.value)}
-                >
-                  {tab.label}
-                  <span className="my-reviews-tab-count">{count}</span>
-                </button>
-              );
-            })}
-          </div>
+        <div className="my-reviews-tabs">
+          {REVIEW_TABS.map((tab) => (
+            <button
+              key={tab.value}
+              type="button"
+              className={selectedTab === tab.value ? 'is-active' : ''}
+              onClick={() => setSelectedTab(tab.value)}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
-        {errorMessage || detailErrorMessage ? (
-          <ErrorState className="my-reviews-empty" message={errorMessage || detailErrorMessage} />
+        {loadError ? (
+          <ErrorState className="my-reviews-empty" message={loadError} />
+        ) : isLoading ? (
+          <LoadingState className="my-reviews-empty" message="리뷰 정보를 불러오는 중입니다." />
         ) : selectedTab === 'available' ? (
           visibleAvailableItems.length === 0 ? (
             <EmptyState
               className="my-reviews-empty"
               title="작성 가능한 리뷰가 없습니다."
-              description="주문 내역에서 배송 완료된 상품이 생기면 이곳에 자동으로 표시됩니다."
+              description="배송 완료 후 리뷰 작성이 가능한 상품이 이곳에 표시됩니다."
             />
           ) : (
             <div className="my-reviews-list">
               {visibleAvailableItems.map((item) => {
                 const imageUrl = normalizeImageUrl(item.imageUrl);
-                const optionText = getOptionText(item);
 
                 return (
                   <article className="my-review-card" key={item.orderItemId}>
                     <div className="my-review-card-head">
                       <div>
-                        <strong>{formatDate(item.orderDate)}</strong>
+                        <strong>{formatDate(item.orderDate ?? item.deliveredAt)}</strong>
+
                         <span>|</span>
+
                         <span>주문번호 {item.orderId}</span>
                       </div>
+
                       <span className="my-review-status-badge">리뷰 작성 가능</span>
                     </div>
 
@@ -533,9 +382,11 @@ function MyReviewsPage() {
                       </Link>
 
                       <div className="my-review-product-info">
-                        <Link to={getProductPath(item)}>{item.name ?? '상품 정보 없음'}</Link>
-                        {optionText && <p>{optionText}</p>}
-                        <span>구매가 ₩ {Number(item.price ?? 0).toLocaleString()}</span>
+                        <Link to={getProductPath(item)}>{item.name}</Link>
+
+                        {getOptionText(item) && <p>{getOptionText(item)}</p>}
+
+                        <span>구매가 ₩ {item.price.toLocaleString()}</span>
                       </div>
 
                       <div className="my-review-write-guide">
@@ -565,33 +416,24 @@ function MyReviewsPage() {
         ) : (
           <div className="my-reviews-list">
             {visibleWrittenReviews.map((review) => {
-              const item = review.orderItem ?? {
-                productId: review.productId,
-                productType: review.productType,
-                name: review.productName,
-                imageUrl: review.imageUrl,
-                color: review.color,
-                size: review.size,
-                price: review.price,
-              };
-              const imageUrl = normalizeImageUrl(item?.imageUrl);
-              const optionText = getOptionText(item);
-              const fitLabel =
-                SIZE_FIT_OPTIONS.find((option) => option.value === review.sizeFit)?.label ??
-                '정사이즈';
+              const imageUrl = normalizeImageUrl(review.imageUrl);
 
               return (
                 <article className="my-review-card is-written" key={review.reviewId}>
                   <div className="my-review-card-head">
                     <div>
                       <strong>{formatDate(review.createdAt)}</strong>
-                      {review.updatedAt !== review.createdAt && <span>수정됨</span>}
+
+                      {review.updatedAt && review.updatedAt !== review.createdAt && (
+                        <span>수정됨</span>
+                      )}
                     </div>
 
                     <div className="my-review-card-menu">
                       <button type="button" onClick={() => openEditReview(review)}>
                         수정
                       </button>
+
                       <button type="button" onClick={() => setDeleteReview(review)}>
                         삭제
                       </button>
@@ -600,23 +442,16 @@ function MyReviewsPage() {
 
                   <div className="my-review-written-body">
                     <div className="my-review-written-product">
-                      <Link
-                        to={item ? getProductPath(item) : '/mypage/orders'}
-                        className="my-review-product-image"
-                      >
-                        {imageUrl ? (
-                          <img src={imageUrl} alt={item?.name ?? '리뷰 상품'} />
-                        ) : (
-                          <span>IMAGE</span>
-                        )}
+                      <Link to={getProductPath(review)} className="my-review-product-image">
+                        {imageUrl ? <img src={imageUrl} alt={review.name} /> : <span>IMAGE</span>}
                       </Link>
 
                       <div className="my-review-product-info">
-                        <Link to={item ? getProductPath(item) : '/mypage/orders'}>
-                          {item?.name ?? '구매 상품'}
-                        </Link>
-                        {optionText && <p>{optionText}</p>}
-                        <span>주문번호 {review.orderId}</span>
+                        <Link to={getProductPath(review)}>{review.name}</Link>
+
+                        {getOptionText(review) && <p>{getOptionText(review)}</p>}
+
+                        <span>주문번호 {review.orderId ?? '-'}</span>
                       </div>
                     </div>
 
@@ -627,12 +462,8 @@ function MyReviewsPage() {
                             <StarIcon filled={index < review.rating} />
                           </span>
                         ))}
-                        <strong>{review.rating}.0</strong>
-                      </div>
 
-                      <div className="my-review-fit-row">
-                        <span>사이즈</span>
-                        <strong>{fitLabel}</strong>
+                        <strong>{review.rating}.0</strong>
                       </div>
 
                       <p>{review.content}</p>
@@ -657,6 +488,7 @@ function MyReviewsPage() {
             <div className="my-review-modal-head">
               <div>
                 <h2 id="reviewModalTitle">{editingReview ? '리뷰 수정' : '리뷰 작성'}</h2>
+
                 <p>구매한 상품에 대한 솔직한 경험을 남겨주세요.</p>
               </div>
 
@@ -686,6 +518,7 @@ function MyReviewsPage() {
             <div className="my-review-modal-body">
               <div className="my-review-form-section">
                 <label>전체 만족도</label>
+
                 <div className="my-review-rating-buttons">
                   {Array.from({ length: 5 }, (_, index) => {
                     const value = index + 1;
@@ -702,29 +535,15 @@ function MyReviewsPage() {
                       </button>
                     );
                   })}
-                  <strong>{rating}.0</strong>
-                </div>
-              </div>
 
-              <div className="my-review-form-section">
-                <label>사이즈는 어떠셨나요?</label>
-                <div className="my-review-fit-buttons">
-                  {SIZE_FIT_OPTIONS.map((option) => (
-                    <button
-                      type="button"
-                      key={option.value}
-                      className={sizeFit === option.value ? 'is-active' : ''}
-                      onClick={() => setSizeFit(option.value)}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
+                  <strong>{rating}.0</strong>
                 </div>
               </div>
 
               <div className="my-review-form-section">
                 <div className="my-review-textarea-label">
                   <label htmlFor="myReviewText">상품 리뷰</label>
+
                   <span>{reviewText.length}/500</span>
                 </div>
 
@@ -747,8 +566,14 @@ function MyReviewsPage() {
               <button type="button" onClick={closeReviewModal}>
                 취소
               </button>
-              <button type="button" className="is-primary" onClick={handleReviewSave}>
-                {editingReview ? '수정 저장' : '리뷰 등록'}
+
+              <button
+                type="button"
+                className="is-primary"
+                disabled={isSaving}
+                onClick={handleReviewSave}
+              >
+                {isSaving ? '저장 중' : editingReview ? '수정 저장' : '리뷰 등록'}
               </button>
             </div>
           </section>
@@ -758,15 +583,12 @@ function MyReviewsPage() {
       <ConfirmModal
         open={Boolean(deleteReview)}
         title="리뷰를 삭제하시겠어요?"
-        description="삭제한 리뷰는 작성 가능한 리뷰 목록으로 다시 이동합니다."
-        confirmText="삭제하기"
-        cancelText="계속 보관하기"
+        description="삭제한 리뷰는 복구할 수 없습니다."
+        confirmText="삭제"
+        cancelText="취소"
         onConfirm={handleReviewDelete}
         onClose={() => setDeleteReview(null)}
-        titleId="deleteReviewTitle"
-        backdropClassName="my-review-modal-backdrop"
-        modalClassName="my-review-delete-modal"
-        confirmClassName="is-danger"
+        titleId="deleteReviewConfirmTitle"
       />
     </>
   );
