@@ -21,6 +21,7 @@ import HomePage from '@/pages/HomePage';
 import LoginPage from '@/pages/LoginPage';
 import NotFoundPage from '@/pages/NotFoundPage';
 import ProductDetailPage from '@/pages/ProductDetailPage';
+import ProductReviewsPage from '@/pages/ProductReviewsPage';
 import ProductPage from '@/pages/ProductPage';
 import SignupPage from '@/pages/SignupPage';
 import TermsPage from '@/pages/TermsPage';
@@ -44,12 +45,14 @@ function AppRouter() {
   useLayoutEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, [pathname]);
+
   return (
     <Routes>
       <Route element={<Layout />}>
         <Route path="/" element={<HomePage />} />
         <Route path="/products" element={<ProductPage />} />
         <Route path="/products/:productId" element={<ProductDetailPage />} />
+        <Route path="/products/:productId/reviews" element={<ProductReviewsPage />} />
         <Route path="/cart" element={<CartPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/checkout2" element={<CheckoutPage2 />} />
