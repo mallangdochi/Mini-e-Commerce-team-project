@@ -1,27 +1,8 @@
 import { useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
+import { getStoredAddresses, getStoredProfileOverrides, getStoredUserInfo } from '@/utils/storage';
 import '@/styles/checkout2.css';
-
-function getStoredAddresses() {
-  try {
-    const parsedAddresses = JSON.parse(localStorage.getItem('arc-addresses') ?? '[]');
-
-    return Array.isArray(parsedAddresses) ? parsedAddresses : [];
-  } catch {
-    return [];
-  }
-}
-
-function getStoredObject(key) {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(key) ?? '{}');
-
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
-  } catch {
-    return {};
-  }
-}
 
 function getStoredShippingInfo(savedShippingInfo) {
   if (savedShippingInfo) {
@@ -29,8 +10,8 @@ function getStoredShippingInfo(savedShippingInfo) {
   }
 
   const savedAddresses = getStoredAddresses();
-  const savedProfile = getStoredObject('arc-profile-overrides');
-  const userInfo = getStoredObject('userInfo');
+  const savedProfile = getStoredProfileOverrides();
+  const userInfo = getStoredUserInfo() ?? {};
 
   const defaultAddress =
     savedAddresses.find((address) => address.isDefault) ?? savedAddresses[0] ?? null;
@@ -55,6 +36,7 @@ function CheckoutPage() {
     shippingInfo: savedShippingInfo,
     paymentMethod,
     selectedCoupon,
+    pointsToUse,
   } = location.state || {};
 
   const addressDialog = useRef(null);
@@ -107,11 +89,9 @@ function CheckoutPage() {
     }
 
     if (name === 'detailAddress') {
-      const filteredValue = value.replace(/[^가-힣a-zA-Z0-9\s(),#.-]/g, '').slice(0, 50);
-
       setShippingInfo((prev) => ({
         ...prev,
-        detailAddress: filteredValue,
+        detailAddress: value.slice(0, 50),
       }));
 
       return;
@@ -263,6 +243,7 @@ function CheckoutPage() {
         shippingInfo,
         paymentMethod,
         selectedCoupon,
+        pointsToUse,
       },
     });
   };

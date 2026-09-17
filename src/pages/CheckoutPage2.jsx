@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { createOrder } from '@/api/orders';
+import { registerCreatedOrder } from '@/hooks/useOrders';
 import { useCartStore } from '@/store/cartStore';
+import useAuthStore from '@/store/authStore';
 import '@/styles/checkout.css';
 
 const COUPON_OPTIONS = [
@@ -14,43 +16,62 @@ const COUPON_OPTIONS = [
 ];
 
 const VALID_COUPON_IDS = new Set(COUPON_OPTIONS.map((coupon) => coupon.id));
+const POINT_EARN_RATE = 0.05;
+
+function getCouponDiscountAmount(productTotal, couponId) {
+  const coupon = COUPON_OPTIONS.find((item) => item.id === couponId);
+
+  if (!coupon) {
+    return 0;
+  }
+
+  return Math.floor(productTotal * coupon.discountRate);
+}
 
 function CheckoutPage2() {
   const navigate = useNavigate();
   const location = useLocation();
   const removeOrderedItems = useCartStore((state) => state.removeOrderedItems);
+  const user = useAuthStore((state) => state.user);
+  const patchUserSummary = useAuthStore((state) => state.patchUserSummary);
 
   const {
     orderItems = [],
     shippingInfo = {},
     paymentMethod: savedPaymentMethod = 'card',
     selectedCoupon: savedSelectedCoupon = '',
+    pointsToUse: savedPointsToUse = 0,
   } = location.state || {};
 
   const initialCoupon = VALID_COUPON_IDS.has(savedSelectedCoupon) ? savedSelectedCoupon : '';
+  const productTotal = orderItems.reduce((total, item) => total + item.price * item.quantity, 0);
+  const deliveryFee = 0;
+  const pointBalance = Math.max(
+    0,
+    Number(user?.points ?? user?.pointBalance ?? user?.mileage ?? 0) || 0
+  );
+  const initialDiscountAmount = getCouponDiscountAmount(productTotal, initialCoupon);
+  const initialMaxUsablePoints = Math.max(
+    0,
+    Math.min(pointBalance, productTotal + deliveryFee - initialDiscountAmount)
+  );
 
   const [paymentMethod, setPaymentMethod] = useState(savedPaymentMethod);
   const [selectedCoupon, setSelectedCoupon] = useState(initialCoupon);
+  const [pointsToUse, setPointsToUse] = useState(() =>
+    Math.min(Math.max(0, Number(savedPointsToUse) || 0), initialMaxUsablePoints)
+  );
   const [modalState, setModalState] = useState('none');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const productTotal = orderItems.reduce((total, item) => total + item.price * item.quantity, 0);
-
-  const deliveryFee = 0;
-
-  const getDiscountAmount = (couponId) => {
-    const coupon = COUPON_OPTIONS.find((item) => item.id === couponId);
-
-    if (!coupon) {
-      return 0;
-    }
-
-    return Math.floor(productTotal * coupon.discountRate);
-  };
-
-  const discountAmount = getDiscountAmount(selectedCoupon);
-
-  const finalPrice = Math.max(0, productTotal + deliveryFee - discountAmount);
+  const discountAmount = getCouponDiscountAmount(productTotal, selectedCoupon);
+  const maxUsablePoints = Math.max(
+    0,
+    Math.min(pointBalance, productTotal + deliveryFee - discountAmount)
+  );
+  const appliedPoints = Math.min(pointsToUse, maxUsablePoints);
+  const earnedPoints = Math.floor(productTotal * POINT_EARN_RATE);
+  const finalPrice = Math.max(0, productTotal + deliveryFee - discountAmount - appliedPoints);
 
   const handleBack = () => {
     navigate('/checkout', {
@@ -59,8 +80,32 @@ function CheckoutPage2() {
         shippingInfo,
         paymentMethod,
         selectedCoupon,
+        pointsToUse: appliedPoints,
       },
     });
+  };
+
+  const handleCouponChange = (event) => {
+    const nextCoupon = event.target.value;
+    const nextDiscountAmount = getCouponDiscountAmount(productTotal, nextCoupon);
+    const nextMaxUsablePoints = Math.max(
+      0,
+      Math.min(pointBalance, productTotal + deliveryFee - nextDiscountAmount)
+    );
+
+    setSelectedCoupon(nextCoupon);
+    setPointsToUse((currentPoints) => Math.min(currentPoints, nextMaxUsablePoints));
+  };
+
+  const handlePointChange = (event) => {
+    const numericValue = event.target.value.replace(/[^0-9]/g, '');
+    const nextPoints = numericValue === '' ? 0 : Number(numericValue);
+
+    setPointsToUse(Math.min(Math.max(0, nextPoints), maxUsablePoints));
+  };
+
+  const handleUseAllPoints = () => {
+    setPointsToUse(maxUsablePoints);
   };
 
   const getShippingMemo = (memo) => {
@@ -95,14 +140,35 @@ function CheckoutPage2() {
 
   const getShippingPayload = () => {
     return {
-      receiverName: shippingInfo.name?.trim() ?? '',
-      phone: shippingInfo.phone?.replace(/[^\d]/g, '') ?? '',
-      postcode: shippingInfo.zonecode?.trim() ?? '',
-      address: shippingInfo.address?.trim() ?? '',
-      detailAddress: shippingInfo.detailAddress?.trim() ?? '',
+      receiverName: (shippingInfo.name ?? shippingInfo.receiverName ?? '').trim(),
+      phone: String(shippingInfo.phone ?? '').replace(/[^\d]/g, ''),
+      postcode: String(shippingInfo.zonecode ?? shippingInfo.postcode ?? '').trim(),
+      address: String(shippingInfo.address ?? '').trim(),
+      detailAddress: String(shippingInfo.detailAddress ?? '').trim(),
       memo: getShippingMemo(shippingInfo.memo),
     };
   };
+
+  const formatPhoneNumber = (phone) => {
+    const numbers = String(phone ?? '')
+      .replace(/[^\d]/g, '')
+      .slice(0, 11);
+
+    if (numbers.length <= 3) {
+      return numbers;
+    }
+
+    if (numbers.length <= 7) {
+      return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
+    }
+
+    return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
+  };
+
+  const shippingSummary = getShippingPayload();
+  const shippingAddress = [shippingSummary.address, shippingSummary.detailAddress]
+    .filter(Boolean)
+    .join(' ');
 
   const handlePayment = () => {
     if (orderItems.length === 0) {
@@ -180,7 +246,7 @@ function CheckoutPage2() {
         shipping: shippingPayload,
         paymentMethod,
         couponId: selectedCoupon || undefined,
-        pointsUsed: 0,
+        pointsUsed: appliedPoints,
       });
 
       const order = response?.data;
@@ -188,6 +254,25 @@ function CheckoutPage2() {
       if (!response?.success || !order) {
         throw new Error(response?.message || '주문을 완료하지 못했습니다.');
       }
+
+      registerCreatedOrder({
+        order,
+        orderItems,
+        shipping: shippingPayload,
+        paymentMethod,
+        finalAmount: finalPrice,
+        productTotal,
+        couponId: selectedCoupon || undefined,
+        pointsUsed: appliedPoints,
+      });
+
+      const nextPointBalance = Math.max(0, pointBalance - appliedPoints + earnedPoints);
+
+      patchUserSummary({
+        points: nextPointBalance,
+        pointBalance: nextPointBalance,
+        mileage: nextPointBalance,
+      });
 
       setModalState('complete');
 
@@ -198,6 +283,9 @@ function CheckoutPage2() {
           state: {
             order,
             orderItems,
+            shippingInfo: shippingPayload,
+            pointsUsed: appliedPoints,
+            earnedPoints,
           },
         });
       }, 1200);
@@ -242,6 +330,32 @@ function CheckoutPage2() {
 
         <div className="checkout-grid">
           <div className="checkout-left">
+            <section className="checkout-box-section checkout-shipping-summary-section">
+              <div className="checkout-shipping-summary-head">
+                <div>
+                  <span className="checkout-shipping-summary-label">배송지 정보</span>
+                  <strong>{shippingSummary.receiverName || '받는 사람 정보 없음'}</strong>
+                </div>
+
+                <button type="button" onClick={handleBack}>
+                  수정
+                </button>
+              </div>
+
+              <div className="checkout-shipping-summary-body">
+                <p>{formatPhoneNumber(shippingSummary.phone) || '연락처 정보 없음'}</p>
+
+                <p className="checkout-shipping-address">
+                  {shippingSummary.postcode && <span>[{shippingSummary.postcode}]</span>}
+                  {shippingAddress || '주소 정보 없음'}
+                </p>
+
+                {shippingSummary.memo && (
+                  <p className="checkout-shipping-memo">배송 요청: {shippingSummary.memo}</p>
+                )}
+              </div>
+            </section>
+
             <section className="checkout-box-section">
               <div className="checkout-box-title">
                 <span>A</span>
@@ -367,7 +481,7 @@ function CheckoutPage2() {
                     id="couponSelect"
                     className="checkout-form-control"
                     value={selectedCoupon}
-                    onChange={(event) => setSelectedCoupon(event.target.value)}
+                    onChange={handleCouponChange}
                   >
                     <option value="">쿠폰을 선택하세요</option>
 
@@ -380,13 +494,57 @@ function CheckoutPage2() {
                 </div>
               </div>
             </section>
+
+            <section className="checkout-box-section checkout-point-section">
+              <div className="checkout-box-title">
+                <span>C</span>
+                포인트 사용
+              </div>
+
+              <div className="checkout-point-balance-row">
+                <span>보유 포인트</span>
+                <strong>{pointBalance.toLocaleString()} P</strong>
+              </div>
+
+              <div className="checkout-point-input-row">
+                <div className="checkout-point-input-wrap">
+                  <input
+                    id="pointInput"
+                    type="text"
+                    inputMode="numeric"
+                    className="checkout-form-control checkout-point-input"
+                    value={appliedPoints.toLocaleString()}
+                    onChange={handlePointChange}
+                    aria-label="사용할 포인트"
+                    disabled={maxUsablePoints === 0}
+                  />
+                  <span>P</span>
+                </div>
+
+                <button
+                  type="button"
+                  className="checkout-point-all-button"
+                  onClick={handleUseAllPoints}
+                  disabled={maxUsablePoints === 0}
+                >
+                  전액 사용
+                </button>
+              </div>
+
+              <div className="checkout-point-info">
+                <span>최대 {maxUsablePoints.toLocaleString()} P 사용 가능</span>
+                <strong>결제 완료 시 {earnedPoints.toLocaleString()} P 적립 예정</strong>
+              </div>
+
+              <p className="checkout-point-notice">상품금액의 5%가 포인트로 적립됩니다.</p>
+            </section>
           </div>
 
           <div className="checkout-right">
             <section className="checkout-summary-box">
               <div className="checkout-summary-title">
                 <div className="checkout-box-title checkout-order-title">
-                  <span>C</span>
+                  <span>D</span>
                   주문 상품
                 </div>
 
@@ -438,6 +596,18 @@ function CheckoutPage2() {
                   <span>할인 금액</span>
 
                   <span>- ₩ {discountAmount.toLocaleString()}</span>
+                </div>
+
+                <div className="checkout-summary-row checkout-point-use-row">
+                  <span>포인트 사용</span>
+
+                  <span>- {appliedPoints.toLocaleString()} P</span>
+                </div>
+
+                <div className="checkout-summary-row checkout-point-earn-row">
+                  <span>적립 예정</span>
+
+                  <span>+ {earnedPoints.toLocaleString()} P</span>
                 </div>
 
                 <div className="checkout-summary-row checkout-total-row">

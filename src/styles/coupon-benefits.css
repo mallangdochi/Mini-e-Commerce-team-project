@@ -366,11 +366,69 @@
   }
 }
 
-@media (max-width: 620px) {
+@media (min-width: 768px) and (max-width: 1024px) {
+  .coupon-card {
+    grid-template-columns: 118px minmax(0, 1fr);
+
+    min-height: 148px;
+  }
+
+  .coupon-card-info {
+    padding: 14px;
+  }
+
+  .coupon-card-info h2 {
+    margin-top: 8px;
+  }
+
+  .coupon-card-info dl {
+    margin-top: 9px;
+  }
+
+  .coupon-card-info dl > div {
+    min-height: 21px;
+  }
+}
+
+@media (max-width: 767px) {
+  .coupon-benefits-page {
+    display: flex;
+    flex-direction: column;
+
+    padding: 10px 0 18px;
+
+    gap: 14px;
+  }
+
+  .coupon-heading {
+    padding: 0;
+  }
+
+  .coupon-heading h1 {
+    font-size: 22px;
+    letter-spacing: -0.04em;
+  }
+
+  .coupon-heading p {
+    margin-top: 6px;
+
+    font-size: 10px;
+  }
+
   .benefit-balance {
     grid-template-columns: 1fr;
 
-    padding: 18px;
+    min-height: auto;
+    margin-top: 0;
+    padding: 16px;
+
+    border-radius: 12px;
+
+    gap: 14px;
+  }
+
+  .benefit-balance strong {
+    font-size: 18px;
   }
 
   .benefit-balance-divider {
@@ -379,6 +437,13 @@
   }
 
   .coupon-tabs {
+    margin-top: 0;
+    margin-right: -14px;
+    margin-left: -14px;
+    padding: 0 14px 4px;
+
+    border-bottom: 0;
+
     overflow-x: auto;
 
     scrollbar-width: none;
@@ -390,14 +455,50 @@
 
   .coupon-tabs button {
     flex: 0 0 auto;
+
+    min-width: auto;
+    height: 34px;
+    padding: 0 14px;
+
+    font-size: 10px;
+  }
+
+  .coupon-list {
+    margin-top: 0;
+
+    gap: 14px;
   }
 
   .coupon-card {
     grid-template-columns: 105px minmax(0, 1fr);
+
+    min-height: 150px;
+
+    border-radius: 14px;
+
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.035);
+  }
+
+  .coupon-card-info {
+    padding: 14px;
   }
 
   .coupon-card-discount strong {
     font-size: 18px;
+  }
+
+  .coupon-empty {
+    min-height: 180px;
+    margin-top: 0;
+
+    border-radius: 12px;
+  }
+
+  .point-guide {
+    margin-top: 0;
+    padding: 16px;
+
+    border-radius: 12px;
   }
 
   .point-guide dl > div {

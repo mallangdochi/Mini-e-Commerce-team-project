@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
+import LogoutConfirmButton from '@/components/common/LogoutConfirmButton';
+import useAuthStore from '@/store/authStore';
+import { useCartStore } from '@/store/cartStore';
 import '@/styles/header.css';
 
 const CATEGORY_MENUS = {
@@ -110,15 +113,62 @@ const NAV_ITEMS = [
 // 스크롤이 이 값을 넘어간 뒤부터 스크롤 다운 시 헤더 숨김
 const HEADER_HIDE_THRESHOLD = 80;
 
+const ACCESSORY_CATEGORIES = new Set(['accessories', 'sunglasses', 'cap', 'hat']);
+
+function getCurrentNavMenu(pathname, search) {
+  if (pathname === '/') {
+    return 'HOME';
+  }
+
+  if (pathname !== '/products') {
+    return '';
+  }
+
+  const searchParams = new URLSearchParams(search);
+  const category = (
+    searchParams.get('categoryId') ??
+    searchParams.get('category') ??
+    ''
+  ).toLowerCase();
+
+  if (ACCESSORY_CATEGORIES.has(category)) {
+    return 'ACCESSORIES';
+  }
+
+  const gender = searchParams.get('gender');
+
+  if (gender === 'men') {
+    return 'MEN';
+  }
+
+  if (gender === 'women' || !gender) {
+    return 'WOMEN';
+  }
+
+  return '';
+}
+
 function Header() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [hidden, setHidden] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [mobileSearchQuery, setMobileSearchQuery] = useState('');
   const [mobileCategory, setMobileCategory] = useState(null);
   const [activeMenu, setActiveMenu] = useState(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(() => Boolean(localStorage.getItem('accessToken')));
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
+  const syncAuthFromStorage = useAuthStore((state) => state.syncAuthFromStorage);
+  const cartItemCount = useCartStore((state) =>
+    state.items.reduce((total, item) => total + Number(item.quantity ?? 1), 0)
+  );
   const lastY = useRef(0);
+  const accountMenuRef = useRef(null);
+  const currentNavMenu = getCurrentNavMenu(location.pathname, location.search);
 
   const openDesktopMenu = (menu) => {
+    setAccountMenuOpen(false);
     setActiveMenu(menu);
     setHidden(false);
   };
@@ -128,21 +178,61 @@ function Header() {
     setMobileCategory(null);
   };
 
+  const closeMobileSearch = () => {
+    setMobileSearchOpen(false);
+  };
+
+  const handleMobileSearchSubmit = (event) => {
+    event.preventDefault();
+
+    const query = mobileSearchQuery.trim();
+    const nextParams = new URLSearchParams();
+
+    nextParams.set('gender', 'women');
+
+    if (query) {
+      nextParams.set('q', query);
+    }
+
+    setMobileSearchOpen(false);
+    navigate(`/products?${nextParams.toString()}`);
+  };
+
   useEffect(() => {
-    const updateAuthState = () => {
-      setIsLoggedIn(Boolean(localStorage.getItem('accessToken')));
-    };
+    syncAuthFromStorage();
 
-    updateAuthState();
-
-    window.addEventListener('auth-change', updateAuthState);
-    window.addEventListener('storage', updateAuthState);
+    window.addEventListener('auth-change', syncAuthFromStorage);
+    window.addEventListener('storage', syncAuthFromStorage);
 
     return () => {
-      window.removeEventListener('auth-change', updateAuthState);
-      window.removeEventListener('storage', updateAuthState);
+      window.removeEventListener('auth-change', syncAuthFromStorage);
+      window.removeEventListener('storage', syncAuthFromStorage);
     };
-  }, []);
+  }, [syncAuthFromStorage]);
+
+  useEffect(() => {
+    if (!accountMenuOpen) return undefined;
+
+    const handlePointerDown = (event) => {
+      if (!accountMenuRef.current?.contains(event.target)) {
+        setAccountMenuOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setAccountMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [accountMenuOpen]);
 
   // 스크롤 내리면 헤더 숨김, 올리면 표시. 드롭다운이 열려 있으면 헤더 유지.
   useEffect(() => {
@@ -150,7 +240,7 @@ function Header() {
     const update = () => {
       const y = window.scrollY;
 
-      if (activeMenu) {
+      if (activeMenu || accountMenuOpen) {
         setHidden(false);
       } else {
         setHidden(y >= HEADER_HIDE_THRESHOLD && y > lastY.current);
@@ -169,7 +259,7 @@ function Header() {
 
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
-  }, [activeMenu]);
+  }, [accountMenuOpen, activeMenu]);
 
   // 모바일 메뉴 열림 동안: 배경 스크롤 잠금, 리사이즈 / Esc 시 닫기
   useEffect(() => {
@@ -194,6 +284,22 @@ function Header() {
       window.removeEventListener('keydown', onKey);
     };
   }, [menuOpen]);
+
+  useEffect(() => {
+    if (!mobileSearchOpen) return undefined;
+
+    const onKey = (e) => {
+      if (e.key === 'Escape') closeMobileSearch();
+    };
+
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKey);
+
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [mobileSearchOpen]);
 
   return (
     <header
@@ -228,14 +334,16 @@ function Header() {
         {/* NAVIGATION (데스크톱 / 태블릿) */}
         <nav className="site-nav" aria-label="주요 메뉴">
           {NAV_ITEMS.map((item) => {
-            const isActive = item.menu && activeMenu === item.menu;
+            const isMenuOpen = item.menu && activeMenu === item.menu;
+            const isActive = item.label === currentNavMenu || isMenuOpen;
 
             return (
               <Link
                 key={item.label}
                 to={item.to}
                 className={isActive ? 'site-nav-link site-nav-link--active' : 'site-nav-link'}
-                aria-expanded={item.menu ? isActive : undefined}
+                aria-current={item.label === currentNavMenu ? 'page' : undefined}
+                aria-expanded={item.menu ? Boolean(isMenuOpen) : undefined}
                 onMouseEnter={() => {
                   if (item.menu) openDesktopMenu(item.menu);
                   else setActiveMenu(null);
@@ -254,6 +362,28 @@ function Header() {
 
         {/* HEADER ACTIONS */}
         <div className="site-header-actions">
+          <button
+            type="button"
+            className="site-header-action site-header-action--search"
+            aria-label="상품 검색"
+            aria-expanded={mobileSearchOpen}
+            onClick={() => {
+              setMobileSearchOpen(true);
+              setMenuOpen(false);
+            }}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              fill="currentColor"
+              viewBox="0 0 256 256"
+              aria-hidden="true"
+            >
+              <path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z" />
+            </svg>
+          </button>
+
           {!isLoggedIn && (
             <Link to="/login" className="site-header-action header-login-btn">
               로그인
@@ -261,24 +391,57 @@ function Header() {
           )}
 
           {isLoggedIn && (
-            <Link
-              to="/mypage"
-              className="site-header-action site-header-action--mypage"
-              aria-label="마이페이지"
+            <div
+              ref={accountMenuRef}
+              className={`site-account-menu${accountMenuOpen ? ' site-account-menu--open' : ''}`}
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                fill="currentColor"
-                viewBox="0 0 16 16"
+              <button
+                type="button"
+                className="site-header-action site-header-action--mypage"
+                aria-label="마이페이지 빠른 메뉴"
+                aria-expanded={accountMenuOpen}
+                aria-controls="siteAccountDropdown"
+                onClick={() => {
+                  setActiveMenu(null);
+                  setAccountMenuOpen((current) => !current);
+                  setHidden(false);
+                }}
               >
-                <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6m2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0m4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4m-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10s-3.516.68-4.168 1.332c-.678.678-.83 1.418-.832 1.664z" />
-              </svg>
-            </Link>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  fill="currentColor"
+                  viewBox="0 0 16 16"
+                >
+                  <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6m2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0m4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4m-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10s-3.516.68-4.168 1.332c-.678.678-.83 1.418-.832 1.664z" />
+                </svg>
+              </button>
+
+              <div
+                id="siteAccountDropdown"
+                className="site-account-dropdown"
+                aria-label="마이페이지 빠른 메뉴"
+              >
+                <Link to="/mypage" onClick={() => setAccountMenuOpen(false)}>
+                  프로필
+                </Link>
+                <Link to="/mypage/wishlist" onClick={() => setAccountMenuOpen(false)}>
+                  찜한 상품
+                </Link>
+                <LogoutConfirmButton
+                  className="site-account-dropdown-logout"
+                  onOpen={() => setAccountMenuOpen(false)}
+                />
+              </div>
+            </div>
           )}
 
-          <Link to="/cart" className="site-header-action" aria-label="장바구니">
+          <Link
+            to="/cart"
+            className="site-header-action site-header-action--cart"
+            aria-label={cartItemCount > 0 ? `장바구니, 담긴 상품 ${cartItemCount}개` : '장바구니'}
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="16"
@@ -288,6 +451,12 @@ function Header() {
             >
               <path d="M216,42H40A14,14,0,0,0,26,56V200a14,14,0,0,0,14,14H216a14,14,0,0,0,14-14V56A14,14,0,0,0,216,42Zm2,158a2,2,0,0,1-2,2H40a2,2,0,0,1-2-2V56a2,2,0,0,1,2-2H216a2,2,0,0,1,2,2ZM174,88a46,46,0,0,1-92,0,6,6,0,0,1,12,0,34,34,0,0,0,68,0,6,6,0,0,1,12,0Z" />
             </svg>
+
+            {cartItemCount > 0 && (
+              <span className="site-header-cart-badge" aria-hidden="true">
+                {cartItemCount}
+              </span>
+            )}
           </Link>
         </div>
 
@@ -300,6 +469,7 @@ function Header() {
           onClick={() => {
             setMenuOpen((v) => !v);
             setActiveMenu(null);
+            setAccountMenuOpen(false);
           }}
         >
           <svg
@@ -430,15 +600,52 @@ function Header() {
             )}
 
             {isLoggedIn && (
-              <Link to="/mypage" onClick={closeMobileMenu}>
-                마이페이지
-              </Link>
+              <>
+                <Link to="/mypage" onClick={closeMobileMenu}>
+                  프로필
+                </Link>
+
+                <Link to="/mypage/wishlist" onClick={closeMobileMenu}>
+                  찜한 상품
+                </Link>
+
+                <LogoutConfirmButton className="site-mobile-logout-button" />
+              </>
             )}
 
             <Link to="/cart" onClick={closeMobileMenu}>
               장바구니
             </Link>
           </div>
+        </div>
+      )}
+
+      {mobileSearchOpen && (
+        <div className="site-mobile-search" role="dialog" aria-modal="true" aria-label="상품 검색">
+          <form className="site-mobile-search-form" onSubmit={handleMobileSearchSubmit}>
+            <svg
+              className="site-mobile-search-icon"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 256 256"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z" />
+            </svg>
+
+            <input
+              type="search"
+              value={mobileSearchQuery}
+              onChange={(event) => setMobileSearchQuery(event.target.value)}
+              placeholder="검색어를 입력하세요."
+              aria-label="검색어 입력"
+              autoFocus
+            />
+
+            <button type="submit" className="site-mobile-search-submit" aria-label="검색">
+              →
+            </button>
+          </form>
         </div>
       )}
     </header>
