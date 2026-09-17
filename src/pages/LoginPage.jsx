@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { login } from '@/api/authApi';
+import useAuthStore from '@/store/authStore';
 import '@/styles/login.css';
 
 function LoginPage() {
   const navigate = useNavigate();
+  const setSession = useAuthStore((state) => state.setSession);
 
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -15,19 +17,30 @@ function LoginPage() {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
+    const trimmedIdentifier = identifier.trim();
+    const trimmedPassword = password.trim();
+
+    setIdentifier(trimmedIdentifier);
+    setPassword(trimmedPassword);
     setLoginError('');
+
+    if (!trimmedIdentifier || !trimmedPassword) {
+      setLoginError('아이디 또는 이메일과 비밀번호를 입력해주세요.');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       const response = await login({
-        identifier,
-        password,
+        identifier: trimmedIdentifier,
+        password: trimmedPassword,
       });
 
-      localStorage.setItem('accessToken', response.token);
-      localStorage.setItem('userInfo', JSON.stringify(response.userInfo));
-
-      window.dispatchEvent(new Event('auth-change'));
+      setSession({
+        accessToken: response.token,
+        user: response.userInfo,
+      });
 
       navigate('/');
     } catch (error) {
@@ -92,7 +105,12 @@ function LoginPage() {
                   required
                 />
                 {identifier && (
-                  <button type="button" className="clear-btn" onClick={() => setIdentifier('')}>
+                  <button
+                    type="button"
+                    className="clear-btn"
+                    tabIndex={-1}
+                    onClick={() => setIdentifier('')}
+                  >
                     ✕
                   </button>
                 )}
@@ -112,7 +130,12 @@ function LoginPage() {
                   required
                 />
                 {password && (
-                  <button type="button" className="clear-btn" onClick={() => setPassword('')}>
+                  <button
+                    type="button"
+                    className="clear-btn"
+                    tabIndex={-1}
+                    onClick={() => setPassword('')}
+                  >
                     ✕
                   </button>
                 )}

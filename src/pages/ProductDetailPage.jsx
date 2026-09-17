@@ -2,10 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { handleAddToCart } from '@/api/alert';
-import { getStoredUser, updateStoredSummary } from '@/api/authApi';
+import { getAccessToken } from '@/utils/storage';
 import { useCartStore } from '@/store/cartStore';
 import { getProduct, getSet } from '@/api/products';
-import { addWishlist, getWishlist, removeWishlist } from '@/api/wishlist';
+import useWishlistStore from '@/store/wishlistStore';
 import '@/styles/product-detail.css';
 
 const COLOR_MAP = {
@@ -41,10 +41,10 @@ function getImageList(product) {
 
   return [
     normalizeImageUrl(product.images?.thumbnail || product.imageUrl),
-    normalizeImageUrl(product.images?.styled),
     normalizeImageUrl(product.images?.front),
     normalizeImageUrl(product.images?.side),
     normalizeImageUrl(product.images?.back),
+    normalizeImageUrl(product.images?.styled),
   ].filter(Boolean);
 }
 
@@ -71,15 +71,16 @@ function ProductDetailPage() {
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
+  const thumbnailListRef = useRef(null);
+
   const [selectedColor, setSelectedColor] = useState('');
   const [selectedSize, setSelectedSize] = useState('');
 
   const [quantity, setQuantity] = useState(1);
 
-  const [cartMessage, setCartMessage] = useState(false);
-  const [wishlistId, setWishlistId] = useState(null);
-  const [isWishlisted, setIsWishlisted] = useState(false);
-  const [isWishlistLoading, setIsWishlistLoading] = useState(false);
+  const [cartMessages, setCartMessages] = useState([]);
+  const wishlistItems = useWishlistStore((state) => state.items);
+  const toggleWishlistItem = useWishlistStore((state) => state.toggleItem);
 
   const [activeDetailTab, setActiveDetailTab] = useState('info');
 
@@ -135,118 +136,25 @@ function ProductDetailPage() {
     };
   }, [isSet, productId]);
 
-  useEffect(() => {
-    const accessToken = localStorage.getItem('accessToken');
+  const isWishlisted = wishlistItems.some((item) => {
+    const itemProductId = Number(
+      item?.productId ?? item?.product?.productId ?? item?.product?.id ?? item?.id
+    );
+    const currentProductId = Number(product?.productId ?? product?.id ?? productId);
 
-    if (!accessToken || !productId) {
-      return undefined;
-    }
-
-    let isMounted = true;
-
-    const syncWishlist = async () => {
-      try {
-        const response = await getWishlist();
-        const data = response?.data ?? response;
-        const items = Array.isArray(data)
-          ? data
-          : Array.isArray(data?.items)
-            ? data.items
-            : Array.isArray(data?.wishlist)
-              ? data.wishlist
-              : [];
-        const matched = items.find(
-          (item) => Number(item.productId ?? item.product?.id) === Number(productId)
-        );
-
-        if (!isMounted) {
-          return;
-        }
-
-        setWishlistId(matched?.id ?? matched?.wishlistId ?? null);
-        setIsWishlisted(Boolean(matched));
-      } catch {
-        if (isMounted) {
-          setWishlistId(null);
-          setIsWishlisted(false);
-        }
-      }
-    };
-
-    syncWishlist();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [productId]);
+    return itemProductId === currentProductId;
+  });
 
   const imageList = useMemo(() => getImageList(product), [product]);
 
   const activeImage = imageList[activeImageIndex] ?? '';
-
-  const touchStartX = useRef(null);
-  const touchStartY = useRef(null);
-
-  const handlePreviousImage = () => {
-    if (imageList.length <= 1) {
-      return;
-    }
-
-    setActiveImageIndex((currentIndex) =>
-      currentIndex === 0 ? imageList.length - 1 : currentIndex - 1
-    );
-  };
-
-  const handleNextImage = () => {
-    if (imageList.length <= 1) {
-      return;
-    }
-
-    setActiveImageIndex((currentIndex) =>
-      currentIndex === imageList.length - 1 ? 0 : currentIndex + 1
-    );
-  };
-
-  const handleImageTouchStart = (event) => {
-    const touch = event.touches[0];
-
-    touchStartX.current = touch.clientX;
-    touchStartY.current = touch.clientY;
-  };
-
-  const handleImageTouchEnd = (event) => {
-    if (touchStartX.current === null || touchStartY.current === null || imageList.length <= 1) {
-      touchStartX.current = null;
-      touchStartY.current = null;
-      return;
-    }
-
-    const touch = event.changedTouches[0];
-    const distanceX = touchStartX.current - touch.clientX;
-    const distanceY = touchStartY.current - touch.clientY;
-
-    touchStartX.current = null;
-    touchStartY.current = null;
-
-    // 세로 스크롤은 그대로 두고, 가로로 충분히 밀었을 때만 이미지를 변경합니다.
-    if (Math.abs(distanceX) < 40 || Math.abs(distanceX) <= Math.abs(distanceY)) {
-      return;
-    }
-
-    if (distanceX > 0) {
-      handleNextImage();
-      return;
-    }
-
-    handlePreviousImage();
-  };
 
   const thumbnailImages = imageList
     .map((image, index) => ({
       image,
       index,
     }))
-    .filter((item) => item.index !== activeImageIndex);
+    .slice(0, 5);
 
   const hasSizes = Array.isArray(product?.sizes) && product.sizes.length > 0;
 
@@ -298,6 +206,43 @@ function ProductDetailPage() {
     })) ??
     [];
 
+  const handleThumbnailScroll = (direction) => {
+    const list = thumbnailListRef.current;
+
+    if (!list) {
+      return;
+    }
+
+    const thumbnail = list.querySelector('.thumbnail');
+
+    if (!thumbnail) {
+      return;
+    }
+
+    const styles = window.getComputedStyle(list);
+    const gap = Number.parseFloat(styles.columnGap || styles.gap || '0') || 0;
+    const scrollAmount = thumbnail.getBoundingClientRect().width + gap;
+
+    list.scrollBy({
+      left: direction === 'next' ? scrollAmount : -scrollAmount,
+      behavior: 'smooth',
+    });
+  };
+
+  const handleMobileImageChange = (direction) => {
+    if (imageList.length <= 1) {
+      return;
+    }
+
+    setActiveImageIndex((currentIndex) => {
+      if (direction === 'next') {
+        return (currentIndex + 1) % imageList.length;
+      }
+
+      return (currentIndex - 1 + imageList.length) % imageList.length;
+    });
+  };
+
   const handleDecreaseQuantity = () => {
     setQuantity((currentQuantity) => Math.max(1, currentQuantity - 1));
   };
@@ -321,85 +266,37 @@ function ProductDetailPage() {
     });
   };
 
-  const handleWishlistToggle = async () => {
-    if (isWishlistLoading || !product) {
+  const handleWishlistToggle = () => {
+    if (!product) {
       return;
     }
 
-    if (!localStorage.getItem('accessToken')) {
+    if (!getAccessToken()) {
       navigate('/login');
       return;
     }
 
-    setIsWishlistLoading(true);
-
     try {
-      if (isWishlisted) {
-        let targetWishlistId = wishlistId;
+      const normalizedProductId = Number(product.productId ?? product.id ?? productId);
 
-        if (!targetWishlistId) {
-          const wishlistResponse = await getWishlist();
-          const wishlistData = wishlistResponse?.data ?? wishlistResponse;
-          const wishlistItems = Array.isArray(wishlistData)
-            ? wishlistData
-            : Array.isArray(wishlistData?.items)
-              ? wishlistData.items
-              : Array.isArray(wishlistData?.wishlist)
-                ? wishlistData.wishlist
-                : [];
-          const matched = wishlistItems.find(
-            (item) => Number(item.productId ?? item.product?.id) === Number(product.id ?? productId)
-          );
-
-          targetWishlistId = matched?.id ?? matched?.wishlistId ?? null;
-        }
-
-        if (targetWishlistId) {
-          await removeWishlist(targetWishlistId);
-          const currentCount = Number(getStoredUser()?.wishlistCount ?? 0);
-          updateStoredSummary({ wishlistCount: Math.max(0, currentCount - 1) });
-        }
-
-        setWishlistId(null);
-        setIsWishlisted(false);
-        return;
+      if (!Number.isFinite(normalizedProductId)) {
+        throw new Error('상품 정보를 확인할 수 없습니다.');
       }
 
-      const response = await addWishlist(Number(product.id ?? productId));
-      const data = response?.data ?? response;
-      let nextWishlistId = data?.id ?? data?.wishlistId ?? data?.data?.id ?? null;
-
-      if (!nextWishlistId) {
-        const wishlistResponse = await getWishlist();
-        const wishlistData = wishlistResponse?.data ?? wishlistResponse;
-        const wishlistItems = Array.isArray(wishlistData)
-          ? wishlistData
-          : Array.isArray(wishlistData?.items)
-            ? wishlistData.items
-            : Array.isArray(wishlistData?.wishlist)
-              ? wishlistData.wishlist
-              : [];
-        const matched = wishlistItems.find(
-          (item) => Number(item.productId ?? item.product?.id) === Number(product.id ?? productId)
-        );
-
-        nextWishlistId = matched?.id ?? matched?.wishlistId ?? null;
-      }
-
-      const currentCount = Number(getStoredUser()?.wishlistCount ?? 0);
-      updateStoredSummary({ wishlistCount: currentCount + 1 });
-      setWishlistId(nextWishlistId);
-      setIsWishlisted(true);
+      toggleWishlistItem({
+        ...product,
+        id: product.id ?? normalizedProductId,
+        productId: normalizedProductId,
+        productType: isSet ? 'set' : (product.productType ?? 'product'),
+      });
     } catch (error) {
       alert(error.message || '찜한 상품 상태를 변경하지 못했습니다.');
-    } finally {
-      setIsWishlistLoading(false);
     }
   };
 
-  const handleCartAdd = () => {
+  const createSelectedOrderItem = () => {
     if (!product || isUnavailable) {
-      return;
+      return null;
     }
 
     const selectedColorData = product.colors?.find(
@@ -421,9 +318,20 @@ function ProductDetailPage() {
       optionParts.push(selectedSize);
     }
 
-    addCartItem({
-      productId: Number(product.productId),
-      productType: isSet ? 'set' : (product.productType ?? 'product'),
+    const productType = isSet ? 'set' : (product.productType ?? 'product');
+    const productIdNumber = Number(product.productId);
+    const itemId = [
+      'direct',
+      productType,
+      product.productId,
+      colorValue || 'none',
+      hasSizes ? selectedSize : 'none',
+    ].join(':');
+
+    return {
+      id: itemId,
+      productId: productIdNumber,
+      productType,
       name: product.name,
       imageUrl: normalizeImageUrl(product.images?.thumbnail || product.imageUrl),
       price,
@@ -434,9 +342,34 @@ function ProductDetailPage() {
       quantity,
       stock: availableStock,
       option: optionParts.join(' / '),
-    });
+    };
+  };
 
-    handleAddToCart(setCartMessage);
+  const handleCartAdd = () => {
+    const orderItem = createSelectedOrderItem();
+
+    if (!orderItem) {
+      return;
+    }
+
+    addCartItem(orderItem);
+
+    handleAddToCart(setCartMessages);
+  };
+
+  const handleBuyNow = () => {
+    const orderItem = createSelectedOrderItem();
+
+    if (!orderItem) {
+      return;
+    }
+
+    navigate('/checkout', {
+      state: {
+        orderItems: [orderItem],
+        finalPrice: orderItem.price * orderItem.quantity,
+      },
+    });
   };
 
   if (isLoading) {
@@ -479,35 +412,76 @@ function ProductDetailPage() {
 
       <section className="product-layout">
         <div className="product-gallery">
-          <div className="thumbnail-list">
-            {thumbnailImages.map(({ image, index }) => (
+          <div className="thumbnail-carousel">
+            {thumbnailImages.length > 4 && (
               <button
-                key={`${image}-${index}`}
                 type="button"
-                className="thumbnail"
-                aria-label={`상품 이미지 ${index + 1}`}
-                onClick={() => setActiveImageIndex(index)}
+                className="thumbnail-arrow thumbnail-arrow--prev"
+                aria-label="이전 상품 이미지"
+                onClick={() => handleThumbnailScroll('prev')}
               >
-                <ProductImage
-                  src={image}
-                  alt={`${product.name} ${index + 1}`}
-                  placeholder={`IMAGE ${index + 1}`}
-                />
+                ‹
               </button>
-            ))}
+            )}
+
+            <div className="thumbnail-list" ref={thumbnailListRef}>
+              {thumbnailImages.map(({ image, index }) => (
+                <button
+                  key={`${image}-${index}`}
+                  type="button"
+                  className="thumbnail"
+                  aria-label={`상품 이미지 ${index + 1}`}
+                  aria-pressed={index === activeImageIndex}
+                  onClick={() => setActiveImageIndex(index)}
+                >
+                  <ProductImage
+                    src={image}
+                    alt={`${product.name} ${index + 1}`}
+                    placeholder={`IMAGE ${index + 1}`}
+                  />
+                </button>
+              ))}
+            </div>
+
+            {thumbnailImages.length > 4 && (
+              <button
+                type="button"
+                className="thumbnail-arrow thumbnail-arrow--next"
+                aria-label="다음 상품 이미지"
+                onClick={() => handleThumbnailScroll('next')}
+              >
+                ›
+              </button>
+            )}
           </div>
 
-          <div
-            className="main-image"
-            onTouchStart={handleImageTouchStart}
-            onTouchEnd={handleImageTouchEnd}
-          >
-            <ProductImage src={activeImage} alt={`${product.name} ${activeImageIndex + 1}`} />
+          <div className="main-image">
+            <ProductImage src={activeImage} alt={product.name} />
 
             {imageList.length > 1 && (
-              <span className="mobile-image-count" aria-live="polite">
-                {activeImageIndex + 1} / {imageList.length}
-              </span>
+              <>
+                <button
+                  type="button"
+                  className="mobile-main-image-arrow mobile-main-image-arrow--prev"
+                  aria-label="이전 상품 이미지"
+                  onClick={() => handleMobileImageChange('prev')}
+                >
+                  ‹
+                </button>
+
+                <button
+                  type="button"
+                  className="mobile-main-image-arrow mobile-main-image-arrow--next"
+                  aria-label="다음 상품 이미지"
+                  onClick={() => handleMobileImageChange('next')}
+                >
+                  ›
+                </button>
+
+                <span className="mobile-image-count" aria-hidden="true">
+                  {activeImageIndex + 1} / {imageList.length}
+                </span>
+              </>
             )}
           </div>
         </div>
@@ -667,7 +641,12 @@ function ProductDetailPage() {
           </div>
 
           <div className="purchase-area">
-            <button type="button" className="buy-button" disabled={isUnavailable}>
+            <button
+              type="button"
+              className="buy-button"
+              disabled={isUnavailable}
+              onClick={handleBuyNow}
+            >
               BUY NOW
             </button>
 
@@ -686,7 +665,6 @@ function ProductDetailPage() {
                 className={`wish-button${isWishlisted ? ' is-active' : ''}`}
                 aria-label={isWishlisted ? '위시리스트에서 삭제' : '위시리스트에 추가'}
                 aria-pressed={isWishlisted}
-                disabled={isWishlistLoading}
                 onClick={handleWishlistToggle}
               >
                 {isWishlisted ? '♥' : '♡'}
@@ -1007,23 +985,31 @@ function ProductDetailPage() {
         </section>
       )}
 
-      {cartMessage && (
+      {cartMessages.length > 0 && (
         <div className="cart-alert-overlay">
-          <div className="cart-alert">
-            <button
-              type="button"
-              className="cart-alert-close"
-              onClick={() => setCartMessage(false)}
-              aria-label="알림 닫기"
-            >
-              ×
-            </button>
+          <div className="cart-alert-stack">
+            {cartMessages.map((message) => (
+              <div className="cart-alert" key={message.id}>
+                <button
+                  type="button"
+                  className="cart-alert-close"
+                  onClick={() =>
+                    setCartMessages((messages) =>
+                      messages.filter((cartMessage) => cartMessage.id !== message.id)
+                    )
+                  }
+                  aria-label="알림 닫기"
+                >
+                  ×
+                </button>
 
-            <span className="cart-alert-label">CART</span>
+                <span className="cart-alert-label">CART</span>
 
-            <strong className="cart-alert-message">장바구니에 상품을 담았습니다.</strong>
+                <strong className="cart-alert-message">장바구니에 상품을 담았습니다.</strong>
 
-            <div className="cart-alert-progress" />
+                <div className="cart-alert-progress" />
+              </div>
+            ))}
           </div>
         </div>
       )}

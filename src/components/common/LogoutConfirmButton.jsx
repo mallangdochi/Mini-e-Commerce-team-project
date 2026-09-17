@@ -1,30 +1,55 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 
+import useAuthStore from '@/store/authStore';
 import '@/styles/logout-confirm.css';
 
-function LogoutConfirmButton({ className = '' }) {
+function LogoutConfirmButton({ className = '', onOpen }) {
   const navigate = useNavigate();
+  const logout = useAuthStore((state) => state.logout);
   const [isOpen, setIsOpen] = useState(false);
 
+  const openModal = () => {
+    onOpen?.();
+    setIsOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsOpen(false);
+  };
+
   const handleLogout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('userInfo');
-
-    window.dispatchEvent(new Event('auth-change'));
-
+    logout();
     setIsOpen(false);
     navigate('/login');
   };
 
-  return (
-    <>
-      <button type="button" className={className} onClick={() => setIsOpen(true)}>
-        로그아웃
-      </button>
+  useEffect(() => {
+    if (!isOpen) {
+      return undefined;
+    }
 
-      {isOpen && (
-        <div className="logout-confirm-backdrop" onClick={() => setIsOpen(false)}>
+    const previousOverflow = document.body.style.overflow;
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        closeModal();
+      }
+    };
+
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen]);
+
+  const modal = isOpen
+    ? createPortal(
+        <div className="logout-confirm-backdrop" onClick={closeModal}>
           <section
             className="logout-confirm-modal"
             role="dialog"
@@ -56,7 +81,7 @@ function LogoutConfirmButton({ className = '' }) {
             </p>
 
             <div className="logout-confirm-actions">
-              <button type="button" className="is-cancel" onClick={() => setIsOpen(false)}>
+              <button type="button" className="is-cancel" onClick={closeModal}>
                 취소
               </button>
 
@@ -65,8 +90,17 @@ function LogoutConfirmButton({ className = '' }) {
               </button>
             </div>
           </section>
-        </div>
-      )}
+        </div>,
+        document.body
+      )
+    : null;
+
+  return (
+    <>
+      <button type="button" className={className} onClick={openModal}>
+        로그아웃
+      </button>
+      {modal}
     </>
   );
 }

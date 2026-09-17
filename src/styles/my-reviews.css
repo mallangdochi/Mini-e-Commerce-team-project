@@ -65,8 +65,7 @@
 .my-reviews-list {
   display: flex;
   flex-direction: column;
-
-  margin-top: 14px;
+  margin-top: 20px;
 
   gap: 12px;
 }
@@ -765,9 +764,36 @@
   }
 }
 
-@media (max-width: 720px) {
+@media (max-width: 767px) {
   .my-reviews-overview {
-    grid-template-columns: 1fr;
+    margin-top: 14px;
+
+    gap: 10px;
+  }
+
+  .my-reviews-overview > div {
+    min-height: 72px;
+    padding: 12px 14px;
+  }
+
+  .my-reviews-overview span {
+    font-size: 11px;
+  }
+
+  .my-reviews-overview strong {
+    align-self: center;
+
+    font-size: 24px;
+  }
+
+  .my-reviews-overview small {
+    margin-top: 4px;
+
+    font-size: 10px;
+  }
+
+  .my-review-status-badge {
+    display: none;
   }
 
   .my-review-card-body {
@@ -793,5 +819,11 @@
 
   .my-review-modal-backdrop {
     padding: 10px;
+  }
+}
+
+@media (max-width: 360px) {
+  .my-reviews-list {
+    margin-top: 0;
   }
 }

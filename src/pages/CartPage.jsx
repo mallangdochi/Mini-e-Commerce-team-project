@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 
 import { useCartStore } from '@/store/cartStore';
 import '@/styles/cart.css';
@@ -11,29 +11,53 @@ function CartPage() {
   const updateQuantity = useCartStore((state) => state.updateQuantity);
   const removeItem = useCartStore((state) => state.removeItem);
   const removeItems = useCartStore((state) => state.removeItems);
+  const syncCart = useCartStore((state) => state.syncCart);
 
-  // 기본적으로 모든 상품이 선택된 상태로 시작
+  const previousCartItemIdsRef = useRef(cartItems.map((item) => item.id));
   const [selectedIds, setSelectedIds] = useState(() => cartItems.map((item) => item.id));
 
-  // 전체 선택 / 해제 핸들러
-  const handleSelectAll = (e) => {
-    if (e.target.checked) {
+  useEffect(() => {
+    syncCart({ force: true, mergeGuest: true });
+  }, [syncCart]);
+
+  useEffect(() => {
+    const nextItemIds = cartItems.map((item) => item.id);
+    const previousItemIds = previousCartItemIdsRef.current;
+
+    setSelectedIds((currentIds) => {
+      const wasAllSelected =
+        previousItemIds.length === 0 ||
+        previousItemIds.every((itemId) => currentIds.includes(itemId));
+
+      if (wasAllSelected) {
+        return nextItemIds;
+      }
+
+      return currentIds.filter((itemId) => nextItemIds.includes(itemId));
+    });
+
+    previousCartItemIdsRef.current = nextItemIds;
+  }, [cartItems]);
+
+  const handleSelectAll = (event) => {
+    if (event.target.checked) {
       setSelectedIds(cartItems.map((item) => item.id));
-    } else {
-      setSelectedIds([]);
+      return;
     }
+
+    setSelectedIds([]);
   };
 
-  // 개별 상품 선택 / 해제 핸들러
   const handleToggleOne = (itemId) => {
-    if (selectedIds.includes(itemId)) {
-      setSelectedIds(selectedIds.filter((id) => id !== itemId));
-    } else {
-      setSelectedIds([...selectedIds, itemId]);
-    }
+    setSelectedIds((currentIds) => {
+      if (currentIds.includes(itemId)) {
+        return currentIds.filter((id) => id !== itemId);
+      }
+
+      return [...currentIds, itemId];
+    });
   };
 
-  // 선택 삭제 기능
   const handleDeleteSelected = () => {
     removeItems(selectedIds);
     setSelectedIds([]);
@@ -48,12 +72,10 @@ function CartPage() {
     setSelectedIds((currentIds) => currentIds.filter((id) => id !== itemId));
   };
 
-  // 선택된 상품들만 필터링하여 총금액 계산
   const selectedItems = cartItems.filter((item) => selectedIds.includes(item.id));
-
   const totalPrice = selectedItems.reduce((total, item) => total + item.price * item.quantity, 0);
-
-  const isAllSelected = cartItems.length > 0 && selectedIds.length === cartItems.length;
+  const isAllSelected =
+    cartItems.length > 0 && cartItems.every((item) => selectedIds.includes(item.id));
 
   const handleContinueShopping = () => {
     navigate('/products');
@@ -65,7 +87,6 @@ function CartPage() {
       return;
     }
 
-    // 선택된 상품들(orderItems)과 총 금액(finalPrice)을 state로 전달
     navigate('/checkout', {
       state: {
         orderItems: selectedItems,
@@ -74,12 +95,17 @@ function CartPage() {
     });
   };
 
+  const getProductPath = (item) => {
+    const query = item.productType === 'set' ? '?type=set' : '';
+
+    return `/products/${item.productId}${query}`;
+  };
+
   return (
     <section className="cart-page">
       <div className="cart-container">
         <h1 className="cart-section-title">SHOPPING CART</h1>
 
-        {/* 전체선택 및 선택삭제 상단 컨트롤 바 */}
         <div className="cart-control-bar">
           <label className="cart-checkbox-label">
             <input
@@ -121,7 +147,6 @@ function CartPage() {
 
               return (
                 <div className="cart-item-row" key={item.id}>
-                  {/* 개별 체크박스 */}
                   <div className="cart-checkbox-cell">
                     <input
                       type="checkbox"
@@ -132,7 +157,7 @@ function CartPage() {
                     />
                   </div>
 
-                  <div className="cart-product-cell">
+                  <Link to={getProductPath(item)} className="cart-product-cell">
                     {item.imageUrl ? (
                       <img className="cart-item-img" src={item.imageUrl} alt={item.name} />
                     ) : (
@@ -144,7 +169,7 @@ function CartPage() {
 
                       {item.option && <div className="cart-item-sub">{item.option}</div>}
                     </div>
-                  </div>
+                  </Link>
 
                   <div className="cart-item-price">₩ {item.price.toLocaleString()}</div>
 
@@ -206,7 +231,6 @@ function CartPage() {
               <span>{totalPrice > 0 ? '무료' : '₩ 0'}</span>
             </div>
 
-            {/* 붉은색 총 결제금액 적용 */}
             <div className="cart-summary-row cart-summary-total">
               <span>총 결제금액</span>
               <span>₩ {totalPrice.toLocaleString()}</span>
