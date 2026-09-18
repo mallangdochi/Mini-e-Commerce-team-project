@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
+import { getProduct, getSet } from '@/api/products';
 import modelFull from '@/assets/home/featured-look/arc-model-full.png';
 import partTop from '@/assets/home/featured-look/arc-top.png';
 import partBottom from '@/assets/home/featured-look/arc-bottom.png';
@@ -17,7 +18,6 @@ const VIEW_LABELS = {
   shoes: '신발',
 };
 
-// 모바일 히어로 이미지 위 핫스팟 라벨(영문, 목업 기준)
 const HOTSPOT_LABELS = {
   top: 'TOP',
   bottom: 'BOTTOM',
@@ -66,13 +66,11 @@ const HOTSPOT_ICONS = {
   shoes: HotspotIconShoes,
 };
 
-// 데스크톱 뷰 스위처용 — 모바일 핫스팟 아이콘 + 전체착장(그리드) 아이콘
 const VIEW_ICONS = {
   full: HotspotIconFull,
   ...HOTSPOT_ICONS,
 };
 
-// 모바일 요약 카드용 — 부위별 가격이 아니라 세트 전체 표시값 (TODO: 실제 상품 데이터 연결)
 const SET_SUMMARY = {
   title: 'ARC TRACK SET-UP',
   price: 159000,
@@ -87,7 +85,57 @@ const FEATURED_LOOK_DETAIL_PATHS = {
 };
 
 const COMPACT_QUERY = '(max-width: 767px)';
-const SWIPE_THRESHOLD = 40; // px
+const SWIPE_THRESHOLD = 40;
+
+const FEATURED_LOOK_PRODUCT_IDS = {
+  full: 10501,
+  top: 10101,
+  bottom: 10305,
+  shoes: 10401,
+};
+
+function normalizeImageUrl(url) {
+  if (!url || typeof url !== 'string') {
+    return '';
+  }
+
+  return url.trim().replace(/^<|>$/g, '');
+}
+
+function getProductImageCandidates(product) {
+  return [
+    product?.images?.thumbnail,
+    product?.imageUrl,
+    product?.images?.front,
+    product?.images?.styled,
+    product?.images?.side,
+    product?.images?.back,
+  ]
+    .map(normalizeImageUrl)
+    .filter(Boolean)
+    .filter((url, index, urls) => urls.indexOf(url) === index);
+}
+
+function ProductApiImage({ product, alt }) {
+  const imageCandidates = getProductImageCandidates(product);
+  const [imageIndex, setImageIndex] = useState(0);
+  const imageUrl = imageCandidates[imageIndex] ?? '';
+
+  if (!imageUrl) {
+    return <span className="arc-product-image-state">상품 이미지를 불러올 수 없습니다.</span>;
+  }
+
+  return (
+    <img
+      src={imageUrl}
+      alt={alt}
+      draggable="false"
+      onError={() => {
+        setImageIndex((currentIndex) => currentIndex + 1);
+      }}
+    />
+  );
+}
 
 function useIsCompact() {
   const [isCompact, setIsCompact] = useState(() => window.matchMedia(COMPACT_QUERY).matches);
@@ -105,32 +153,19 @@ function useIsCompact() {
 const PRODUCT_INFO = {
   full: {
     eyebrow: 'ARC LOOK 01',
-    title: 'ARC MOTION SET',
-    subtitle: 'URBAN TRAINING SERIES',
     image: modelFull,
-    description:
-      '가벼운 윈드 셸과 와이드 트랙 팬츠를 한 세트로 구성한 ARC의 데일리 트레이닝 룩입니다.',
   },
   top: {
     eyebrow: 'ARC TOP',
-    title: 'ARC WIND SHELL',
-    subtitle: 'CROPPED PERFORMANCE JACKET',
     image: partTop,
-    description: '가볍고 유연한 셸 원단에 곡선형 배색 패널을 더한 크롭 윈드 재킷입니다.',
   },
   bottom: {
     eyebrow: 'ARC BOTTOM',
-    title: 'ARC TRACK PANTS',
-    subtitle: 'RELAXED WIDE FIT',
     image: partBottom,
-    description: '여유 있는 와이드 실루엣과 사이드 파이핑을 적용한 트랙 팬츠입니다.',
   },
   shoes: {
     eyebrow: 'ARC SHOES',
-    title: 'ARC RUNNER 01',
-    subtitle: 'DAILY TRAINING SHOES',
     image: partShoes,
-    description: '볼륨감 있는 미드솔과 안정적인 접지 형태를 가진 데일리 트레이닝 슈즈입니다.',
   },
 };
 
@@ -146,7 +181,9 @@ function FeaturedLookSection() {
   const [selectedView, setSelectedView] = useState('full');
   const [hoveredPart, setHoveredPart] = useState(null);
   const [isModelHovered, setIsModelHovered] = useState(false);
-  const [selectedColor, setSelectedColor] = useState('black');
+  const [featuredProducts, setFeaturedProducts] = useState({});
+  const [isFeaturedProductsLoading, setIsFeaturedProductsLoading] = useState(true);
+  const [featuredProductsError, setFeaturedProductsError] = useState('');
   const [isSliding, setIsSliding] = useState(false);
   const [isViewTransitioning, setIsViewTransitioning] = useState(false);
   const viewTransitionTimerRef = useRef(null);
@@ -159,6 +196,7 @@ function FeaturedLookSection() {
   const next = MODELS[nextModelIndex];
   const afterNext = MODELS[afterNextModelIndex];
   const activeInfo = PRODUCT_INFO[selectedView];
+  const activeProduct = featuredProducts[selectedView] ?? null;
   const activeDetailPath =
     selectedView === 'full'
       ? FEATURED_LOOK_DETAIL_PATHS.set
@@ -190,6 +228,44 @@ function FeaturedLookSection() {
     setCurrentModel((currentIndex) => (currentIndex + 1) % MODELS.length);
     setIsSliding(false);
   };
+
+  useEffect(() => {
+    let isMounted = true;
+
+    Promise.all([
+      getSet(FEATURED_LOOK_PRODUCT_IDS.full),
+      getProduct(FEATURED_LOOK_PRODUCT_IDS.top),
+      getProduct(FEATURED_LOOK_PRODUCT_IDS.bottom),
+      getProduct(FEATURED_LOOK_PRODUCT_IDS.shoes),
+    ])
+      .then(([fullResponse, topResponse, bottomResponse, shoesResponse]) => {
+        if (!isMounted) {
+          return;
+        }
+
+        setFeaturedProducts({
+          full: fullResponse?.data ?? null,
+          top: topResponse?.data ?? null,
+          bottom: bottomResponse?.data ?? null,
+          shoes: shoesResponse?.data ?? null,
+        });
+        setFeaturedProductsError('');
+        setIsFeaturedProductsLoading(false);
+      })
+      .catch(() => {
+        if (!isMounted) {
+          return;
+        }
+
+        setFeaturedProducts({});
+        setFeaturedProductsError('상품 정보를 불러오지 못했습니다.');
+        setIsFeaturedProductsLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -283,32 +359,34 @@ function FeaturedLookSection() {
           </nav>
 
           <article className="arc-product-card">
-            <div className={`arc-product-image arc-product-image--${selectedView}`}>
-              <img src={activeInfo.image} alt={activeInfo.title} draggable="false" />
+            <div className="arc-product-image" aria-busy={isFeaturedProductsLoading}>
+              {isFeaturedProductsLoading ? (
+                <span className="arc-product-image-state">상품 이미지를 불러오는 중입니다.</span>
+              ) : (
+                <ProductApiImage
+                  key={selectedView}
+                  product={activeProduct}
+                  alt={`${activeProduct?.name ?? VIEW_LABELS[selectedView]} 상품 썸네일`}
+                />
+              )}
             </div>
 
             <div className="arc-product-meta">
               <div>
                 <p className="arc-product-eyebrow">{activeInfo.eyebrow}</p>
-                <h1>{activeInfo.title}</h1>
-              </div>
-
-              <div className="arc-color-list">
-                {['black', 'charcoal', 'light', 'olive'].map((color) => (
-                  <button
-                    key={color}
-                    type="button"
-                    className={`arc-color arc-color--${color} ${
-                      selectedColor === color ? 'is-active' : ''
-                    }`}
-                    onClick={() => setSelectedColor(color)}
-                    aria-label={color}
-                  />
-                ))}
+                <h1>
+                  {activeProduct?.name ??
+                    (isFeaturedProductsLoading
+                      ? '상품 정보를 불러오는 중입니다.'
+                      : '상품 정보를 불러오지 못했습니다.')}
+                </h1>
               </div>
             </div>
 
-            <p className="arc-product-description">{activeInfo.description}</p>
+            <p className="arc-product-description">
+              {activeProduct?.description ||
+                (featuredProductsError ? featuredProductsError : '상품 설명을 불러오는 중입니다.')}
+            </p>
 
             <Link to={activeDetailPath} className="arc-detail-button">
               <span>상세설명</span>
@@ -418,7 +496,6 @@ function FeaturedLookSection() {
         </section>
       </section>
 
-      {/* 모바일 전용 레이아웃 — 데스크톱 그리드/호버 인터랙션 대신 라벨 핫스팟 + 요약 카드 */}
       {isCompact && (
         <div className="arc-mobile-look">
           <h2 className="arc-mobile-look__title">Collections</h2>
@@ -450,7 +527,6 @@ function FeaturedLookSection() {
               })}
             </div>
 
-            {/* .arc-mobile-hero 밖(overflow 밖)으로 빠져나와 보이도록 형제로 분리 */}
             <button
               type="button"
               className="arc-swipe-hint"
