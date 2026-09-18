@@ -27,6 +27,98 @@ const COLOR_MAP = {
   silver: '#c3c7cc',
 };
 
+const APPAREL_SIZE_ORDER = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL'];
+
+const KOREAN_SIZE_LABELS = {
+  XS: '44',
+  S: '44–55',
+  M: '55–66',
+  L: '66–77',
+  XL: '77–88',
+  XXL: '88–99',
+  '3XL': '99–110',
+  '4XL': '110 이상',
+};
+
+function getBaseFitSize(height, weight) {
+  let sizeIndex;
+
+  if (weight < 48) {
+    sizeIndex = 0;
+  } else if (weight < 55) {
+    sizeIndex = 1;
+  } else if (weight < 63) {
+    sizeIndex = 2;
+  } else if (weight < 72) {
+    sizeIndex = 3;
+  } else if (weight < 82) {
+    sizeIndex = 4;
+  } else if (weight < 92) {
+    sizeIndex = 5;
+  } else if (weight < 102) {
+    sizeIndex = 6;
+  } else {
+    sizeIndex = 7;
+  }
+
+  if (height >= 175) {
+    sizeIndex += 1;
+  } else if (height <= 155) {
+    sizeIndex -= 1;
+  }
+
+  return APPAREL_SIZE_ORDER[Math.max(0, Math.min(APPAREL_SIZE_ORDER.length - 1, sizeIndex))];
+}
+
+function getClosestAvailableSize(baseSize, availableSizes) {
+  const baseIndex = APPAREL_SIZE_ORDER.indexOf(baseSize);
+
+  if (baseIndex === -1 || availableSizes.length === 0) {
+    return null;
+  }
+
+  return availableSizes.reduce((closest, size) => {
+    const sizeIndex = APPAREL_SIZE_ORDER.indexOf(size);
+
+    if (sizeIndex === -1) {
+      return closest;
+    }
+
+    if (!closest) {
+      return size;
+    }
+
+    const closestIndex = APPAREL_SIZE_ORDER.indexOf(closest);
+    const currentDistance = Math.abs(sizeIndex - baseIndex);
+    const closestDistance = Math.abs(closestIndex - baseIndex);
+
+    if (currentDistance < closestDistance) {
+      return size;
+    }
+
+    if (currentDistance === closestDistance && sizeIndex > closestIndex) {
+      return size;
+    }
+
+    return closest;
+  }, null);
+}
+
+function getFitLabel(baseSize, recommendedSize) {
+  const baseIndex = APPAREL_SIZE_ORDER.indexOf(baseSize);
+  const recommendedIndex = APPAREL_SIZE_ORDER.indexOf(recommendedSize);
+
+  if (baseIndex === -1 || recommendedIndex === -1 || baseIndex === recommendedIndex) {
+    return '정사이즈 핏 예상';
+  }
+
+  if (recommendedIndex > baseIndex) {
+    return '조금 여유 있는 핏 예상';
+  }
+
+  return '조금 슬림한 핏 예상';
+}
+
 function normalizeImageUrl(url) {
   if (!url || typeof url !== 'string') {
     return '';
@@ -114,6 +206,10 @@ function ProductDetailPage() {
   const toggleWishlistItem = useWishlistStore((state) => state.toggleItem);
 
   const [activeDetailTab, setActiveDetailTab] = useState('info');
+  const [fitHeight, setFitHeight] = useState('');
+  const [fitWeight, setFitWeight] = useState('');
+  const [fitRecommendation, setFitRecommendation] = useState(null);
+  const [fitError, setFitError] = useState('');
 
   const addCartItem = useCartStore((state) => state.addItem);
 
@@ -146,6 +242,10 @@ function ProductDetailPage() {
         setSelectedColor(data.colors?.[0]?.value ?? '');
         setSelectedSize(firstAvailableSize?.size ?? data.sizes?.[0]?.size ?? '');
         setQuantity(1);
+        setFitHeight('');
+        setFitWeight('');
+        setFitRecommendation(null);
+        setFitError('');
       } catch {
         if (!isMounted) {
           return;
@@ -231,6 +331,28 @@ function ProductDetailPage() {
     .slice(0, 5);
 
   const hasSizes = Array.isArray(product?.sizes) && product.sizes.length > 0;
+
+  const availableApparelSizes = useMemo(() => {
+    if (!hasSizes) {
+      return [];
+    }
+
+    return product.sizes
+      .filter((item) => Number(item.stock ?? 0) > 0)
+      .map((item) => String(item.size).toUpperCase())
+      .filter((size) => APPAREL_SIZE_ORDER.includes(size));
+  }, [hasSizes, product]);
+
+  const canRecommendFit = availableApparelSizes.length > 0;
+  const isShoes = product?.categoryId === 'shoes';
+
+  const sizeGuideTitle = isShoes
+    ? '한국 여성 신발 사이즈 가이드'
+    : product?.categoryId === 'bottom'
+      ? '한국 여성 하의 사이즈 가이드'
+      : product?.categoryId === 'sets' || isSet
+        ? '한국 여성 세트 사이즈 가이드'
+        : '한국 여성 의류 사이즈 가이드';
 
   const selectedSizeData = hasSizes
     ? product.sizes.find((item) => String(item.size) === String(selectedSize))
@@ -343,6 +465,57 @@ function ProductDetailPage() {
 
   const handleWriteReview = () => {
     navigate(reviewDetailPath);
+  };
+
+  const handleFitRecommendation = () => {
+    const height = Number(fitHeight);
+    const weight = Number(fitWeight);
+
+    setFitError('');
+    setFitRecommendation(null);
+
+    if (!Number.isFinite(height) || !Number.isFinite(weight) || !fitHeight || !fitWeight) {
+      setFitError('키와 몸무게를 모두 입력해 주세요.');
+      return;
+    }
+
+    if (height < 130 || height > 200) {
+      setFitError('키는 130cm부터 200cm 사이로 입력해 주세요.');
+      return;
+    }
+
+    if (weight < 30 || weight > 150) {
+      setFitError('몸무게는 30kg부터 150kg 사이로 입력해 주세요.');
+      return;
+    }
+
+    if (!canRecommendFit) {
+      setFitError('이 상품은 키와 몸무게를 이용한 사이즈 추천을 지원하지 않습니다.');
+      return;
+    }
+
+    const baseSize = getBaseFitSize(height, weight);
+    const recommendedSize = getClosestAvailableSize(baseSize, availableApparelSizes);
+
+    if (!recommendedSize) {
+      setFitError('현재 추천할 수 있는 재고 보유 사이즈가 없습니다.');
+      return;
+    }
+
+    setFitRecommendation({
+      size: recommendedSize,
+      fit: getFitLabel(baseSize, recommendedSize),
+      isAdjusted: recommendedSize !== baseSize,
+    });
+  };
+
+  const handleApplyRecommendedSize = () => {
+    if (!fitRecommendation?.size) {
+      return;
+    }
+
+    setSelectedSize(fitRecommendation.size);
+    setQuantity(1);
   };
 
   const handleWishlistToggle = async () => {
@@ -970,137 +1143,200 @@ function ProductDetailPage() {
           <div className="size-guide-heading">
             <span>사이즈 가이드</span>
 
-            <h2>여성 상의 사이즈 가이드</h2>
+            <h2>{sizeGuideTitle}</h2>
 
-            <p>사이즈 변환을 위해 위치를 선택해 주세요.</p>
-          </div>
-
-          <div className="size-guide-country">
-            <select defaultValue="international">
-              <option value="international">국제</option>
-              <option value="korea">한국</option>
-            </select>
-          </div>
-
-          <p className="size-guide-description">
-            US 사이즈 탭을 선택하여 차트에서 해당 사이즈를 확인해 보세요.
-          </p>
-
-          <div className="size-guide-tabs">
-            <button type="button" className="size-guide-tab is-active">
-              US 사이즈 0 - 20
-            </button>
-
-            <button type="button" className="size-guide-tab">
-              US 사이즈 XXXS - 2X
-            </button>
-
-            <button type="button" className="size-guide-tab">
-              US 사이즈 XS/S - XL/XXL
-            </button>
+            <p>
+              한국에서 익숙한 사이즈 표기를 기준으로 확인해 주세요. 실제 착용감은 상품 디자인과
+              체형에 따라 달라질 수 있습니다.
+            </p>
           </div>
 
           <div className="size-guide-content">
-            <h3>US 사이즈 0 - 20</h3>
+            <h3>한국 기준 사이즈</h3>
 
-            <p>
-              US 사이즈 기준으로 디자인했어요. 아래 차트를 참고해 사이즈를 선택하시거나, 바디 치수를
-              측정해 정확한 사이즈를 찾아보세요.
-            </p>
-
-            <div className="size-unit">
-              <span className="is-active">CM</span>
-
-              <span className="size-unit-toggle">
-                <span />
-              </span>
-
-              <span>IN</span>
-            </div>
+            <p>현재 상품에서 선택할 수 있는 사이즈를 한국 기준 참고 표기와 함께 정리했습니다.</p>
 
             <div className="size-table-scroll">
               <table className="size-guide-table">
                 <tbody>
                   <tr>
-                    <th>국제 사이즈</th>
-                    <td>XXS</td>
-                    <td>XS</td>
-                    <td>S</td>
-                    <td>M</td>
-                    <td>L</td>
-                    <td>XL</td>
-                    <td>XXL</td>
-                    <td>XXL</td>
-                    <td>3XL</td>
-                    <td>4XL</td>
+                    <th>{isShoes ? '한국 사이즈' : 'ARC 사이즈'}</th>
+                    {product.sizes.map((sizeData) => (
+                      <td key={`arc-${sizeData.size}`}>
+                        {isShoes ? `${sizeData.size}mm` : String(sizeData.size).toUpperCase()}
+                      </td>
+                    ))}
                   </tr>
 
-                  <tr>
-                    <th>US 사이즈</th>
-                    <td>0</td>
-                    <td>2</td>
-                    <td>4</td>
-                    <td>6</td>
-                    <td>8</td>
-                    <td>10</td>
-                    <td>12</td>
-                    <td>14</td>
-                    <td>16</td>
-                    <td>18</td>
-                  </tr>
+                  {!isShoes && (
+                    <tr>
+                      <th>한국 기준 참고</th>
+                      {product.sizes.map((sizeData) => {
+                        const size = String(sizeData.size).toUpperCase();
+
+                        return (
+                          <td key={`kr-${sizeData.size}`}>{KOREAN_SIZE_LABELS[size] ?? size}</td>
+                        );
+                      })}
+                    </tr>
+                  )}
 
                   <tr>
-                    <th>가슴둘레</th>
-                    <td>72.4cm</td>
-                    <td>76.2cm</td>
-                    <td>78.7-81.3cm</td>
-                    <td>83.8-86.4cm</td>
-                    <td>88.9-91.4cm</td>
-                    <td>94-97.8cm</td>
-                    <td>101.6cm</td>
-                    <td>106.7cm</td>
-                    <td>114.3cm</td>
-                    <td>119.4cm</td>
+                    <th>재고 상태</th>
+                    {product.sizes.map((sizeData) => (
+                      <td key={`stock-${sizeData.size}`}>
+                        {Number(sizeData.stock ?? 0) > 0 ? '선택 가능' : '품절'}
+                      </td>
+                    ))}
                   </tr>
                 </tbody>
               </table>
             </div>
 
-            <div className="measurement-guide">
-              <div className="measurement-text">
-                <h3>측정 방법</h3>
+            {canRecommendFit && (
+              <section className="fit-recommendation">
+                <div className="fit-recommendation-heading">
+                  <span>MY FIT</span>
 
-                <p>
-                  편안한 자세로 허리를 곧게 펴고 발끝이 나란하게 서 주세요. 줄자를 사용해 정확한
-                  치수를 측정해 보세요.
+                  <h3>키와 몸무게로 사이즈 찾기</h3>
+
+                  <p>
+                    키와 몸무게를 입력하면 현재 상품의 재고가 있는 사이즈 중 가장 가까운 사이즈를
+                    추천합니다.
+                  </p>
+                </div>
+
+                <div className="fit-recommendation-form">
+                  <label className="fit-input-field">
+                    <span>키</span>
+
+                    <div>
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        min="130"
+                        max="200"
+                        step="1"
+                        value={fitHeight}
+                        onChange={(event) => {
+                          setFitHeight(event.target.value);
+                          setFitRecommendation(null);
+                          setFitError('');
+                        }}
+                        placeholder="165"
+                        aria-label="키 입력"
+                      />
+
+                      <span>cm</span>
+                    </div>
+                  </label>
+
+                  <label className="fit-input-field">
+                    <span>몸무게</span>
+
+                    <div>
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        min="30"
+                        max="150"
+                        step="0.1"
+                        value={fitWeight}
+                        onChange={(event) => {
+                          setFitWeight(event.target.value);
+                          setFitRecommendation(null);
+                          setFitError('');
+                        }}
+                        placeholder="55"
+                        aria-label="몸무게 입력"
+                      />
+
+                      <span>kg</span>
+                    </div>
+                  </label>
+
+                  <button
+                    type="button"
+                    className="fit-recommendation-button"
+                    onClick={handleFitRecommendation}
+                  >
+                    추천 사이즈 확인
+                  </button>
+                </div>
+
+                {fitError && <p className="fit-recommendation-error">{fitError}</p>}
+
+                {fitRecommendation && (
+                  <div className="fit-recommendation-result">
+                    <div>
+                      <span>추천 사이즈</span>
+                      <strong>{fitRecommendation.size}</strong>
+                    </div>
+
+                    <div>
+                      <span>예상 착용감</span>
+                      <strong>{fitRecommendation.fit}</strong>
+                    </div>
+
+                    <p>
+                      {fitRecommendation.isAdjusted
+                        ? '기본 추천 사이즈와 가장 가까운 재고 보유 사이즈를 안내했습니다.'
+                        : '입력한 키와 몸무게를 기준으로 가장 가까운 사이즈를 안내했습니다.'}
+                    </p>
+
+                    <button
+                      type="button"
+                      className="fit-apply-button"
+                      onClick={handleApplyRecommendedSize}
+                    >
+                      추천 사이즈 선택
+                    </button>
+                  </div>
+                )}
+
+                <p className="fit-recommendation-note">
+                  키와 몸무게를 이용한 간단 추천으로, 실제 핏은 체형과 상품별 실측에 따라 달라질 수
+                  있습니다.
                 </p>
+              </section>
+            )}
 
-                <div className="measurement-item">
-                  <strong>1. 가슴둘레</strong>
+            {!isShoes && (
+              <div className="measurement-guide">
+                <div className="measurement-text">
+                  <h3>측정 방법</h3>
 
                   <p>
-                    양팔을 내린 상태로 가슴의 가장 넓은 부분을 측정하세요. 줄자를 등 뒤로 두른 때
-                    너무 조이거나 느슨하지 않도록 유지하세요.
+                    편안한 자세로 허리를 곧게 펴고 발끝이 나란하게 서 주세요. 줄자를 몸에 너무
+                    조이거나 느슨하지 않게 두고 측정하면 사이즈를 비교하기 쉽습니다.
                   </p>
-                </div>
 
-                <div className="measurement-item">
-                  <strong>2. 허리둘레</strong>
-                  <p>허리의 가장 가는 부분의 둘레를 측정하세요.</p>
-                </div>
+                  <div className="measurement-item">
+                    <strong>1. 가슴둘레</strong>
 
-                <div className="measurement-item">
-                  <strong>3. 엉덩이둘레</strong>
-                  <p>
-                    양발을 골반 너비로 벌려 선 후, 엉덩이의 가장 볼록한 부분의 둘레를 측정하세요.
-                  </p>
+                    <p>
+                      양팔을 자연스럽게 내린 상태에서 가슴의 가장 넓은 부분을 수평으로 측정해
+                      주세요.
+                    </p>
+                  </div>
+
+                  <div className="measurement-item">
+                    <strong>2. 허리둘레</strong>
+
+                    <p>허리의 가장 가는 부분을 기준으로 둘레를 측정해 주세요.</p>
+                  </div>
+
+                  <div className="measurement-item">
+                    <strong>3. 엉덩이둘레</strong>
+
+                    <p>
+                      양발을 골반 너비로 벌리고 선 뒤 엉덩이의 가장 볼록한 부분을 수평으로 측정해
+                      주세요.
+                    </p>
+                  </div>
                 </div>
               </div>
-
-              <div className="measurement-image">
-                <img src="/images/products/size-guide.jpg" alt="상의 사이즈 측정 방법" />
-              </div>
-            </div>
+            )}
           </div>
         </section>
       )}
