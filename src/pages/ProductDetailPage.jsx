@@ -342,12 +342,7 @@ function ProductDetailPage() {
   };
 
   const handleWriteReview = () => {
-    if (!getAccessToken()) {
-      navigate('/login');
-      return;
-    }
-
-    navigate('/mypage/reviews');
+    navigate(reviewDetailPath);
   };
 
   const handleWishlistToggle = async () => {
@@ -595,9 +590,7 @@ function ProductDetailPage() {
             <span className="product-rating-stars">
               {getReviewStars(reviewSummary.averageRating)}
             </span>
-
             <span className="product-rating-score">{reviewSummary.averageRating.toFixed(1)}</span>
-
             <span className="review-count">({reviewSummary.reviewCount})</span>
           </Link>
 
@@ -662,7 +655,6 @@ function ProductDetailPage() {
                           setQuantity(1);
                         }}
                       />
-
                       <span>{size}</span>
                     </label>
                   );
@@ -927,7 +919,6 @@ function ProductDetailPage() {
 
             <div>
               <div className="review-stars">{getReviewStars(reviewSummary.averageRating)}</div>
-
               <span>{reviewSummary.reviewCount}개의 리뷰</span>
             </div>
           </div>
