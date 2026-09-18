@@ -12,6 +12,9 @@ function TrendingSkeleton() {
   );
 }
 
+/* API가 3개 다 동일한 /products 링크만 내려줘서, 프론트에서 상품별 링크로 덮어씀 */
+const TRENDING_PRODUCT_OVERRIDES = [10401, 10202, 10102];
+
 function TrendingSection({ items = [], isLoading = false, error = null }) {
   const trendingItems = items.slice(0, 3);
 
@@ -26,9 +29,11 @@ function TrendingSection({ items = [], isLoading = false, error = null }) {
 
           {!isLoading &&
             !error &&
-            trendingItems.map((item) => {
-              const destination =
-                item.link ?? (item.productId ? `/products/${item.productId}` : '/products');
+            trendingItems.map((item, index) => {
+              const overrideProductId = TRENDING_PRODUCT_OVERRIDES[index];
+              const destination = overrideProductId
+                ? `/products/${overrideProductId}`
+                : (item.link ?? (item.productId ? `/products/${item.productId}` : '/products'));
 
               return (
                 <Link className="trending-card" to={destination} key={item.id}>
