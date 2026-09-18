@@ -127,18 +127,192 @@ function normalizeImageUrl(url) {
   return url.trim().replace(/^<|>$/g, '');
 }
 
-function getImageList(product) {
+const IMAGE_TYPE_ORDER = ['thumbnail', 'styled', 'front', 'side', 'back'];
+
+function getImageValue(image) {
+  if (!image) {
+    return '';
+  }
+
+  if (typeof image === 'string') {
+    return normalizeImageUrl(image);
+  }
+
+  if (Array.isArray(image)) {
+    return getImageValue(image[0]);
+  }
+
+  return normalizeImageUrl(
+    image.imageUrl ??
+      image.image_url ??
+      image.url ??
+      image.src ??
+      image.path ??
+      image.fileUrl ??
+      image.file_url
+  );
+}
+
+function getImageType(image) {
+  return String(
+    image?.type ?? image?.imageType ?? image?.image_type ?? image?.kind ?? image?.name ?? ''
+  ).toLowerCase();
+}
+
+function getImagesContainer(product) {
+  return product?.images ?? product?.productImages ?? product?.product_images ?? null;
+}
+
+function getSelectedColorImages(product, selectedColor) {
+  if (!Array.isArray(product?.colors) || product.colors.length === 0) {
+    return [];
+  }
+
+  const selected =
+    product.colors.find((color) => {
+      const keys = [color?.id, color?.value, color?.filterGroup, color?.name, color?.label]
+        .filter(Boolean)
+        .map((value) => String(value).toLowerCase());
+
+      return selectedColor && keys.includes(String(selectedColor).toLowerCase());
+    }) ?? product.colors[0];
+
+  const colorImages =
+    selected?.images ?? selected?.imageUrls ?? selected?.image_urls ?? selected?.gallery ?? [];
+
+  if (!Array.isArray(colorImages)) {
+    return [];
+  }
+
+  return colorImages.map(getImageValue).filter(Boolean);
+}
+
+function getProductImageByType(product, type) {
+  if (!product) {
+    return '';
+  }
+
+  const images = getImagesContainer(product);
+
+  if (Array.isArray(images)) {
+    const matched = images.find((image) => getImageType(image) === type);
+
+    return getImageValue(matched);
+  }
+
+  if (images && typeof images === 'object') {
+    const direct = images[type] ?? images[type.toUpperCase()];
+
+    if (direct) {
+      return getImageValue(direct);
+    }
+
+    const matchedEntry = Object.entries(images).find(([key]) => String(key).toLowerCase() === type);
+
+    return getImageValue(matchedEntry?.[1]);
+  }
+
+  return '';
+}
+
+function getExtraImageCandidates(product, selectedColor) {
+  const candidates = [];
+  const images = getImagesContainer(product);
+
+  if (Array.isArray(images)) {
+    const sorted = [...images].sort(
+      (a, b) =>
+        Number(a?.sortOrder ?? a?.sort_order ?? 999) - Number(b?.sortOrder ?? b?.sort_order ?? 999)
+    );
+
+    sorted.forEach((image) => {
+      const value = getImageValue(image);
+
+      if (value) {
+        candidates.push(value);
+      }
+    });
+  } else if (images && typeof images === 'object') {
+    Object.values(images).forEach((image) => {
+      if (Array.isArray(image)) {
+        image.forEach((item) => {
+          const value = getImageValue(item);
+
+          if (value) {
+            candidates.push(value);
+          }
+        });
+        return;
+      }
+
+      const value = getImageValue(image);
+
+      if (value) {
+        candidates.push(value);
+      }
+    });
+  }
+
+  [product?.imageUrls, product?.image_urls, product?.gallery].forEach((list) => {
+    if (!Array.isArray(list)) {
+      return;
+    }
+
+    list.forEach((image) => {
+      const value = getImageValue(image);
+
+      if (value) {
+        candidates.push(value);
+      }
+    });
+  });
+
+  candidates.push(...getSelectedColorImages(product, selectedColor));
+
+  return candidates;
+}
+
+function getImageList(product, selectedColor) {
   if (!product) {
     return [];
   }
 
-  return [
-    normalizeImageUrl(product.images?.thumbnail || product.imageUrl),
-    normalizeImageUrl(product.images?.front),
-    normalizeImageUrl(product.images?.side),
-    normalizeImageUrl(product.images?.back),
-    normalizeImageUrl(product.images?.styled),
-  ].filter(Boolean);
+  const slots = IMAGE_TYPE_ORDER.map((type) => {
+    if (type === 'thumbnail') {
+      return (
+        getProductImageByType(product, type) ||
+        normalizeImageUrl(product.thumbnail) ||
+        normalizeImageUrl(product.thumbnailUrl) ||
+        normalizeImageUrl(product.thumbnail_url) ||
+        normalizeImageUrl(product.imageUrl) ||
+        normalizeImageUrl(product.image_url)
+      );
+    }
+
+    return getProductImageByType(product, type);
+  });
+
+  const extras = getExtraImageCandidates(product, selectedColor);
+  let extraIndex = 0;
+
+  const filledSlots = slots.map((slot) => {
+    if (slot) {
+      return slot;
+    }
+
+    while (extraIndex < extras.length) {
+      const candidate = extras[extraIndex];
+      extraIndex += 1;
+
+      if (candidate) {
+        return candidate;
+      }
+    }
+
+    return '';
+  });
+
+  return filledSlots.filter(Boolean).slice(0, 5);
 }
 
 function ProductImage({ src, alt, placeholder = 'PRODUCT IMAGE' }) {
@@ -239,7 +413,15 @@ function ProductDetailPage() {
 
         setProduct(data);
         setActiveImageIndex(0);
-        setSelectedColor(data.colors?.[0]?.value ?? '');
+        setSelectedColor(
+          data.colors?.[0]?.value ??
+            data.colors?.[0]?.filterGroup ??
+            data.colors?.[0]?.filterColor ??
+            data.colors?.[0]?.color ??
+            data.colors?.[0]?.name ??
+            data.colors?.[0]?.label ??
+            ''
+        );
         setSelectedSize(firstAvailableSize?.size ?? data.sizes?.[0]?.size ?? '');
         setQuantity(1);
         setFitHeight('');
@@ -319,7 +501,7 @@ function ProductDetailPage() {
     return itemProductId === currentProductId;
   });
 
-  const imageList = useMemo(() => getImageList(product), [product]);
+  const imageList = useMemo(() => getImageList(product, selectedColor), [product, selectedColor]);
 
   const activeImage = imageList[activeImageIndex] ?? '';
 
@@ -379,21 +561,25 @@ function ProductDetailPage() {
   const discountRate =
     originalPrice && originalPrice > price ? Math.round((1 - price / originalPrice) * 100) : null;
 
-  const detailImageOne = normalizeImageUrl(
-    product?.images?.styled || product?.images?.front || product?.imageUrl
-  );
+  const detailImageOne =
+    getProductImageByType(product, 'styled') ||
+    getProductImageByType(product, 'front') ||
+    normalizeImageUrl(product?.imageUrl);
 
-  const detailImageTwo = normalizeImageUrl(
-    product?.images?.front || product?.images?.side || product?.imageUrl
-  );
+  const detailImageTwo =
+    getProductImageByType(product, 'front') ||
+    getProductImageByType(product, 'side') ||
+    normalizeImageUrl(product?.imageUrl);
 
-  const detailWideImage = normalizeImageUrl(
-    product?.images?.side || product?.images?.back || product?.imageUrl
-  );
+  const detailWideImage =
+    getProductImageByType(product, 'side') ||
+    getProductImageByType(product, 'back') ||
+    normalizeImageUrl(product?.imageUrl);
 
-  const detailImageThree = normalizeImageUrl(
-    product?.images?.back || product?.images?.styled || product?.imageUrl
-  );
+  const detailImageThree =
+    getProductImageByType(product, 'back') ||
+    getProductImageByType(product, 'styled') ||
+    normalizeImageUrl(product?.imageUrl);
 
   const setComponents =
     product?.components ??
@@ -552,13 +738,31 @@ function ProductDetailPage() {
     }
 
     const selectedColorData = product.colors?.find(
-      (color) => (color.value ?? color.filterGroup) === selectedColor
+      (color) =>
+        (color.value ??
+          color.filterGroup ??
+          color.filterColor ??
+          color.color ??
+          color.name ??
+          color.label) === selectedColor
     );
 
     const colorValue =
-      selectedColor || product.colors?.[0]?.value || product.colors?.[0]?.filterGroup || '';
+      selectedColor ||
+      product.colors?.[0]?.value ||
+      product.colors?.[0]?.filterGroup ||
+      product.colors?.[0]?.filterColor ||
+      product.colors?.[0]?.color ||
+      product.colors?.[0]?.name ||
+      product.colors?.[0]?.label ||
+      '';
 
-    const colorLabel = selectedColorData?.label ?? product.colors?.[0]?.label ?? colorValue;
+    const colorLabel =
+      selectedColorData?.label ??
+      selectedColorData?.filterColor ??
+      product.colors?.[0]?.label ??
+      product.colors?.[0]?.filterColor ??
+      colorValue;
 
     const optionParts = [];
 
@@ -585,7 +789,7 @@ function ProductDetailPage() {
       productId: productIdNumber,
       productType,
       name: product.name,
-      imageUrl: normalizeImageUrl(product.images?.thumbnail || product.imageUrl),
+      imageUrl: getProductImageByType(product, 'thumbnail') || normalizeImageUrl(product.imageUrl),
       price,
       originalPrice,
       color: colorValue,
@@ -775,7 +979,13 @@ function ProductDetailPage() {
 
               <div className="color-list">
                 {product.colors.map((color) => {
-                  const colorValue = color.value ?? color.filterGroup;
+                  const colorValue =
+                    color.value ??
+                    color.filterGroup ??
+                    color.filterColor ??
+                    color.color ??
+                    color.name ??
+                    color.label;
 
                   return (
                     <label className="color-option" key={colorValue}>
