@@ -2,10 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 
 import heroMain from '@/assets/home/hero_main.webp';
 import heroMainTwo from '@/assets/home/hero_main_two.webp';
+import Logo from '@/assets/home/Logo.svg';
 import mainBanner2 from '@/assets/home/main_banner_2.webp';
 import '@/styles/hero.css';
 
 const BASE_WIDTH = 1440;
+const SCALE_BREAKPOINT = 1024;
 const SLIDE_DURATION = 5000;
 const SWIPE_THRESHOLD = 40;
 const DOT_R = 5;
@@ -24,7 +26,10 @@ function useFitScale(baseWidth) {
     const el = ref.current;
     if (!el) return undefined;
 
-    const update = () => setScale(el.clientWidth / baseWidth);
+    const update = () => {
+      const width = el.clientWidth;
+      setScale(width < SCALE_BREAKPOINT ? 1 : width / baseWidth);
+    };
     update();
 
     const observer = new ResizeObserver(update);
@@ -96,6 +101,43 @@ export default function Hero() {
             </div>
           ))}
         </div>
+
+        {/* Mobile/tablet brand lockup */}
+        <div className="hero__logo">
+          <img alt="" className="hero__logo-icon" src={Logo} />
+          <div className="hero__logo-row">
+            <span className="hero__logo-word">MOVE</span>
+            <p className="hero__logo-tagline">
+              <span>PERFORMANCE</span>
+              <span>STARTS HERE</span>
+            </p>
+          </div>
+        </div>
+
+        {/* Desktop brand lockup — matches slide 1 (hero_main.webp) once its baked-in text is removed */}
+        {current === 0 && (
+          <div className="hero__logo-desktop">
+            <span className="hero__logo-desktop-brand">ARC</span>
+            <span className="hero__logo-desktop-word">MOVE</span>
+            <img alt="" className="hero__logo-desktop-icon" src={Logo} />
+            <span className="hero__logo-desktop-tagline">Performance Starts Here</span>
+          </div>
+        )}
+
+        {/* Desktop brand lockup — matches slide 2 (hero_main_two.webp) once its baked-in text is removed */}
+        {current === 1 && (
+          <div className="hero__logo-slide2">
+            <img alt="" className="hero__logo-slide2-icon" src={Logo} />
+            <div className="hero__logo-slide2-row">
+              <span className="hero__logo-slide2-word">MOVE</span>
+              <span className="hero__logo-slide2-divider" aria-hidden="true" />
+              <p className="hero__logo-slide2-tagline">
+                <span>PERFORMANCE</span>
+                <span>STARTS HERE</span>
+              </p>
+            </div>
+          </div>
+        )}
 
         <div className="hero__dots">
           {!reducedMotion && (
