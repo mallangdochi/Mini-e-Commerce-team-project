@@ -635,6 +635,9 @@ function ProductPage() {
   /* 필터 열림 / 닫힘 */
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
+  /* 모바일 헤더 검색창 열림 / 닫힘 */
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+
   const [isColorOpen, setIsColorOpen] = useState(true);
 
   /* 가격 필터 */
@@ -1473,8 +1476,46 @@ function ProductPage() {
               <h2>{gender === 'men' ? '남성복' : '여성복'}</h2>
             </div>
 
-            <div className="mobile-category-actions" />
+            <div className="mobile-category-actions">
+              <button
+                type="button"
+                className="mobile-category-action"
+                onClick={() => setMobileSearchOpen((prev) => !prev)}
+                aria-expanded={mobileSearchOpen}
+                aria-label={mobileSearchOpen ? '검색창 닫기' : '상품 검색 열기'}
+              >
+                {mobileSearchOpen ? <IconClose /> : <IconSearch />}
+              </button>
+            </div>
           </div>
+
+          {mobileSearchOpen && (
+            <form className="mobile-product-search-box" onSubmit={handleSearchSubmit}>
+              <IconSearch />
+
+              <input
+                type="search"
+                name="q"
+                value={searchInput}
+                onChange={(event) => {
+                  const { value } = event.target;
+
+                  setSearchInput(value);
+
+                  scheduleSearchSync(value);
+                }}
+                autoFocus
+                placeholder={`${searchScopeLabel} 검색`}
+                aria-label={`${searchScopeLabel} 상품 검색`}
+              />
+
+              {searchInput && (
+                <button type="button" onClick={handleSearchClear} aria-label="검색어 지우기">
+                  <IconClose />
+                </button>
+              )}
+            </form>
+          )}
 
           {/* ================================
               필터
