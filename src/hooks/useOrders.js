@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { getCoupons } from '@/api/coupons';
 import { cancelOrder, getOrder, getOrders } from '@/api/orders';
 import { getProduct, getSet } from '@/api/products';
 import useAuthStore from '@/store/authStore';
 import {
+  getPersonalStorageOwnerId,
   getStoredCancelReasons,
   getStoredOrderDetails,
   getStoredOrders,
@@ -15,12 +17,32 @@ import {
 const ORDERS_CACHE_TTL = 5 * 60 * 1000;
 const ORDER_CHANGE_EVENT = 'arc-orders-changed';
 
+let sharedOrdersOwnerId = getPersonalStorageOwnerId();
 let sharedOrders = null;
 let sharedTotalCount = 0;
 let sharedOrdersFetchedAt = 0;
 let pendingOrdersRequest = null;
 const pendingDetailRequests = new Map();
 const productMetadataCache = new Map();
+
+function resetSharedOrderCache(ownerId = getPersonalStorageOwnerId()) {
+  sharedOrdersOwnerId = ownerId;
+  sharedOrders = null;
+  sharedTotalCount = 0;
+  sharedOrdersFetchedAt = 0;
+  pendingOrdersRequest = null;
+  pendingDetailRequests.clear();
+}
+
+function ensureSharedOrderOwner() {
+  const currentOwnerId = getPersonalStorageOwnerId();
+
+  if (sharedOrdersOwnerId !== currentOwnerId) {
+    resetSharedOrderCache(currentOwnerId);
+  }
+
+  return currentOwnerId;
+}
 
 const asArray = (value) => (Array.isArray(value) ? value : []);
 
@@ -341,6 +363,8 @@ function getOrderCollection(response) {
 }
 
 async function fetchOrderPageData({ force = false } = {}) {
+  ensureSharedOrderOwner();
+
   const isFresh =
     Array.isArray(sharedOrders) && Date.now() - sharedOrdersFetchedAt < ORDERS_CACHE_TTL;
 
@@ -402,6 +426,8 @@ export function registerCreatedOrder({
   couponId,
   pointsUsed = 0,
 }) {
+  ensureSharedOrderOwner();
+
   const orderId = getOrderId(order);
 
   if (!hasValue(orderId)) {
@@ -489,7 +515,12 @@ export function registerCreatedOrder({
 
 function useOrders() {
   const user = useAuthStore((state) => state.user);
+  const fetchMe = useAuthStore((state) => state.fetchMe);
   const patchUserSummary = useAuthStore((state) => state.patchUserSummary);
+  const ownerId = getPersonalStorageOwnerId();
+
+  ensureSharedOrderOwner();
+
   const storedOrders = getStoredOrders();
   const [orders, setOrders] = useState(() =>
     Array.isArray(sharedOrders) ? sharedOrders : storedOrders
@@ -508,6 +539,7 @@ function useOrders() {
   }, [orderDetails]);
 
   const persistOrders = useCallback((nextOrders) => {
+    ensureSharedOrderOwner();
     sharedOrders = nextOrders;
     sharedTotalCount = Math.max(sharedTotalCount, nextOrders.length);
     sharedOrdersFetchedAt = Date.now();
@@ -612,11 +644,29 @@ function useOrders() {
   useEffect(() => {
     let isActive = true;
 
+    ensureSharedOrderOwner();
+
     const loadInitialData = async () => {
+      const scopedOrders = getStoredOrders();
+      const scopedDetails = getStoredOrderDetails();
+
+      orderDetailsRef.current = scopedDetails;
+
+      // React의 set-state-in-effect 규칙을 지키면서 계정별 로컬 캐시를 먼저 반영한다.
+      await Promise.resolve();
+
+      if (!isActive) {
+        return;
+      }
+
+      setOrders(scopedOrders);
+      setOrderDetails(scopedDetails);
+      setTotalCount(Number(user?.orderCount ?? scopedOrders.length));
+      setIsLoading(true);
       setErrorMessage('');
 
       try {
-        const result = await fetchOrderPageData();
+        const result = await fetchOrderPageData({ force: true });
 
         if (!isActive) {
           return;
@@ -652,14 +702,25 @@ function useOrders() {
       patchUserSummary({ orderCount: nextCount });
     };
 
+    const handleAuthChange = () => {
+      if (!isActive) {
+        return;
+      }
+
+      resetSharedOrderCache();
+      syncFromStoredOrders();
+    };
+
     void loadInitialData();
     window.addEventListener(ORDER_CHANGE_EVENT, syncFromStoredOrders);
+    window.addEventListener('auth-change', handleAuthChange);
 
     return () => {
       isActive = false;
       window.removeEventListener(ORDER_CHANGE_EVENT, syncFromStoredOrders);
+      window.removeEventListener('auth-change', handleAuthChange);
     };
-  }, [patchUserSummary]);
+  }, [ownerId, patchUserSummary, user?.orderCount]);
 
   const loadOrders = useCallback(
     async ({ force = true } = {}) => {
@@ -689,8 +750,10 @@ function useOrders() {
       }
 
       const detail = orderDetailsRef.current[orderId] ?? (await loadOrderDetail(orderId));
-
-      await cancelOrder(orderId);
+      const response = await cancelOrder(orderId);
+      const cancelledOrder = response?.data ?? null;
+      const cancelledAt =
+        cancelledOrder?.cancelledAt ?? detail?.cancelledAt ?? new Date().toISOString();
 
       setStoredCancelReasons({
         ...getStoredCancelReasons(),
@@ -700,10 +763,12 @@ function useOrders() {
       setOrders((prev) => {
         const next = prev.map((order) =>
           String(getOrderId(order)) === String(orderId)
-            ? {
-                ...order,
-                orderStatus: 'cancelled',
-              }
+            ? mergeOrderRecord(order, {
+                ...(cancelledOrder ?? {}),
+                orderId,
+                orderStatus: cancelledOrder?.orderStatus ?? 'cancelled',
+                cancelledAt,
+              })
             : order
         );
 
@@ -711,45 +776,45 @@ function useOrders() {
         return next;
       });
 
-      const restoredPoints = Number(detail?.pointsUsed ?? 0);
-      const restoredCoupon = Boolean(detail?.coupon?.couponId);
-      const currentPoints = Number(user?.points ?? user?.pointBalance ?? user?.mileage ?? 0);
-      const currentCouponCount = Number(user?.availableCouponCount ?? user?.couponCount ?? 0);
-      const nextSummary = {};
-
-      if (restoredPoints > 0) {
-        nextSummary.points = currentPoints + restoredPoints;
-        nextSummary.pointBalance = currentPoints + restoredPoints;
-      }
-
-      if (restoredCoupon) {
-        nextSummary.availableCouponCount = currentCouponCount + 1;
-        nextSummary.couponCount = currentCouponCount + 1;
-      }
-
-      if (Object.keys(nextSummary).length > 0) {
-        patchUserSummary(nextSummary);
-      }
-
       setOrderDetails((prev) => {
-        const currentDetail = prev[orderId] ?? detail;
+        const currentDetail = prev[orderId] ?? detail ?? {};
+        const nextDetail = mergeOrderDetail(currentDetail, {
+          ...(cancelledOrder ?? {}),
+          orderId,
+          orderStatus: cancelledOrder?.orderStatus ?? 'cancelled',
+          cancelledAt,
+        });
         const next = {
           ...prev,
-          [orderId]: currentDetail
-            ? {
-                ...currentDetail,
-                orderStatus: 'cancelled',
-                cancelledAt: new Date().toISOString(),
-              }
-            : currentDetail,
+          [orderId]: nextDetail,
         };
 
         orderDetailsRef.current = next;
         setStoredOrderDetails(next);
         return next;
       });
+
+      const [, couponResult] = await Promise.allSettled([fetchMe({ force: true }), getCoupons()]);
+
+      if (couponResult.status === 'fulfilled') {
+        const coupons = Array.isArray(couponResult.value?.data) ? couponResult.value.data : [];
+        const now = Date.now();
+        const availableCouponCount = coupons.filter((coupon) => {
+          const expiresAt = coupon?.expiresAt ? new Date(coupon.expiresAt).getTime() : null;
+          const isExpired =
+            coupon?.status === 'expired' || (Number.isFinite(expiresAt) && expiresAt < now);
+          const isUsed = coupon?.status === 'used' || Boolean(coupon?.usedAt);
+
+          return !isExpired && !isUsed;
+        }).length;
+
+        patchUserSummary({
+          availableCouponCount,
+          couponCount: availableCouponCount,
+        });
+      }
     },
-    [loadOrderDetail, patchUserSummary, persistOrders, user]
+    [fetchMe, loadOrderDetail, patchUserSummary, persistOrders]
   );
 
   const isOrderDetailLoading = useCallback(

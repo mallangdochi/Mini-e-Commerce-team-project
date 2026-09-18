@@ -534,6 +534,18 @@
   height: 6.592%;
 }
 
+/* LOOK별 파츠 위치 보정
+   검은 LOOK 01의 기존 위치는 그대로 유지한다.
+   LOOK 03의 숏 팬츠만 실제 허리선에 맞춰 아래로 이동한다. */
+.arc-model-stage--look-03 .arc-part-overlay--bottom {
+  top: 44.5%;
+}
+
+.arc-model-stage--look-03 .arc-part-hotspot--bottom {
+  top: 44%;
+  height: 18%;
+}
+
 .arc-part-overlay-image {
   position: absolute;
   inset: 0;

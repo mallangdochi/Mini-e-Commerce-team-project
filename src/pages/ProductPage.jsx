@@ -235,26 +235,58 @@ const SORT_OPTIONS = [
 
 const COLOR_MAP = {
   black: '#111111',
+  블랙: '#111111',
   white: '#ffffff',
+  화이트: '#ffffff',
   gray: '#9ca3af',
+  grey: '#9ca3af',
+  그레이: '#9ca3af',
+  charcoal: '#55585d',
+  charcoalgray: '#55585d',
+  charcoalgrey: '#55585d',
+  차콜: '#55585d',
+  차콜그레이: '#55585d',
+  lightgray: '#d9dde1',
+  lightgrey: '#d9dde1',
+  라이트그레이: '#d9dde1',
   navy: '#1f2a44',
+  네이비: '#1f2a44',
   blue: '#5875bf',
+  블루: '#5875bf',
+  skyblue: '#9bc6df',
+  스카이블루: '#9bc6df',
   green: '#657a5a',
+  그린: '#657a5a',
+  sagegreen: '#a3aa94',
+  세이지그린: '#a3aa94',
   khaki: '#7b8062',
+  카키: '#7b8062',
   brown: '#7a5541',
+  브라운: '#7a5541',
   beige: '#d8c6a5',
+  베이지: '#d8c6a5',
   pink: '#e8aeb7',
+  핑크: '#e8aeb7',
   red: '#b94b4b',
+  레드: '#b94b4b',
   orange: '#d98245',
+  오렌지: '#d98245',
   yellow: '#d6b74c',
+  옐로우: '#d6b74c',
   purple: '#80649a',
+  퍼플: '#80649a',
   silver: '#c3c7cc',
+  실버: '#c3c7cc',
 };
 
 const COLOR_LABELS = {
   black: '블랙',
   white: '화이트',
   gray: '그레이',
+  charcoalgray: '차콜 그레이',
+  lightgray: '라이트 그레이',
+  sagegreen: '세이지 그린',
+  skyblue: '스카이 블루',
   navy: '네이비',
   blue: '블루',
   green: '그린',
@@ -268,6 +300,73 @@ const COLOR_LABELS = {
   purple: '퍼플',
   silver: '실버',
 };
+
+function normalizeColorKey(value) {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_-]+/g, '');
+}
+
+function isCssColorValue(value) {
+  if (typeof value !== 'string') {
+    return false;
+  }
+
+  const normalized = value.trim();
+
+  return (
+    /^#[0-9a-f]{3,8}$/i.test(normalized) ||
+    /^(rgb|rgba|hsl|hsla)\(/i.test(normalized) ||
+    /^var\(--/.test(normalized)
+  );
+}
+
+function resolveColorHex(color) {
+  if (typeof color === 'string') {
+    if (isCssColorValue(color)) {
+      return color.trim();
+    }
+
+    return COLOR_MAP[normalizeColorKey(color)] ?? '#d9d9d9';
+  }
+
+  const explicitColor =
+    color?.hex ??
+    color?.hexCode ??
+    color?.hexColor ??
+    color?.colorCode ??
+    color?.backgroundColor ??
+    color?.code;
+
+  if (isCssColorValue(explicitColor)) {
+    return explicitColor.trim();
+  }
+
+  const colorKeys = [
+    color?.filterColor,
+    color?.filterGroup,
+    color?.value,
+    color?.label,
+    color?.name,
+    color?.colorName,
+    color?.color,
+  ];
+
+  for (const key of colorKeys) {
+    const mappedColor = COLOR_MAP[normalizeColorKey(key)];
+
+    if (mappedColor) {
+      return mappedColor;
+    }
+
+    if (isCssColorValue(key)) {
+      return key.trim();
+    }
+  }
+
+  return '#d9d9d9';
+}
 
 /* 처음에는 4개씩 추가 */
 const PRODUCTS_PER_LOAD = 4;
@@ -287,6 +386,8 @@ const LENGTH_LABELS = {
   long: '롱',
   short: '숏',
 };
+
+const FILTERABLE_PRODUCT_CATEGORY_IDS = ['outer', 'top', 'bottom', 'shoes', 'accessories'];
 
 const WISHLIST_HEART_PATHS = {
   filled:
@@ -325,14 +426,149 @@ function getSearchCategoryIntent(query) {
 
 function normalizeColorOption(color) {
   if (typeof color === 'string') {
+    const colorKey = normalizeColorKey(color);
+    const filterColor = COLOR_LABELS[colorKey] ?? color;
+
     return {
       value: color,
-      label: COLOR_LABELS[color] ?? color,
       filterGroup: color,
+      filterColor,
+      label: filterColor,
+      hex: resolveColorHex(color),
     };
   }
 
-  return color;
+  const filterGroup = color?.filterGroup ?? color?.value ?? color?.label ?? color?.name ?? '';
+  const filterGroupKey = normalizeColorKey(filterGroup);
+  const filterColor =
+    color?.filterColor ??
+    COLOR_LABELS[filterGroupKey] ??
+    color?.label ??
+    color?.name ??
+    filterGroup;
+
+  return {
+    ...color,
+    value: filterGroup,
+    filterGroup,
+    filterColor,
+    label: filterColor,
+    hex: resolveColorHex({ ...color, filterColor, filterGroup }),
+  };
+}
+
+function mergeFilterOptionData(items) {
+  const colorMap = new Map();
+  const sizeSet = new Set();
+  const lengthTypeSet = new Set();
+
+  items.forEach((item) => {
+    const data = item?.data ?? item ?? {};
+
+    (data.colors ?? []).map(normalizeColorOption).forEach((color) => {
+      const key = String(color.filterGroup ?? color.value ?? '').trim();
+
+      if (key && !colorMap.has(key)) {
+        colorMap.set(key, color);
+      }
+    });
+
+    (data.sizes ?? []).forEach((size) => {
+      const value =
+        typeof size === 'string' || typeof size === 'number'
+          ? String(size)
+          : String(size?.size ?? size?.value ?? size?.label ?? '');
+
+      if (value) {
+        sizeSet.add(value);
+      }
+    });
+
+    (data.lengthTypes ?? []).forEach((type) => {
+      const value = String(type ?? '');
+
+      if (value) {
+        lengthTypeSet.add(value);
+      }
+    });
+  });
+
+  return {
+    colors: Array.from(colorMap.values()),
+    sizes: Array.from(sizeSet),
+    lengthTypes: Array.from(lengthTypeSet),
+  };
+}
+
+function extractProductListFilterData(response) {
+  const data = response?.data ?? response ?? {};
+  const products = data.products ?? [];
+
+  const colors = [];
+  const sizes = [];
+  const lengthTypes = [];
+
+  products.forEach((product) => {
+    if (Array.isArray(product?.colors)) {
+      colors.push(...product.colors);
+    }
+
+    if (Array.isArray(product?.sizes)) {
+      sizes.push(...product.sizes);
+    }
+
+    if (product?.lengthType) {
+      lengthTypes.push(product.lengthType);
+    }
+  });
+
+  return {
+    colors,
+    sizes,
+    lengthTypes,
+  };
+}
+
+async function getCategoryFilterOptions(params) {
+  let filterApiOptions;
+  let productOptions;
+
+  try {
+    const response = await getProductFilters(params);
+    filterApiOptions = mergeFilterOptionData([response?.data ?? response]);
+  } catch {
+    filterApiOptions = {
+      colors: [],
+      sizes: [],
+      lengthTypes: [],
+    };
+  }
+
+  try {
+    const productResponse = await getProducts({
+      ...params,
+      page: 1,
+      limit: 100,
+      sort: 'recommended',
+    });
+
+    productOptions = mergeFilterOptionData([extractProductListFilterData(productResponse)]);
+  } catch {
+    productOptions = {
+      colors: [],
+      sizes: [],
+      lengthTypes: [],
+    };
+  }
+
+  return {
+    colors: productOptions.colors.length > 0 ? productOptions.colors : filterApiOptions.colors,
+    sizes: filterApiOptions.sizes.length > 0 ? filterApiOptions.sizes : productOptions.sizes,
+    lengthTypes:
+      filterApiOptions.lengthTypes.length > 0
+        ? filterApiOptions.lengthTypes
+        : productOptions.lengthTypes,
+  };
 }
 
 function toggleSingleValue(currentValue, nextValue) {
@@ -624,6 +860,9 @@ function ProductPage() {
 
   /* 필터 열림 / 닫힘 */
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+  /* 모바일 헤더 검색창 열림 / 닫힘 */
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
   const [isColorOpen, setIsColorOpen] = useState(true);
 
@@ -925,37 +1164,55 @@ function ProductPage() {
       }
 
       try {
-        const params = {
-          gender: requestGender,
-        };
+        let nextFilterOptions;
 
-        if (activeCategory.categoryId) {
-          params.categoryId = activeCategory.categoryId;
+        if (activeCategory.categoryId === 'sets') {
+          const response = await getSets({
+            page: 1,
+            limit: 100,
+            sort: 'recommended',
+          });
+
+          const data = response?.data ?? {};
+          const sets = data.sets ?? [];
+
+          nextFilterOptions = mergeFilterOptionData([
+            {
+              colors: sets.flatMap((product) =>
+                Array.isArray(product?.colors) ? product.colors : []
+              ),
+              sizes: sets.flatMap((product) =>
+                Array.isArray(product?.sizes) ? product.sizes : []
+              ),
+              lengthTypes: [],
+            },
+          ]);
+        } else if (!activeCategory.categoryId) {
+          const responses = await Promise.all(
+            FILTERABLE_PRODUCT_CATEGORY_IDS.map((categoryId) =>
+              getCategoryFilterOptions({
+                gender: requestGender,
+                categoryId,
+              })
+            )
+          );
+
+          nextFilterOptions = mergeFilterOptionData(responses);
+        } else {
+          nextFilterOptions = await getCategoryFilterOptions({
+            gender: requestGender,
+            categoryId: activeCategory.categoryId,
+            ...(activeCategory.subCategoryId
+              ? { subCategoryId: activeCategory.subCategoryId }
+              : {}),
+          });
         }
-
-        if (activeCategory.subCategoryId) {
-          params.subCategoryId = activeCategory.subCategoryId;
-        }
-
-        const response = await getProductFilters(params);
 
         if (requestId !== filterRequestIdRef.current) {
           return;
         }
 
-        const data = response?.data ?? {};
-
-        const colors = (data.colors ?? []).map(normalizeColorOption);
-
-        const sizes = (data.sizes ?? []).map((size) => String(size));
-
-        const lengthTypes = (data.lengthTypes ?? []).map((type) => String(type));
-
-        setFilterOptions({
-          colors,
-          sizes,
-          lengthTypes,
-        });
+        setFilterOptions(nextFilterOptions);
       } catch {
         if (requestId !== filterRequestIdRef.current) {
           return;
@@ -1010,22 +1267,15 @@ function ProductPage() {
           page: targetPage,
           limit: PRODUCTS_PER_LOAD,
         };
-        const hasAllColorsApplied =
-          filterOptions.colors.length > 0 &&
-          appliedFilters.color.length === filterOptions.colors.length;
-        const hasAllSizesApplied =
-          filterOptions.sizes.length > 0 &&
-          appliedFilters.size.length === filterOptions.sizes.length;
-
         if (activeCategory.subCategoryId) {
           params.subCategoryId = activeCategory.subCategoryId;
         }
 
-        if (appliedFilters.color.length > 0 && !hasAllColorsApplied) {
+        if (appliedFilters.color.length > 0) {
           params.color = appliedFilters.color.join(',');
         }
 
-        if (appliedFilters.size.length > 0 && !hasAllSizesApplied) {
+        if (appliedFilters.size.length > 0) {
           params.size = appliedFilters.size.join(',');
         }
 
@@ -1141,8 +1391,6 @@ function ProductPage() {
       activeCategory.categoryId,
       activeCategory.subCategoryId,
       appliedFilters,
-      filterOptions.colors.length,
-      filterOptions.sizes.length,
       isAccessorySearchScope,
       searchCategoryIntent,
       searchQuery,
@@ -1173,7 +1421,7 @@ function ProductPage() {
     };
   }, [searchQuery]);
 
-  const handleWishlist = (product) => {
+  const handleWishlist = async (product) => {
     const accessToken = getAccessToken();
 
     if (!accessToken) {
@@ -1190,7 +1438,7 @@ function ProductPage() {
     setWishlistLoadingIds((prev) => new Set(prev).add(productId));
 
     try {
-      toggleWishlistItem({
+      await toggleWishlistItem({
         ...product,
         id: product.id ?? productId,
         productId,
@@ -1344,8 +1592,13 @@ function ProductPage() {
       id: `color-${color}`,
       type: 'color',
       value: color,
-      label: filterOptions.colors.find((item) => item.filterGroup === color)?.label ?? color,
-      color: COLOR_MAP[color] ?? '#d9d9d9',
+      label:
+        filterOptions.colors.find((item) => item.filterGroup === color)?.filterColor ??
+        COLOR_LABELS[String(color).toLowerCase()] ??
+        color,
+      color:
+        filterOptions.colors.find((item) => item.filterGroup === color)?.hex ??
+        resolveColorHex(color),
     })),
 
     ...appliedFilters.size.map((size) => ({
@@ -1469,8 +1722,46 @@ function ProductPage() {
               <h2>{gender === 'men' ? '남성복' : '여성복'}</h2>
             </div>
 
-            <div className="mobile-category-actions" />
+            <div className="mobile-category-actions">
+              <button
+                type="button"
+                className="mobile-category-action"
+                onClick={() => setMobileSearchOpen((prev) => !prev)}
+                aria-expanded={mobileSearchOpen}
+                aria-label={mobileSearchOpen ? '검색창 닫기' : '상품 검색 열기'}
+              >
+                {mobileSearchOpen ? <IconClose /> : <IconSearch />}
+              </button>
+            </div>
           </div>
+
+          {mobileSearchOpen && (
+            <form className="mobile-product-search-box" onSubmit={handleSearchSubmit}>
+              <IconSearch />
+
+              <input
+                type="search"
+                name="q"
+                value={searchInput}
+                onChange={(event) => {
+                  const { value } = event.target;
+
+                  setSearchInput(value);
+
+                  scheduleSearchSync(value);
+                }}
+                autoFocus
+                placeholder={`${searchScopeLabel} 검색`}
+                aria-label={`${searchScopeLabel} 상품 검색`}
+              />
+
+              {searchInput && (
+                <button type="button" onClick={handleSearchClear} aria-label="검색어 지우기">
+                  <IconClose />
+                </button>
+              )}
+            </form>
+          )}
 
           {/* ================================
               필터
@@ -1667,7 +1958,7 @@ function ProductPage() {
 
                         const checked = selectedColor.includes(value);
 
-                        const backgroundColor = COLOR_MAP[value] ?? '#d9d9d9';
+                        const backgroundColor = color.hex ?? resolveColorHex(color);
 
                         return (
                           <label className="color-filter-item" key={value}>
@@ -1683,11 +1974,15 @@ function ProductPage() {
                               className="color-filter-swatch"
                               style={{
                                 backgroundColor,
-                                border: value === 'white' ? '1px solid #d1d1d1' : undefined,
+                                border:
+                                  normalizeColorKey(value) === 'white' ||
+                                  normalizeColorKey(color.label) === '화이트'
+                                    ? '1px solid #d1d1d1'
+                                    : undefined,
                               }}
                             />
 
-                            <span className="color-filter-name">{color.label}</span>
+                            <span className="color-filter-name">{color.filterColor}</span>
                           </label>
                         );
                       })}

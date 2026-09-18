@@ -1,31 +1,86 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
+import { getCoupons } from '@/api/coupons';
 import { createOrder } from '@/api/orders';
+import { getProduct, getSet } from '@/api/products';
 import { registerCreatedOrder } from '@/hooks/useOrders';
 import { useCartStore } from '@/store/cartStore';
 import useAuthStore from '@/store/authStore';
 import '@/styles/checkout.css';
 
-const COUPON_OPTIONS = [
-  {
-    id: 'WELCOME10',
-    label: '[10% 할인] 신규 회원 쿠폰',
-    discountRate: 0.1,
-  },
-];
-
-const VALID_COUPON_IDS = new Set(COUPON_OPTIONS.map((coupon) => coupon.id));
 const POINT_EARN_RATE = 0.05;
+const MIN_POINT_USE = 1500;
 
-function getCouponDiscountAmount(productTotal, couponId) {
-  const coupon = COUPON_OPTIONS.find((item) => item.id === couponId);
+function normalizeCoupon(coupon, index) {
+  const couponId = coupon?.couponId ?? coupon?.id ?? coupon?.code ?? `coupon-${index}`;
+  const expiresAt = coupon?.expiresAt ?? coupon?.expiredAt ?? coupon?.endDate ?? null;
+  const isExpired =
+    coupon?.status === 'expired' ||
+    Boolean(expiresAt && new Date(expiresAt).getTime() < Date.now());
+  const isUsed = coupon?.status === 'used' || Boolean(coupon?.usedAt) || Boolean(coupon?.isUsed);
 
-  if (!coupon) {
+  const discountType = String(
+    coupon?.discountType ?? coupon?.type ?? coupon?.discountMethod ?? 'fixed'
+  ).toLowerCase();
+
+  const rawDiscountValue = Number(
+    coupon?.discountValue ?? coupon?.amount ?? coupon?.discountAmount ?? coupon?.discountRate ?? 0
+  );
+
+  return {
+    couponId: String(couponId),
+    name: coupon?.name ?? coupon?.couponName ?? coupon?.title ?? 'ARC 쿠폰',
+    discountType,
+    discountValue: Number.isFinite(rawDiscountValue) ? rawDiscountValue : 0,
+    maxDiscount: Math.max(0, Number(coupon?.maxDiscount ?? coupon?.maximumDiscount ?? 0) || 0),
+    minOrderAmount: Math.max(0, Number(coupon?.minOrderAmount ?? coupon?.minimumAmount ?? 0) || 0),
+    expiresAt,
+    status: isExpired ? 'expired' : isUsed ? 'used' : 'available',
+  };
+}
+
+function getAvailableCoupons(coupons) {
+  return (Array.isArray(coupons) ? coupons : [])
+    .map(normalizeCoupon)
+    .filter((coupon) => coupon.status === 'available');
+}
+
+function getCouponDiscountAmount(productTotal, coupon) {
+  if (!coupon || productTotal < coupon.minOrderAmount) {
     return 0;
   }
 
-  return Math.floor(productTotal * coupon.discountRate);
+  const discountAmount =
+    coupon.discountType === 'percent' || coupon.discountType === 'rate'
+      ? Math.floor(
+          productTotal *
+            (coupon.discountValue > 0 && coupon.discountValue <= 1
+              ? coupon.discountValue
+              : coupon.discountValue / 100)
+        )
+      : Math.floor(coupon.discountValue);
+
+  const cappedDiscountAmount =
+    coupon.maxDiscount > 0 ? Math.min(discountAmount, coupon.maxDiscount) : discountAmount;
+
+  return Math.max(0, Math.min(productTotal, cappedDiscountAmount));
+}
+
+function getCouponLabel(coupon) {
+  const discountLabel =
+    coupon.discountType === 'percent' || coupon.discountType === 'rate'
+      ? `${
+          coupon.discountValue > 0 && coupon.discountValue <= 1
+            ? coupon.discountValue * 100
+            : coupon.discountValue
+        }% 할인`
+      : `${coupon.discountValue.toLocaleString()}원 할인`;
+
+  const conditionLabel =
+    coupon.minOrderAmount > 0 ? ` · ${coupon.minOrderAmount.toLocaleString()}원 이상` : '';
+
+  return `[${discountLabel}] ${coupon.name}${conditionLabel}`;
 }
 
 function CheckoutPage2() {
@@ -33,7 +88,13 @@ function CheckoutPage2() {
   const location = useLocation();
   const removeOrderedItems = useCartStore((state) => state.removeOrderedItems);
   const user = useAuthStore((state) => state.user);
+  const fetchMe = useAuthStore((state) => state.fetchMe);
   const patchUserSummary = useAuthStore((state) => state.patchUserSummary);
+  const [couponItems, setCouponItems] = useState([]);
+  const [isCouponLoading, setIsCouponLoading] = useState(true);
+  const [couponError, setCouponError] = useState('');
+
+  const availableCoupons = useMemo(() => getAvailableCoupons(couponItems), [couponItems]);
 
   const {
     orderItems = [],
@@ -43,33 +104,76 @@ function CheckoutPage2() {
     pointsToUse: savedPointsToUse = 0,
   } = location.state || {};
 
-  const initialCoupon = VALID_COUPON_IDS.has(savedSelectedCoupon) ? savedSelectedCoupon : '';
   const productTotal = orderItems.reduce((total, item) => total + item.price * item.quantity, 0);
   const deliveryFee = 0;
   const pointBalance = Math.max(
     0,
     Number(user?.points ?? user?.pointBalance ?? user?.mileage ?? 0) || 0
   );
-  const initialDiscountAmount = getCouponDiscountAmount(productTotal, initialCoupon);
-  const initialMaxUsablePoints = Math.max(
-    0,
-    Math.min(pointBalance, productTotal + deliveryFee - initialDiscountAmount)
-  );
 
   const [paymentMethod, setPaymentMethod] = useState(savedPaymentMethod);
-  const [selectedCoupon, setSelectedCoupon] = useState(initialCoupon);
-  const [pointsToUse, setPointsToUse] = useState(() =>
-    Math.min(Math.max(0, Number(savedPointsToUse) || 0), initialMaxUsablePoints)
+  const [selectedCoupon, setSelectedCoupon] = useState(() =>
+    savedSelectedCoupon ? String(savedSelectedCoupon) : ''
   );
+  const [pointInput, setPointInput] = useState(() => {
+    const savedPoints = Math.max(0, Number(savedPointsToUse) || 0);
+
+    return savedPoints >= MIN_POINT_USE ? String(savedPoints) : '';
+  });
   const [modalState, setModalState] = useState('none');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const discountAmount = getCouponDiscountAmount(productTotal, selectedCoupon);
+  useEffect(() => {
+    let isActive = true;
+
+    const loadCoupons = async () => {
+      setIsCouponLoading(true);
+      setCouponError('');
+
+      try {
+        const response = await getCoupons();
+        const nextCoupons = Array.isArray(response?.data) ? response.data : [];
+
+        if (isActive) {
+          setCouponItems(nextCoupons);
+        }
+      } catch (error) {
+        if (isActive) {
+          setCouponItems([]);
+          setCouponError(error.message || '쿠폰 정보를 불러오지 못했습니다.');
+        }
+      } finally {
+        if (isActive) {
+          setIsCouponLoading(false);
+        }
+      }
+    };
+
+    void loadCoupons();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  const selectedCouponInfo =
+    availableCoupons.find((coupon) => coupon.couponId === selectedCoupon) ?? null;
+  const appliedCouponId =
+    selectedCouponInfo && productTotal >= selectedCouponInfo.minOrderAmount
+      ? selectedCouponInfo.couponId
+      : '';
+  const discountAmount = getCouponDiscountAmount(productTotal, selectedCouponInfo);
   const maxUsablePoints = Math.max(
     0,
     Math.min(pointBalance, productTotal + deliveryFee - discountAmount)
   );
-  const appliedPoints = Math.min(pointsToUse, maxUsablePoints);
+  const requestedPoints = Math.min(
+    Math.max(0, Number(pointInput.replace(/[^0-9]/g, '')) || 0),
+    maxUsablePoints
+  );
+  const hasPointMinimumError = requestedPoints > 0 && requestedPoints < MIN_POINT_USE;
+  const canUsePoints = pointBalance >= MIN_POINT_USE && maxUsablePoints >= MIN_POINT_USE;
+  const appliedPoints = canUsePoints && requestedPoints >= MIN_POINT_USE ? requestedPoints : 0;
   const earnedPoints = Math.floor(productTotal * POINT_EARN_RATE);
   const finalPrice = Math.max(0, productTotal + deliveryFee - discountAmount - appliedPoints);
 
@@ -79,33 +183,63 @@ function CheckoutPage2() {
         orderItems,
         shippingInfo,
         paymentMethod,
-        selectedCoupon,
+        selectedCoupon: appliedCouponId,
         pointsToUse: appliedPoints,
       },
     });
   };
 
   const handleCouponChange = (event) => {
-    const nextCoupon = event.target.value;
+    const nextCouponId = event.target.value;
+    const nextCoupon = availableCoupons.find((coupon) => coupon.couponId === nextCouponId) ?? null;
+
+    if (nextCoupon && productTotal < nextCoupon.minOrderAmount) {
+      alert(
+        `${nextCoupon.minOrderAmount.toLocaleString()}원 이상 구매 시 사용할 수 있는 쿠폰입니다.`
+      );
+      return;
+    }
+
     const nextDiscountAmount = getCouponDiscountAmount(productTotal, nextCoupon);
     const nextMaxUsablePoints = Math.max(
       0,
       Math.min(pointBalance, productTotal + deliveryFee - nextDiscountAmount)
     );
 
-    setSelectedCoupon(nextCoupon);
-    setPointsToUse((currentPoints) => Math.min(currentPoints, nextMaxUsablePoints));
+    setSelectedCoupon(nextCouponId);
+
+    const currentPoints = Number(pointInput.replace(/[^0-9]/g, '')) || 0;
+
+    if (currentPoints > nextMaxUsablePoints) {
+      setPointInput(nextMaxUsablePoints >= MIN_POINT_USE ? String(nextMaxUsablePoints) : '');
+    }
   };
 
   const handlePointChange = (event) => {
     const numericValue = event.target.value.replace(/[^0-9]/g, '');
-    const nextPoints = numericValue === '' ? 0 : Number(numericValue);
 
-    setPointsToUse(Math.min(Math.max(0, nextPoints), maxUsablePoints));
+    if (!numericValue) {
+      setPointInput('');
+      return;
+    }
+
+    const nextPoints = Math.min(Number(numericValue), maxUsablePoints);
+
+    setPointInput(String(nextPoints));
+  };
+
+  const handlePointBlur = () => {
+    if (hasPointMinimumError) {
+      setPointInput('');
+    }
   };
 
   const handleUseAllPoints = () => {
-    setPointsToUse(maxUsablePoints);
+    if (!canUsePoints) {
+      return;
+    }
+
+    setPointInput(String(maxUsablePoints));
   };
 
   const getShippingMemo = (memo) => {
@@ -118,24 +252,85 @@ function CheckoutPage2() {
     return memoMap[memo] ?? memo ?? '';
   };
 
-  const getOrderItems = () => {
-    return orderItems.map((item) => {
-      const colorValue =
-        typeof item.color === 'string' ? item.color : (item.color?.value ?? item.colorValue ?? '');
+  const getColorValue = (color) => {
+    if (typeof color === 'string') {
+      return color.trim();
+    }
 
-      const orderItem = {
-        productId: Number(item.productId),
-        productType: item.productType ?? 'product',
-        color: String(colorValue),
-        quantity: Number(item.quantity),
-      };
+    if (!color || typeof color !== 'object') {
+      return '';
+    }
 
-      if (item.size !== undefined && item.size !== null && item.size !== '') {
-        orderItem.size = String(item.size);
+    return String(
+      color.value ??
+        color.filterGroup ??
+        color.filterColor ??
+        color.color ??
+        color.name ??
+        color.label ??
+        ''
+    ).trim();
+  };
+
+  const getItemColorValue = (item) => {
+    return (
+      getColorValue(item.color) ||
+      getColorValue(item.colorValue) ||
+      getColorValue(item.filterGroup) ||
+      getColorValue(item.filterColor) ||
+      getColorValue(item.colorLabel)
+    );
+  };
+
+  const getFallbackProductColor = (product) => {
+    const colors = Array.isArray(product?.colors) ? product.colors : [];
+
+    for (const color of colors) {
+      const value = getColorValue(color);
+
+      if (value) {
+        return value;
       }
+    }
 
-      return orderItem;
-    });
+    return '';
+  };
+
+  const getOrderItems = async () => {
+    return Promise.all(
+      orderItems.map(async (item) => {
+        const productId = Number(item.productId);
+        const productType = item.productType ?? 'product';
+        let colorValue = getItemColorValue(item);
+
+        if (!colorValue && Number.isInteger(productId) && productId > 0) {
+          try {
+            const response =
+              productType === 'set' ? await getSet(productId) : await getProduct(productId);
+
+            colorValue = getFallbackProductColor(response?.data);
+          } catch {
+            colorValue = '';
+          }
+        }
+
+        const orderItem = {
+          productId,
+          productType,
+          quantity: Number(item.quantity),
+        };
+
+        if (colorValue) {
+          orderItem.color = colorValue;
+        }
+
+        if (item.size !== undefined && item.size !== null && item.size !== '') {
+          orderItem.size = String(item.size);
+        }
+
+        return orderItem;
+      })
+    );
   };
 
   const getShippingPayload = () => {
@@ -181,6 +376,11 @@ function CheckoutPage2() {
       return;
     }
 
+    if (hasPointMinimumError) {
+      alert(`포인트는 ${MIN_POINT_USE.toLocaleString()}P부터 사용할 수 있습니다.`);
+      return;
+    }
+
     if (paymentMethod === 'naver') {
       setModalState('naver-sdk');
       return;
@@ -207,7 +407,7 @@ function CheckoutPage2() {
       return;
     }
 
-    const apiItems = getOrderItems();
+    const apiItems = await getOrderItems();
     const shippingPayload = getShippingPayload();
 
     const invalidItem = apiItems.find(
@@ -215,7 +415,6 @@ function CheckoutPage2() {
         !Number.isInteger(item.productId) ||
         item.productId <= 0 ||
         !item.productType ||
-        !item.color ||
         !Number.isInteger(item.quantity) ||
         item.quantity <= 0
     );
@@ -245,7 +444,7 @@ function CheckoutPage2() {
         items: apiItems,
         shipping: shippingPayload,
         paymentMethod,
-        couponId: selectedCoupon || undefined,
+        couponId: appliedCouponId || undefined,
         pointsUsed: appliedPoints,
       });
 
@@ -262,17 +461,30 @@ function CheckoutPage2() {
         paymentMethod,
         finalAmount: finalPrice,
         productTotal,
-        couponId: selectedCoupon || undefined,
+        couponId: appliedCouponId || undefined,
         pointsUsed: appliedPoints,
       });
 
-      const nextPointBalance = Math.max(0, pointBalance - appliedPoints + earnedPoints);
+      const serverEarnedPoints = Math.max(
+        0,
+        Number(order?.pointsEarned ?? response?.pointsEarned ?? earnedPoints) || 0
+      );
 
-      patchUserSummary({
-        points: nextPointBalance,
-        pointBalance: nextPointBalance,
-        mileage: nextPointBalance,
-      });
+      await fetchMe({ force: true }).catch(() => null);
+
+      const refreshedCouponsResponse = await getCoupons().catch(() => null);
+      const refreshedCoupons = Array.isArray(refreshedCouponsResponse?.data)
+        ? refreshedCouponsResponse.data
+        : null;
+
+      if (refreshedCoupons) {
+        const availableCouponCount = getAvailableCoupons(refreshedCoupons).length;
+
+        patchUserSummary({
+          availableCouponCount,
+          couponCount: availableCouponCount,
+        });
+      }
 
       setModalState('complete');
 
@@ -285,7 +497,7 @@ function CheckoutPage2() {
             orderItems,
             shippingInfo: shippingPayload,
             pointsUsed: appliedPoints,
-            earnedPoints,
+            earnedPoints: serverEarnedPoints,
           },
         });
       }, 1200);
@@ -480,17 +692,35 @@ function CheckoutPage2() {
                   <select
                     id="couponSelect"
                     className="checkout-form-control"
-                    value={selectedCoupon}
+                    value={appliedCouponId}
                     onChange={handleCouponChange}
+                    disabled={isCouponLoading}
                   >
-                    <option value="">쿠폰을 선택하세요</option>
+                    <option value="">
+                      {isCouponLoading ? '쿠폰을 불러오는 중입니다' : '쿠폰을 선택하세요'}
+                    </option>
 
-                    {COUPON_OPTIONS.map((coupon) => (
-                      <option key={coupon.id} value={coupon.id}>
-                        {coupon.label}
+                    {availableCoupons.map((coupon) => (
+                      <option
+                        key={coupon.couponId}
+                        value={coupon.couponId}
+                        disabled={productTotal < coupon.minOrderAmount}
+                      >
+                        {getCouponLabel(coupon)}
+                        {productTotal < coupon.minOrderAmount ? ' (사용 조건 미충족)' : ''}
                       </option>
                     ))}
                   </select>
+
+                  {!isCouponLoading && couponError && (
+                    <p className="checkout-coupon-empty">{couponError}</p>
+                  )}
+
+                  {!isCouponLoading && !couponError && availableCoupons.length === 0 && (
+                    <p className="checkout-coupon-empty">
+                      현재 계정에서 사용할 수 있는 쿠폰이 없습니다.
+                    </p>
+                  )}
                 </div>
               </div>
             </section>
@@ -513,10 +743,12 @@ function CheckoutPage2() {
                     type="text"
                     inputMode="numeric"
                     className="checkout-form-control checkout-point-input"
-                    value={appliedPoints.toLocaleString()}
+                    value={pointInput}
                     onChange={handlePointChange}
+                    onBlur={handlePointBlur}
+                    placeholder={`${MIN_POINT_USE.toLocaleString()}P부터 사용 가능`}
                     aria-label="사용할 포인트"
-                    disabled={maxUsablePoints === 0}
+                    disabled={!canUsePoints}
                   />
                   <span>P</span>
                 </div>
@@ -525,16 +757,25 @@ function CheckoutPage2() {
                   type="button"
                   className="checkout-point-all-button"
                   onClick={handleUseAllPoints}
-                  disabled={maxUsablePoints === 0}
+                  disabled={!canUsePoints}
                 >
                   전액 사용
                 </button>
               </div>
 
               <div className="checkout-point-info">
-                <span>최대 {maxUsablePoints.toLocaleString()} P 사용 가능</span>
+                <span>
+                  {MIN_POINT_USE.toLocaleString()} P부터 사용 가능 · 최대{' '}
+                  {maxUsablePoints.toLocaleString()} P
+                </span>
                 <strong>결제 완료 시 {earnedPoints.toLocaleString()} P 적립 예정</strong>
               </div>
+
+              {hasPointMinimumError && (
+                <p className="checkout-point-minimum-message">
+                  포인트는 {MIN_POINT_USE.toLocaleString()} P부터 사용할 수 있습니다.
+                </p>
+              )}
 
               <p className="checkout-point-notice">상품금액의 5%가 포인트로 적립됩니다.</p>
             </section>

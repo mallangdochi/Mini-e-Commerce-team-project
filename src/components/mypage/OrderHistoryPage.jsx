@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
+import { getMyReviews } from '@/api/reviews';
 import EmptyState from '@/components/common/EmptyState';
 import ErrorState from '@/components/common/ErrorState';
 import useOrders from '@/hooks/useOrders';
 import { useCartStore } from '@/store/cartStore';
-import { getStoredReviews } from '@/utils/storage';
 import '@/styles/order-history.css';
 
 import CancelOrderModal from './order-history/CancelOrderModal';
@@ -32,6 +32,7 @@ function OrderHistoryPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const addCartItem = useCartStore((state) => state.addItem);
+
   const {
     user,
     orders,
@@ -44,6 +45,7 @@ function OrderHistoryPage() {
   } = useOrders();
 
   const [selectedTab, setSelectedTab] = useState(() => getValidOrderTab(searchParams.get('tab')));
+
   const [periodMonths, setPeriodMonths] = useState(3);
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [shippingOrderId, setShippingOrderId] = useState(null);
@@ -53,19 +55,52 @@ function OrderHistoryPage() {
   const [cancelStage, setCancelStage] = useState('idle');
   const [cancelError, setCancelError] = useState('');
   const [repurchaseOrderId, setRepurchaseOrderId] = useState(null);
+
   const displayPrefetchRef = useRef(new Set());
 
   const couponCount = Number(user?.couponCount ?? user?.availableCouponCount ?? 0);
+
   const pointBalance = Number(user?.points ?? user?.pointBalance ?? user?.mileage ?? 0);
+
   const wishlistCount = Number(user?.wishlistCount ?? user?.wishCount ?? 0);
 
-  const reviewedOrderIds = useMemo(() => {
-    return new Set(
-      getStoredReviews()
-        .map((review) => review?.orderId)
-        .filter((orderId) => orderId !== undefined && orderId !== null)
-        .map(String)
-    );
+  const [reviewedOrderIds, setReviewedOrderIds] = useState(() => new Set());
+
+  useEffect(() => {
+    let active = true;
+
+    const loadReviewedOrders = async () => {
+      try {
+        const response = await getMyReviews();
+
+        const data = response?.data ?? response ?? [];
+
+        const reviews = Array.isArray(data) ? data : (data?.reviews ?? data?.items ?? []);
+
+        if (!active) {
+          return;
+        }
+
+        setReviewedOrderIds(
+          new Set(
+            reviews
+              .map((review) => review?.orderId)
+              .filter((orderId) => orderId !== undefined && orderId !== null)
+              .map(String)
+          )
+        );
+      } catch {
+        if (active) {
+          setReviewedOrderIds(new Set());
+        }
+      }
+    };
+
+    void loadReviewedOrders();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   const filteredOrders = useMemo(() => {
@@ -93,19 +128,26 @@ function OrderHistoryPage() {
     }
 
     targetIds.forEach((orderId) => displayPrefetchRef.current.add(String(orderId)));
-    void loadOrderDetails(targetIds, { force: true });
+
+    void loadOrderDetails(targetIds, {
+      force: true,
+    });
   }, [loadOrderDetails, missingDisplayOrderIds]);
 
   const selectedOrder = selectedOrderId
     ? orders.find((order) => order.orderId === selectedOrderId)
     : null;
+
   const selectedOrderDetail = selectedOrderId ? orderDetails[selectedOrderId] : null;
+
   const isSelectedOrderLoading = selectedOrderId ? isOrderDetailLoading(selectedOrderId) : false;
 
   const shippingOrder = shippingOrderId
     ? orders.find((order) => order.orderId === shippingOrderId)
     : null;
+
   const shippingDetail = shippingOrderId ? orderDetails[shippingOrderId] : null;
+
   const isShippingDetailLoading = shippingOrderId ? isOrderDetailLoading(shippingOrderId) : false;
 
   const cancelTargetOrder = cancelOrderId
@@ -154,6 +196,7 @@ function OrderHistoryPage() {
       });
 
       await cancelOrderById(cancelOrderId, reasonText);
+
       setCancelStage('success');
 
       window.setTimeout(() => {
@@ -164,6 +207,7 @@ function OrderHistoryPage() {
       }, 900);
     } catch (error) {
       setCancelStage('idle');
+
       setCancelError(error.message || '주문 취소에 실패했습니다.');
     }
   };
@@ -201,6 +245,7 @@ function OrderHistoryPage() {
 
     try {
       const detail = await loadOrderDetail(order.orderId);
+
       const items = detail?.items ?? [];
 
       if (items.length === 0) {
@@ -209,6 +254,7 @@ function OrderHistoryPage() {
 
       items.forEach((item) => {
         const colorValue = typeof item.color === 'string' ? item.color : (item.color?.value ?? '');
+
         const colorLabel =
           typeof item.color === 'string'
             ? item.color

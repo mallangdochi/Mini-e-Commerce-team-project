@@ -1,28 +1,66 @@
 import { useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
-import { checkIdAvailability, signup } from '@/api/authApi';
+import { checkEmailAvailability, checkIdAvailability, signup } from '@/api/authApi';
 import '@/styles/signup.css';
 import TermsPage from '@/pages/TermsPage';
 
 const LIMITS = {
   name: 20,
+  loginId: 50,
   email: 50,
-  password: 12,
+  password: 50,
+  phone: 13,
   address: 100,
   detailAddress: 50,
 };
 
 const FIELD_IDS = {
   name: 'signupName',
+  loginId: 'signupLoginId',
   email: 'signupEmail',
   password: 'signupPassword',
   passwordCheck: 'signupPasswordCheck',
+  phone: 'signupPhone',
 };
 
 const NAME_PATTERN = /^[가-힣a-zA-Z ]+$/;
 const EMAIL_PATTERN = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-const PASSWORD_PATTERN = /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[.!@#$%^&*?])[a-zA-Z\d.!@#$%^&*?]{8,12}$/;
+const PASSWORD_PATTERN = /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[.!@#$%^&*?])[a-zA-Z\d.!@#$%^&*?]{12,}$/;
+const PHONE_PATTERN = /^\d{10,11}$/;
+
+function getAvailabilityResult(response) {
+  const data = response?.data ?? response ?? {};
+
+  if (typeof data.available === 'boolean') return data.available;
+  if (typeof data.isAvailable === 'boolean') return data.isAvailable;
+  if (typeof data.duplicate === 'boolean') return !data.duplicate;
+  if (typeof data.isDuplicate === 'boolean') return !data.isDuplicate;
+
+  return true;
+}
+
+function formatPhoneNumber(value) {
+  const numbers = String(value ?? '')
+    .replace(/\D/g, '')
+    .slice(0, 11);
+
+  if (numbers.length <= 3) {
+    return numbers;
+  }
+
+  if (numbers.length <= 7) {
+    return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
+  }
+
+  return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
+}
+
+function getPhoneNumbers(value) {
+  return String(value ?? '')
+    .replace(/\D/g, '')
+    .slice(0, 11);
+}
 
 function StatusIcon({ status }) {
   if (status === 'success') return <span className="signup-status-icon success">✓</span>;
@@ -36,14 +74,16 @@ function SignupPage() {
   const [selectedTerms, setSelectedTerms] = useState(null);
   const addressDialog = useRef(null);
   const addressContainer = useRef(null);
+  const loginIdRevision = useRef(0);
   const emailRevision = useRef(0);
   const [addressLoading, setAddressLoading] = useState(false);
   const [form, setForm] = useState({
     name: '',
+    loginId: '',
     email: '',
     password: '',
     passwordCheck: '',
-    birthDate: '',
+    phone: '',
     postcode: '',
     address: '',
     detailAddress: '',
@@ -53,10 +93,13 @@ function SignupPage() {
     privacy: false,
     marketing: false,
   });
+  const [loginIdStatus, setLoginIdStatus] = useState('idle');
+  const [loginIdMessage, setLoginIdMessage] = useState('');
   const [emailStatus, setEmailStatus] = useState('idle');
   const [emailMessage, setEmailMessage] = useState('');
   const [submitError, setSubmitError] = useState('');
   const [validationError, setValidationError] = useState(null);
+  const [isCheckingLoginId, setIsCheckingLoginId] = useState(false);
   const [isCheckingEmail, setIsCheckingEmail] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -135,8 +178,18 @@ function SignupPage() {
     focusAndFlashField(targetId);
   };
 
+  const handleLoginIdChange = (event) => {
+    const value = event.target.value.replace(/\s/g, '').slice(0, LIMITS.loginId);
+
+    loginIdRevision.current += 1;
+    updateForm('loginId', value);
+    setLoginIdStatus('idle');
+    setLoginIdMessage('');
+  };
+
   const handleEmailChange = (event) => {
     const value = event.target.value.replace(/[^a-zA-Z0-9@._%+-]/g, '').slice(0, LIMITS.email);
+
     emailRevision.current += 1;
     updateForm('email', value);
     setEmailStatus('idle');
@@ -147,9 +200,62 @@ function SignupPage() {
     updateForm(name, value.replace(/[^a-zA-Z0-9.!@#$%^&*?]/g, '').slice(0, LIMITS.password));
   };
 
-  const handleCheckDuplicate = async () => {
-    if (!EMAIL_PATTERN.test(form.email)) {
+  const handleCheckLoginId = async () => {
+    const loginId = form.loginId.trim();
+
+    if (!loginId) {
+      const message = '아이디를 입력해 주세요.';
+
+      setLoginIdStatus('error');
+      setLoginIdMessage(message);
+      showFieldError(FIELD_IDS.loginId, message);
+      return;
+    }
+
+    const revision = loginIdRevision.current;
+
+    setLoginIdMessage('');
+    setIsCheckingLoginId(true);
+    setLoginIdStatus('idle');
+
+    try {
+      const response = await checkIdAvailability(loginId);
+
+      if (revision !== loginIdRevision.current) return;
+
+      const available = getAvailabilityResult(response);
+      const message =
+        response?.message ||
+        response?.data?.message ||
+        (available ? '사용 가능한 아이디입니다.' : '이미 사용 중인 아이디입니다.');
+
+      setLoginIdStatus(available ? 'success' : 'error');
+      setLoginIdMessage(message);
+
+      if (available) {
+        clearValidationError(FIELD_IDS.loginId);
+      } else {
+        showFieldError(FIELD_IDS.loginId, message);
+      }
+    } catch (error) {
+      if (revision !== loginIdRevision.current) return;
+
+      const message = error?.message || '아이디 중복확인에 실패했습니다.';
+
+      setLoginIdStatus('error');
+      setLoginIdMessage(message);
+      showFieldError(FIELD_IDS.loginId, message);
+    } finally {
+      setIsCheckingLoginId(false);
+    }
+  };
+
+  const handleCheckEmail = async () => {
+    const email = form.email.trim();
+
+    if (!EMAIL_PATTERN.test(email)) {
       const message = '올바른 이메일 형식으로 입력해 주세요.';
+
       setEmailStatus('error');
       setEmailMessage(message);
       showFieldError(FIELD_IDS.email, message);
@@ -157,18 +263,21 @@ function SignupPage() {
     }
 
     const revision = emailRevision.current;
+
     setEmailMessage('');
     setIsCheckingEmail(true);
     setEmailStatus('idle');
 
     try {
-      const response = await checkIdAvailability(form.email);
+      const response = await checkEmailAvailability(email);
+
       if (revision !== emailRevision.current) return;
 
-      const available = response.available === true;
+      const available = getAvailabilityResult(response);
       const message =
-        response.message ||
-        (available ? '사용 가능한 아이디입니다.' : '이미 사용 중인 아이디입니다.');
+        response?.message ||
+        response?.data?.message ||
+        (available ? '사용 가능한 이메일입니다.' : '이미 사용 중인 이메일입니다.');
 
       setEmailStatus(available ? 'success' : 'error');
       setEmailMessage(message);
@@ -181,7 +290,8 @@ function SignupPage() {
     } catch (error) {
       if (revision !== emailRevision.current) return;
 
-      const message = error?.message || '아이디 중복확인에 실패했습니다.';
+      const message = error?.message || '이메일 중복확인에 실패했습니다.';
+
       setEmailStatus('error');
       setEmailMessage(message);
       showFieldError(FIELD_IDS.email, message);
@@ -257,17 +367,24 @@ function SignupPage() {
       };
     }
 
+    if (loginIdStatus !== 'success') {
+      return {
+        targetId: FIELD_IDS.loginId,
+        message: '아이디 중복확인을 완료해 주세요.',
+      };
+    }
+
     if (emailStatus !== 'success') {
       return {
         targetId: FIELD_IDS.email,
-        message: '아이디 중복확인을 완료해 주세요.',
+        message: '이메일 중복확인을 완료해 주세요.',
       };
     }
 
     if (passwordStatus !== 'success') {
       return {
         targetId: FIELD_IDS.password,
-        message: '영문, 숫자, 특수문자를 포함한 8~12자 비밀번호를 입력해 주세요.',
+        message: '비밀번호는 12자 이상이며 영문, 숫자, 특수문자를 포함해야 합니다.',
       };
     }
 
@@ -275,6 +392,13 @@ function SignupPage() {
       return {
         targetId: FIELD_IDS.passwordCheck,
         message: '비밀번호가 일치하지 않습니다.',
+      };
+    }
+
+    if (!PHONE_PATTERN.test(getPhoneNumbers(form.phone))) {
+      return {
+        targetId: FIELD_IDS.phone,
+        message: '휴대폰 번호를 숫자 10~11자리로 입력해 주세요.',
       };
     }
 
@@ -296,12 +420,14 @@ function SignupPage() {
   };
 
   const getServerErrorTarget = (message = '') => {
-    if (/아이디|이메일|email|중복/i.test(message)) return FIELD_IDS.email;
+    if (/아이디|loginId|login id/i.test(message)) return FIELD_IDS.loginId;
+    if (/이메일|email/i.test(message)) return FIELD_IDS.email;
     if (/비밀번호 확인|password confirmation|confirm password/i.test(message)) {
       return FIELD_IDS.passwordCheck;
     }
     if (/비밀번호|password/i.test(message)) return FIELD_IDS.password;
     if (/이름|name/i.test(message)) return FIELD_IDS.name;
+    if (/휴대폰|전화|phone/i.test(message)) return FIELD_IDS.phone;
     if (/개인정보|privacy/i.test(message)) return 'signupAgreement-privacy';
     if (/이용약관|service terms|terms of service/i.test(message)) {
       return 'signupAgreement-service';
@@ -324,24 +450,18 @@ function SignupPage() {
     setSubmitError('');
 
     try {
-      const trimmedPassword = form.password.trim();
-      const trimmedPasswordCheck = form.passwordCheck.trim();
-
-      setForm((previous) => ({
-        ...previous,
-        password: trimmedPassword,
-        passwordCheck: trimmedPasswordCheck,
-      }));
-
       const response = await signup({
-        id: form.email.trim(),
-        password: trimmedPassword,
+        loginId: form.loginId.trim(),
+        email: form.email.trim(),
+        password: form.password.trim(),
         name: form.name.trim(),
-        birthDate: form.birthDate || null,
-        postcode: form.postcode || null,
-        address: form.address || null,
-        detailAddress: form.detailAddress.trim() || null,
-        agreements,
+        phone: getPhoneNumbers(form.phone),
+        postcode: form.postcode.trim(),
+        address: form.address.trim(),
+        detailAddress: form.detailAddress.trim(),
+        agreeTerms: agreements.service,
+        agreePrivacy: agreements.privacy,
+        agreeMarketing: agreements.marketing,
       });
 
       navigate('/login', {
@@ -467,8 +587,48 @@ function SignupPage() {
               )}
             </div>
             <div className="signup-form-group">
-              <label htmlFor="signupEmail">
+              <label htmlFor="signupLoginId">
                 아이디 <span className="signup-required">*</span>
+              </label>
+              <div className="signup-input-row">
+                <div className="signup-input-with-icon signup-flex-1">
+                  <input
+                    id="signupLoginId"
+                    type="text"
+                    value={form.loginId}
+                    onChange={handleLoginIdChange}
+                    maxLength={LIMITS.loginId}
+                    placeholder="아이디를 입력하세요"
+                    autoComplete="username"
+                    required
+                  />
+                  <StatusIcon status={loginIdStatus} />
+                </div>
+                <button
+                  type="button"
+                  className="signup-inline-btn"
+                  onClick={handleCheckLoginId}
+                  disabled={isCheckingLoginId}
+                >
+                  {isCheckingLoginId ? '확인 중' : '아이디 중복확인'}
+                </button>
+              </div>
+              <div className="signup-feedback-row">
+                {validationError?.targetId === FIELD_IDS.loginId ? (
+                  <p className="signup-message error" role="alert">
+                    {validationError.message}
+                  </p>
+                ) : loginIdMessage ? (
+                  <p className={`signup-message ${loginIdStatus}`}>{loginIdMessage}</p>
+                ) : (
+                  <span />
+                )}
+              </div>
+            </div>
+
+            <div className="signup-form-group">
+              <label htmlFor="signupEmail">
+                이메일 <span className="signup-required">*</span>
               </label>
               <div className="signup-input-row">
                 <div className="signup-input-with-icon signup-flex-1">
@@ -487,10 +647,10 @@ function SignupPage() {
                 <button
                   type="button"
                   className="signup-inline-btn"
-                  onClick={handleCheckDuplicate}
+                  onClick={handleCheckEmail}
                   disabled={isCheckingEmail}
                 >
-                  {isCheckingEmail ? '확인 중' : '아이디 중복확인'}
+                  {isCheckingEmail ? '확인 중' : '이메일 중복확인'}
                 </button>
               </div>
               <div className="signup-feedback-row">
@@ -533,7 +693,7 @@ function SignupPage() {
                 >
                   {validationError?.targetId === FIELD_IDS.password
                     ? validationError.message
-                    : '영문, 숫자, 특수문자(.!@#$%^&*?)를 포함한 8~12자'}
+                    : '12자 이상 · 영문, 숫자, 특수문자(.!@#$%^&*?) 포함'}
                 </p>
               </div>
             </div>
@@ -567,15 +727,32 @@ function SignupPage() {
               </div>
             </div>
             <div className="signup-form-group">
-              <label htmlFor="signupBirthDate">생년월일</label>
-              <input
-                id="signupBirthDate"
-                type="date"
-                min="1900-01-01"
-                max={new Date().toISOString().slice(0, 10)}
-                value={form.birthDate}
-                onChange={(event) => updateForm('birthDate', event.target.value)}
-              />
+              <label htmlFor="signupPhone">
+                휴대폰 번호 <span className="signup-required">*</span>
+              </label>
+              <div className="signup-input-with-icon">
+                <input
+                  id="signupPhone"
+                  type="tel"
+                  inputMode="numeric"
+                  value={form.phone}
+                  onChange={(event) => updateForm('phone', formatPhoneNumber(event.target.value))}
+                  maxLength={LIMITS.phone}
+                  placeholder="010-0000-0000"
+                  autoComplete="tel"
+                  required
+                />
+                {form.phone && (
+                  <StatusIcon
+                    status={PHONE_PATTERN.test(getPhoneNumbers(form.phone)) ? 'success' : 'error'}
+                  />
+                )}
+              </div>
+              {validationError?.targetId === FIELD_IDS.phone && (
+                <p className="signup-field-error-message" role="alert">
+                  {validationError.message}
+                </p>
+              )}
             </div>
             <div className="signup-form-group">
               <label htmlFor="signupPostcode">주소</label>

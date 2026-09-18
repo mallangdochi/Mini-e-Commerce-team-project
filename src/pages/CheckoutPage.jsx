@@ -1,7 +1,8 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import { getStoredAddresses, getStoredProfileOverrides, getStoredUserInfo } from '@/utils/storage';
+import { getAddresses } from '@/api/addresses';
+import { getStoredProfileOverrides, getStoredUserInfo } from '@/utils/storage';
 import '@/styles/checkout2.css';
 
 function getStoredShippingInfo(savedShippingInfo) {
@@ -9,20 +10,15 @@ function getStoredShippingInfo(savedShippingInfo) {
     return savedShippingInfo;
   }
 
-  const savedAddresses = getStoredAddresses();
   const savedProfile = getStoredProfileOverrides();
   const userInfo = getStoredUserInfo() ?? {};
 
-  const defaultAddress =
-    savedAddresses.find((address) => address.isDefault) ?? savedAddresses[0] ?? null;
-
   return {
-    name: defaultAddress?.receiverName ?? savedProfile.name ?? userInfo.name ?? '',
-    phone:
-      defaultAddress?.phone ?? savedProfile.phone ?? userInfo.phone ?? userInfo.phoneNumber ?? '',
-    zonecode: defaultAddress?.postcode ?? defaultAddress?.zonecode ?? '',
-    address: defaultAddress?.address ?? '',
-    detailAddress: defaultAddress?.detailAddress ?? '',
+    name: savedProfile.name ?? userInfo.name ?? '',
+    phone: savedProfile.phone ?? userInfo.phone ?? userInfo.phoneNumber ?? '',
+    zonecode: '',
+    address: '',
+    detailAddress: '',
     memo: '',
   };
 }
@@ -45,9 +41,51 @@ function CheckoutPage() {
 
   const [addressLoading, setAddressLoading] = useState(false);
   const [addressError, setAddressError] = useState('');
-  const [savedAddresses, setSavedAddresses] = useState(() => getStoredAddresses());
+  const [savedAddresses, setSavedAddresses] = useState([]);
 
   const [shippingInfo, setShippingInfo] = useState(() => getStoredShippingInfo(savedShippingInfo));
+
+  useEffect(() => {
+    let active = true;
+
+    const loadSavedAddresses = async () => {
+      try {
+        const response = await getAddresses();
+        const data = response?.data ?? response ?? [];
+        const items = Array.isArray(data) ? data : (data?.addresses ?? []);
+
+        if (!active) return;
+
+        const normalized = items.map((item) => ({
+          ...item,
+          id: item.addressId ?? item.id,
+          label: item.addressName ?? item.label ?? '배송지',
+        }));
+        setSavedAddresses(normalized);
+
+        if (!savedShippingInfo) {
+          const defaultAddress = normalized.find((item) => item.isDefault) ?? normalized[0];
+          if (defaultAddress) {
+            setShippingInfo((prev) => ({
+              ...prev,
+              name: defaultAddress.receiverName ?? prev.name,
+              phone: defaultAddress.phone ?? prev.phone,
+              zonecode: defaultAddress.postcode ?? '',
+              address: defaultAddress.address ?? '',
+              detailAddress: defaultAddress.detailAddress ?? '',
+            }));
+          }
+        }
+      } catch {
+        if (active) setSavedAddresses([]);
+      }
+    };
+
+    void loadSavedAddresses();
+    return () => {
+      active = false;
+    };
+  }, [savedShippingInfo]);
 
   const [activeErrorField, setActiveErrorField] = useState(null);
 
@@ -103,8 +141,21 @@ function CheckoutPage() {
     }));
   };
 
-  const handleSavedAddressOpen = () => {
-    setSavedAddresses(getStoredAddresses());
+  const handleSavedAddressOpen = async () => {
+    try {
+      const response = await getAddresses();
+      const data = response?.data ?? response ?? [];
+      const items = Array.isArray(data) ? data : (data?.addresses ?? []);
+      setSavedAddresses(
+        items.map((item) => ({
+          ...item,
+          id: item.addressId ?? item.id,
+          label: item.addressName ?? item.label ?? '배송지',
+        }))
+      );
+    } catch (error) {
+      setAddressError(error.message || '저장된 배송지를 불러오지 못했습니다.');
+    }
     savedAddressDialog.current?.showModal();
   };
 

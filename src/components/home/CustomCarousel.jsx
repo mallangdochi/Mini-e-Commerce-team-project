@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import kakiTop from '@/assets/home/kaki_top.webp';
 import '@/styles/custom-carousel.css';
@@ -10,9 +11,16 @@ function useIsCompact() {
 
   useEffect(() => {
     const mql = window.matchMedia(COMPACT_QUERY);
-    const onChange = (e) => setCompact(e.matches);
+
+    const onChange = (event) => {
+      setCompact(event.matches);
+    };
+
     mql.addEventListener('change', onChange);
-    return () => mql.removeEventListener('change', onChange);
+
+    return () => {
+      mql.removeEventListener('change', onChange);
+    };
   }, []);
 
   return compact;
@@ -57,13 +65,27 @@ function ChevronRight({ size = 18, className }) {
 }
 
 const CATEGORY_META = {
-  tops: { label: '상의' },
-  bottoms: { label: '하의' },
-  sunglasses: { label: '선글라스' },
-  hats: { label: '모자' },
+  outer: {
+    label: '아우터',
+  },
+  tops: {
+    label: '상의',
+  },
+  bottoms: {
+    label: '하의',
+  },
+  shoes: {
+    label: '신발',
+  },
+  sunglasses: {
+    label: '선글라스',
+  },
+  hats: {
+    label: '모자',
+  },
 };
 
-const CATEGORY_ORDER = ['tops', 'bottoms', 'sunglasses', 'hats'];
+const CATEGORY_ORDER = ['outer', 'tops', 'bottoms', 'shoes', 'sunglasses', 'hats'];
 
 const DEFAULT_CATEGORY = CATEGORY_ORDER[0];
 
@@ -74,202 +96,39 @@ const POS = {
   FAR: 'far',
 };
 
-// ---- placeholder catalogue ------------------------------------------
-const CATALOGUE = {
-  tops: [
-    {
-      id: '1',
-      name: 'Endure Half-Zip',
-      price: 89000,
-      imageUrl:
-        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
-    },
-    {
-      id: '2',
-      name: 'Foundation Tee',
-      price: 39000,
-      imageUrl:
-        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
-    },
-    {
-      id: '3',
-      name: 'Trail Layer Hoodie',
-      price: 119000,
-      imageUrl:
-        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
-    },
-    {
-      id: '4',
-      name: 'Base Performance Tee',
-      price: 45000,
-      imageUrl:
-        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
-    },
-    {
-      id: '5',
-      name: 'Windshell Jacket',
-      price: 149000,
-      imageUrl:
-        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
-    },
-    {
-      id: '6',
-      name: 'Ridge Quarter-Zip',
-      price: 79000,
-      imageUrl:
-        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
-    },
-  ],
-  bottoms: [
-    {
-      id: '7',
-      name: 'Trail Jogger',
-      price: 69000,
-      imageUrl:
-        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
-    },
-    {
-      id: '8',
-      name: 'Enhance Short 7"',
-      price: 42000,
-      imageUrl:
-        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
-    },
-    {
-      id: '9',
-      name: 'All Elements Pant',
-      price: 99000,
-      imageUrl:
-        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
-    },
-    {
-      id: '10',
-      name: 'Foundation Legging',
-      price: 55000,
-      imageUrl:
-        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
-    },
-    {
-      id: '11',
-      name: 'Traverse Cargo',
-      price: 89000,
-      imageUrl:
-        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
-    },
-    {
-      id: '12',
-      name: 'Endure Track Pant',
-      price: 65000,
-      imageUrl:
-        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
-    },
-  ],
-  sunglasses: [
-    {
-      id: '13',
-      name: 'Custom Radar® Ev',
-      price: 189000,
-      imageUrl:
-        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
-    },
-    {
-      id: '14',
-      name: 'Custom Holbrook',
-      price: 179000,
-      imageUrl:
-        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
-    },
-    {
-      id: '15',
-      name: 'Custom Sutro',
-      price: 169000,
-      imageUrl:
-        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
-    },
-    {
-      id: '16',
-      name: 'Custom EVZero',
-      price: 199000,
-      imageUrl:
-        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
-    },
-    {
-      id: '17',
-      name: 'Custom Jawbreaker',
-      price: 175000,
-      imageUrl:
-        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
-    },
-    {
-      id: '18',
-      name: 'Custom Flak® 2.0',
-      price: 159000,
-      imageUrl:
-        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
-    },
-  ],
-  hats: [
-    {
-      id: '19',
-      name: 'Ellipse Snapback',
-      price: 39000,
-      imageUrl:
-        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
-    },
-    {
-      id: '20',
-      name: 'Trail Trucker',
-      price: 42000,
-      imageUrl:
-        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
-    },
-    {
-      id: '21',
-      name: 'Performance Visor',
-      price: 35000,
-      imageUrl:
-        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
-    },
-    {
-      id: '22',
-      name: 'Six-Panel Cap',
-      price: 45000,
-      imageUrl:
-        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
-    },
-    {
-      id: '23',
-      name: 'Bucket Hat',
-      price: 32000,
-      imageUrl:
-        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
-    },
-    {
-      id: '24',
-      name: 'Ridge Beanie',
-      price: 38000,
-      imageUrl:
-        'https://raw.githubusercontent.com/hyeramee/my-first-github/dev/images/Gemini_Generated_Image_jycecljycecljyce%202.png',
-    },
-  ],
+const EMPTY_CATEGORIES = {
+  outer: [],
+  tops: [],
+  bottoms: [],
+  shoes: [],
+  sunglasses: [],
+  hats: [],
 };
 
 const FALLBACK_IMAGE = kakiTop;
 
 const SLIDE_MS = 420;
 
-// 트랙 이동 간격 = 타일 래퍼 너비. 데스크톱/컴팩트에서 다름.
 const TILE_WIDTH_DESKTOP = 440;
 const TILE_WIDTH_COMPACT = 340;
 
-function ProductTile({ product, position, onSelect, onStep, animate, compact, tileWidth }) {
+function ProductTile({
+  product,
+  category,
+  position,
+  onSelect,
+  onStep,
+  animate,
+  compact,
+  tileWidth,
+}) {
   const isCenter = position === POS.CENTER;
   const isLeft = position === POS.LEFT;
   const isRight = position === POS.RIGHT;
   const isNear = isLeft || isRight;
 
   const centerScale = compact ? 'scale(1)' : 'scale(1.1)';
-  const nearScale = compact ? 'scale(0.66)' : 'scale(0.5)';
+  const nearScale = compact ? 'scale(0.68)' : 'scale(0.6)';
   const farScale = compact ? 'scale(0.4)' : 'scale(0.3)';
 
   const wrapStyle = {
@@ -317,7 +176,9 @@ function ProductTile({ product, position, onSelect, onStep, animate, compact, ti
         <img
           src={product.imageUrl ?? product.image ?? FALLBACK_IMAGE}
           alt={`${product.name} 상품 이미지`}
-          className="custom-carousel__tile-image"
+          className={`custom-carousel__tile-image ${
+            category === 'sunglasses' && isCenter ? 'custom-carousel__tile-image--sunglasses' : ''
+          }`}
         />
       </button>
     </div>
@@ -325,6 +186,8 @@ function ProductTile({ product, position, onSelect, onStep, animate, compact, ti
 }
 
 export default function CustomCarousel({ categories, isLoading = false, error = null }) {
+  const navigate = useNavigate();
+
   const source = useMemo(() => {
     if (Array.isArray(categories) && categories.length > 0) {
       return Object.fromEntries(categories.map((entry) => [entry.id, entry.products ?? []]));
@@ -334,82 +197,132 @@ export default function CustomCarousel({ categories, isLoading = false, error = 
       return categories;
     }
 
-    return CATALOGUE;
+    return EMPTY_CATEGORIES;
   }, [categories]);
 
   const compact = useIsCompact();
   const tileWidth = compact ? TILE_WIDTH_COMPACT : TILE_WIDTH_DESKTOP;
 
   const [category, setCategory] = useState(DEFAULT_CATEGORY);
+  const [pos, setPos] = useState(null);
+  const [animate, setAnimate] = useState(true);
+
   const items = source[category] ?? [];
   const len = items.length;
 
   const COPIES = 3;
   const slides = Array(COPIES).fill(items).flat();
 
-  const [pos, setPos] = useState(len);
-  const [animate, setAnimate] = useState(true);
-  const [toast, setToast] = useState(null);
-  const toastTimer = useRef(null);
+  const displayPos = pos ?? len;
 
-  const realIndex = ((pos % len) + len) % len;
-
-  useEffect(() => {
-    return () => clearTimeout(toastTimer.current);
-  }, []);
+  const realIndex = len > 0 ? ((displayPos % len) + len) % len : 0;
 
   useEffect(() => {
     Object.values(source)
       .flat()
-      .forEach((p) => {
-        const img = new Image();
-        img.src = p.imageUrl ?? p.image ?? FALLBACK_IMAGE;
+      .forEach((product) => {
+        const image = new Image();
+        image.src = product.imageUrl ?? product.image ?? FALLBACK_IMAGE;
       });
   }, [source]);
 
   useEffect(() => {
-    if (animate) return;
-    const id = requestAnimationFrame(() => requestAnimationFrame(() => setAnimate(true)));
-    return () => cancelAnimationFrame(id);
+    if (animate) {
+      return;
+    }
+
+    const id = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setAnimate(true);
+      });
+    });
+
+    return () => {
+      cancelAnimationFrame(id);
+    };
   }, [animate]);
 
   const changeCategory = (key) => {
-    setCategory(key);
+    if (key === category) {
+      return;
+    }
+
     setAnimate(false);
-    setPos((source[key] ?? []).length);
+    setPos(null);
+    setCategory(key);
   };
 
-  const go = (delta) => setPos((p) => p + delta);
+  const go = (delta) => {
+    if (len <= 1) {
+      return;
+    }
 
-  const handleTransitionEnd = (e) => {
-    if (e.target !== e.currentTarget || e.propertyName !== 'transform') return;
-    if (pos < len || pos >= len * 2) {
+    setPos((current) => {
+      const currentPosition = current ?? len;
+
+      return currentPosition + delta;
+    });
+  };
+
+  const handleTransitionEnd = (event) => {
+    if (event.target !== event.currentTarget || event.propertyName !== 'transform' || len === 0) {
+      return;
+    }
+
+    if (displayPos < len || displayPos >= len * 2) {
       setAnimate(false);
       setPos(len + realIndex);
     }
   };
 
-  const goToIndex = (i) => {
-    setPos((p) => {
-      const cur = ((p % len) + len) % len;
-      let d = i - cur;
-      if (d > len / 2) d -= len;
-      if (d < -len / 2) d += len;
-      return p + d;
+  const goToIndex = (index) => {
+    if (len === 0) {
+      return;
+    }
+
+    setPos((current) => {
+      const currentPosition = current ?? len;
+      const currentIndex = ((currentPosition % len) + len) % len;
+
+      let distance = index - currentIndex;
+
+      if (distance > len / 2) {
+        distance -= len;
+      }
+
+      if (distance < -len / 2) {
+        distance += len;
+      }
+
+      return currentPosition + distance;
     });
   };
 
   const handleSelect = (product) => {
-    setToast(`${product.name} 상세 페이지로 이동합니다`);
-    clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToast(null), 2200);
+    const productId = product.productId ?? product.id;
+
+    if (!productId) {
+      return;
+    }
+
+    navigate(`/products/${productId}`);
   };
 
   const positionOf = (slot) => {
-    const dist = slot - pos;
-    if (dist === 0) return POS.CENTER;
-    if (dist === -1) return POS.LEFT;
-    if (dist === 1) return POS.RIGHT;
+    const distance = slot - displayPos;
+
+    if (distance === 0) {
+      return POS.CENTER;
+    }
+
+    if (distance === -1) {
+      return POS.LEFT;
+    }
+
+    if (distance === 1) {
+      return POS.RIGHT;
+    }
+
     return POS.FAR;
   };
 
@@ -417,15 +330,18 @@ export default function CustomCarousel({ categories, isLoading = false, error = 
     <nav className="custom-carousel__tabs" role="tablist" aria-label="상품 카테고리">
       {CATEGORY_ORDER.map((key) => {
         const active = key === category;
+
         return (
           <button
             key={key}
+            type="button"
             role="tab"
             aria-selected={active}
             onClick={() => changeCategory(key)}
             className={`custom-carousel__tab ${active ? 'custom-carousel__tab--active' : ''}`}
           >
             {CATEGORY_META[key].label}
+
             <span
               className="custom-carousel__tab-underline"
               style={{
@@ -439,21 +355,19 @@ export default function CustomCarousel({ categories, isLoading = false, error = 
     </nav>
   );
 
-  // DEV에서는 에러를 무시하고 fallback 데이터로 렌더링을 계속함 — source가 항상 안전하게
-  // CATALOGUE로 fallback되는 것에 의존(위 소스 정규화 로직). 배포 빌드에서만 에러 UI 노출.
-  const showErrorState = error && !import.meta.env.DEV;
-
-  if (isLoading || showErrorState || len === 0) {
+  if (isLoading || error || len === 0) {
     const message = isLoading
       ? '상품을 불러오는 중입니다…'
-      : showErrorState
+      : error
         ? '새로운 상품을 불러오지 못했습니다.'
         : '이 카테고리에 표시할 상품이 없습니다.';
 
     return (
       <div className="custom-carousel">
-        <h1 className="custom-carousel__title">NEW & TRENDING</h1>
+        <h1 className="custom-carousel__title">NEW &amp; TRENDING</h1>
+
         {tabs}
+
         <p className="custom-carousel__empty">{message}</p>
       </div>
     );
@@ -461,15 +375,11 @@ export default function CustomCarousel({ categories, isLoading = false, error = 
 
   return (
     <div className="custom-carousel">
-      {/* header */}
-      <h1 className="custom-carousel__title">NEW & TRENDING</h1>
+      <h1 className="custom-carousel__title">NEW &amp; TRENDING</h1>
 
-      {/* category tabs */}
       {tabs}
 
-      {/* carousel */}
       <div className="custom-carousel__stage">
-        {/* 데스크톱: 이미지 위 오버레이 화살표 (좁은 화면에서 CSS로 숨김) */}
         <button
           type="button"
           onClick={() => go(-1)}
@@ -484,14 +394,17 @@ export default function CustomCarousel({ categories, isLoading = false, error = 
             className="custom-carousel__track"
             onTransitionEnd={handleTransitionEnd}
             style={{
-              transform: `translate(calc(-50% - ${(pos - (slides.length - 1) / 2) * tileWidth}px), -50%)`,
+              transform: `translate(calc(-50% - ${
+                (displayPos - (slides.length - 1) / 2) * tileWidth
+              }px), -50%)`,
               transition: animate ? `transform ${SLIDE_MS}ms cubic-bezier(.22,.61,.36,1)` : 'none',
             }}
           >
             {slides.map((product, slot) => (
               <ProductTile
-                key={`${category}-${product.id}-${Math.floor(slot / len)}`}
+                key={`${category}-${product.productId ?? product.id}-${Math.floor(slot / len)}`}
                 product={product}
+                category={category}
                 position={positionOf(slot)}
                 onSelect={handleSelect}
                 onStep={go}
@@ -513,7 +426,6 @@ export default function CustomCarousel({ categories, isLoading = false, error = 
         </button>
       </div>
 
-      {/* product name + price + nav (좁은 화면: 화살표를 상품명 옆에) */}
       <div className="custom-carousel__nav">
         <button
           type="button"
@@ -530,8 +442,9 @@ export default function CustomCarousel({ categories, isLoading = false, error = 
           className="custom-carousel__meta"
         >
           <span className="custom-carousel__meta-name">{items[realIndex].name}</span>
+
           <span className="custom-carousel__meta-price">
-            ₩ {items[realIndex].price.toLocaleString()}
+            ₩ {Number(items[realIndex].price ?? 0).toLocaleString()}
           </span>
         </button>
 
@@ -545,25 +458,20 @@ export default function CustomCarousel({ categories, isLoading = false, error = 
         </button>
       </div>
 
-      {/* indicators */}
       <div className="custom-carousel__dots" role="tablist" aria-label="슬라이드 위치">
-        {items.map((it, i) => (
+        {items.map((item, index) => (
           <button
-            key={it.id}
-            aria-label={`${i + 1}번째 상품로 이동`}
-            onClick={() => goToIndex(i)}
+            key={item.productId ?? item.id}
+            type="button"
+            aria-label={`${index + 1}번째 상품으로 이동`}
+            onClick={() => goToIndex(index)}
             className="custom-carousel__dot"
             style={{
-              width: i === realIndex ? 28 : 16,
-              backgroundColor: i === realIndex ? '#111111' : '#DADADA',
+              width: index === realIndex ? 28 : 16,
+              backgroundColor: index === realIndex ? '#111111' : '#DADADA',
             }}
           />
         ))}
-      </div>
-
-      {/* toast */}
-      <div className={`custom-carousel__toast ${toast ? 'custom-carousel__toast--visible' : ''}`}>
-        {toast}
       </div>
     </div>
   );

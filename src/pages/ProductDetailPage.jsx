@@ -5,6 +5,7 @@ import { handleAddToCart } from '@/api/alert';
 import { getAccessToken } from '@/utils/storage';
 import { useCartStore } from '@/store/cartStore';
 import { getProduct, getSet } from '@/api/products';
+import { getProductReviews, getSetReviews } from '@/api/reviews';
 import useWishlistStore from '@/store/wishlistStore';
 import '@/styles/product-detail.css';
 
@@ -26,6 +27,98 @@ const COLOR_MAP = {
   silver: '#c3c7cc',
 };
 
+const APPAREL_SIZE_ORDER = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL'];
+
+const KOREAN_SIZE_LABELS = {
+  XS: '44',
+  S: '44–55',
+  M: '55–66',
+  L: '66–77',
+  XL: '77–88',
+  XXL: '88–99',
+  '3XL': '99–110',
+  '4XL': '110 이상',
+};
+
+function getBaseFitSize(height, weight) {
+  let sizeIndex;
+
+  if (weight < 48) {
+    sizeIndex = 0;
+  } else if (weight < 55) {
+    sizeIndex = 1;
+  } else if (weight < 63) {
+    sizeIndex = 2;
+  } else if (weight < 72) {
+    sizeIndex = 3;
+  } else if (weight < 82) {
+    sizeIndex = 4;
+  } else if (weight < 92) {
+    sizeIndex = 5;
+  } else if (weight < 102) {
+    sizeIndex = 6;
+  } else {
+    sizeIndex = 7;
+  }
+
+  if (height >= 175) {
+    sizeIndex += 1;
+  } else if (height <= 155) {
+    sizeIndex -= 1;
+  }
+
+  return APPAREL_SIZE_ORDER[Math.max(0, Math.min(APPAREL_SIZE_ORDER.length - 1, sizeIndex))];
+}
+
+function getClosestAvailableSize(baseSize, availableSizes) {
+  const baseIndex = APPAREL_SIZE_ORDER.indexOf(baseSize);
+
+  if (baseIndex === -1 || availableSizes.length === 0) {
+    return null;
+  }
+
+  return availableSizes.reduce((closest, size) => {
+    const sizeIndex = APPAREL_SIZE_ORDER.indexOf(size);
+
+    if (sizeIndex === -1) {
+      return closest;
+    }
+
+    if (!closest) {
+      return size;
+    }
+
+    const closestIndex = APPAREL_SIZE_ORDER.indexOf(closest);
+    const currentDistance = Math.abs(sizeIndex - baseIndex);
+    const closestDistance = Math.abs(closestIndex - baseIndex);
+
+    if (currentDistance < closestDistance) {
+      return size;
+    }
+
+    if (currentDistance === closestDistance && sizeIndex > closestIndex) {
+      return size;
+    }
+
+    return closest;
+  }, null);
+}
+
+function getFitLabel(baseSize, recommendedSize) {
+  const baseIndex = APPAREL_SIZE_ORDER.indexOf(baseSize);
+  const recommendedIndex = APPAREL_SIZE_ORDER.indexOf(recommendedSize);
+
+  if (baseIndex === -1 || recommendedIndex === -1 || baseIndex === recommendedIndex) {
+    return '정사이즈 핏 예상';
+  }
+
+  if (recommendedIndex > baseIndex) {
+    return '조금 여유 있는 핏 예상';
+  }
+
+  return '조금 슬림한 핏 예상';
+}
+
 function normalizeImageUrl(url) {
   if (!url || typeof url !== 'string') {
     return '';
@@ -34,18 +127,192 @@ function normalizeImageUrl(url) {
   return url.trim().replace(/^<|>$/g, '');
 }
 
-function getImageList(product) {
+const IMAGE_TYPE_ORDER = ['thumbnail', 'styled', 'front', 'side', 'back'];
+
+function getImageValue(image) {
+  if (!image) {
+    return '';
+  }
+
+  if (typeof image === 'string') {
+    return normalizeImageUrl(image);
+  }
+
+  if (Array.isArray(image)) {
+    return getImageValue(image[0]);
+  }
+
+  return normalizeImageUrl(
+    image.imageUrl ??
+      image.image_url ??
+      image.url ??
+      image.src ??
+      image.path ??
+      image.fileUrl ??
+      image.file_url
+  );
+}
+
+function getImageType(image) {
+  return String(
+    image?.type ?? image?.imageType ?? image?.image_type ?? image?.kind ?? image?.name ?? ''
+  ).toLowerCase();
+}
+
+function getImagesContainer(product) {
+  return product?.images ?? product?.productImages ?? product?.product_images ?? null;
+}
+
+function getSelectedColorImages(product, selectedColor) {
+  if (!Array.isArray(product?.colors) || product.colors.length === 0) {
+    return [];
+  }
+
+  const selected =
+    product.colors.find((color) => {
+      const keys = [color?.id, color?.value, color?.filterGroup, color?.name, color?.label]
+        .filter(Boolean)
+        .map((value) => String(value).toLowerCase());
+
+      return selectedColor && keys.includes(String(selectedColor).toLowerCase());
+    }) ?? product.colors[0];
+
+  const colorImages =
+    selected?.images ?? selected?.imageUrls ?? selected?.image_urls ?? selected?.gallery ?? [];
+
+  if (!Array.isArray(colorImages)) {
+    return [];
+  }
+
+  return colorImages.map(getImageValue).filter(Boolean);
+}
+
+function getProductImageByType(product, type) {
+  if (!product) {
+    return '';
+  }
+
+  const images = getImagesContainer(product);
+
+  if (Array.isArray(images)) {
+    const matched = images.find((image) => getImageType(image) === type);
+
+    return getImageValue(matched);
+  }
+
+  if (images && typeof images === 'object') {
+    const direct = images[type] ?? images[type.toUpperCase()];
+
+    if (direct) {
+      return getImageValue(direct);
+    }
+
+    const matchedEntry = Object.entries(images).find(([key]) => String(key).toLowerCase() === type);
+
+    return getImageValue(matchedEntry?.[1]);
+  }
+
+  return '';
+}
+
+function getExtraImageCandidates(product, selectedColor) {
+  const candidates = [];
+  const images = getImagesContainer(product);
+
+  if (Array.isArray(images)) {
+    const sorted = [...images].sort(
+      (a, b) =>
+        Number(a?.sortOrder ?? a?.sort_order ?? 999) - Number(b?.sortOrder ?? b?.sort_order ?? 999)
+    );
+
+    sorted.forEach((image) => {
+      const value = getImageValue(image);
+
+      if (value) {
+        candidates.push(value);
+      }
+    });
+  } else if (images && typeof images === 'object') {
+    Object.values(images).forEach((image) => {
+      if (Array.isArray(image)) {
+        image.forEach((item) => {
+          const value = getImageValue(item);
+
+          if (value) {
+            candidates.push(value);
+          }
+        });
+        return;
+      }
+
+      const value = getImageValue(image);
+
+      if (value) {
+        candidates.push(value);
+      }
+    });
+  }
+
+  [product?.imageUrls, product?.image_urls, product?.gallery].forEach((list) => {
+    if (!Array.isArray(list)) {
+      return;
+    }
+
+    list.forEach((image) => {
+      const value = getImageValue(image);
+
+      if (value) {
+        candidates.push(value);
+      }
+    });
+  });
+
+  candidates.push(...getSelectedColorImages(product, selectedColor));
+
+  return candidates;
+}
+
+function getImageList(product, selectedColor) {
   if (!product) {
     return [];
   }
 
-  return [
-    normalizeImageUrl(product.images?.thumbnail || product.imageUrl),
-    normalizeImageUrl(product.images?.front),
-    normalizeImageUrl(product.images?.side),
-    normalizeImageUrl(product.images?.back),
-    normalizeImageUrl(product.images?.styled),
-  ].filter(Boolean);
+  const slots = IMAGE_TYPE_ORDER.map((type) => {
+    if (type === 'thumbnail') {
+      return (
+        getProductImageByType(product, type) ||
+        normalizeImageUrl(product.thumbnail) ||
+        normalizeImageUrl(product.thumbnailUrl) ||
+        normalizeImageUrl(product.thumbnail_url) ||
+        normalizeImageUrl(product.imageUrl) ||
+        normalizeImageUrl(product.image_url)
+      );
+    }
+
+    return getProductImageByType(product, type);
+  });
+
+  const extras = getExtraImageCandidates(product, selectedColor);
+  let extraIndex = 0;
+
+  const filledSlots = slots.map((slot) => {
+    if (slot) {
+      return slot;
+    }
+
+    while (extraIndex < extras.length) {
+      const candidate = extras[extraIndex];
+      extraIndex += 1;
+
+      if (candidate) {
+        return candidate;
+      }
+    }
+
+    return '';
+  });
+
+  return filledSlots.filter(Boolean).slice(0, 5);
 }
 
 function ProductImage({ src, alt, placeholder = 'PRODUCT IMAGE' }) {
@@ -58,6 +325,30 @@ function ProductImage({ src, alt, placeholder = 'PRODUCT IMAGE' }) {
   return <img src={src} alt={alt} onError={() => setFailedSrc(src)} />;
 }
 
+function getReviewStars(rating) {
+  const filledCount = Math.max(0, Math.min(5, Math.round(Number(rating) || 0)));
+
+  return `${'★'.repeat(filledCount)}${'☆'.repeat(5 - filledCount)}`;
+}
+
+function formatReviewDate(value) {
+  if (!value) {
+    return '';
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
+  }
+
+  return new Intl.DateTimeFormat('ko-KR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
+}
+
 function ProductDetailPage() {
   const navigate = useNavigate();
   const { productId } = useParams();
@@ -68,6 +359,12 @@ function ProductDetailPage() {
   const [product, setProduct] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
+  const [reviewSummary, setReviewSummary] = useState({
+    averageRating: 0,
+    reviewCount: 0,
+  });
+  const [recentReviews, setRecentReviews] = useState([]);
+  const [reviewLoadError, setReviewLoadError] = useState('');
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
@@ -83,6 +380,10 @@ function ProductDetailPage() {
   const toggleWishlistItem = useWishlistStore((state) => state.toggleItem);
 
   const [activeDetailTab, setActiveDetailTab] = useState('info');
+  const [fitHeight, setFitHeight] = useState('');
+  const [fitWeight, setFitWeight] = useState('');
+  const [fitRecommendation, setFitRecommendation] = useState(null);
+  const [fitError, setFitError] = useState('');
 
   const addCartItem = useCartStore((state) => state.addItem);
 
@@ -112,9 +413,21 @@ function ProductDetailPage() {
 
         setProduct(data);
         setActiveImageIndex(0);
-        setSelectedColor(data.colors?.[0]?.value ?? '');
+        setSelectedColor(
+          data.colors?.[0]?.value ??
+            data.colors?.[0]?.filterGroup ??
+            data.colors?.[0]?.filterColor ??
+            data.colors?.[0]?.color ??
+            data.colors?.[0]?.name ??
+            data.colors?.[0]?.label ??
+            ''
+        );
         setSelectedSize(firstAvailableSize?.size ?? data.sizes?.[0]?.size ?? '');
         setQuantity(1);
+        setFitHeight('');
+        setFitWeight('');
+        setFitRecommendation(null);
+        setFitError('');
       } catch {
         if (!isMounted) {
           return;
@@ -136,6 +449,49 @@ function ProductDetailPage() {
     };
   }, [isSet, productId]);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchReviews = async () => {
+      try {
+        setReviewLoadError('');
+
+        const response = isSet
+          ? await getSetReviews(productId, { page: 1, limit: 3 })
+          : await getProductReviews(productId, { page: 1, limit: 3 });
+
+        if (!isMounted) {
+          return;
+        }
+
+        const data = response?.data ?? {};
+
+        setReviewSummary({
+          averageRating: Number(data.averageRating ?? 0),
+          reviewCount: Number(data.reviewCount ?? 0),
+        });
+        setRecentReviews(Array.isArray(data.reviews) ? data.reviews : []);
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        setReviewSummary({
+          averageRating: 0,
+          reviewCount: 0,
+        });
+        setRecentReviews([]);
+        setReviewLoadError(error.message || '리뷰를 불러오지 못했습니다.');
+      }
+    };
+
+    fetchReviews();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isSet, productId]);
+
   const isWishlisted = wishlistItems.some((item) => {
     const itemProductId = Number(
       item?.productId ?? item?.product?.productId ?? item?.product?.id ?? item?.id
@@ -145,7 +501,7 @@ function ProductDetailPage() {
     return itemProductId === currentProductId;
   });
 
-  const imageList = useMemo(() => getImageList(product), [product]);
+  const imageList = useMemo(() => getImageList(product, selectedColor), [product, selectedColor]);
 
   const activeImage = imageList[activeImageIndex] ?? '';
 
@@ -157,6 +513,28 @@ function ProductDetailPage() {
     .slice(0, 5);
 
   const hasSizes = Array.isArray(product?.sizes) && product.sizes.length > 0;
+
+  const availableApparelSizes = useMemo(() => {
+    if (!hasSizes) {
+      return [];
+    }
+
+    return product.sizes
+      .filter((item) => Number(item.stock ?? 0) > 0)
+      .map((item) => String(item.size).toUpperCase())
+      .filter((size) => APPAREL_SIZE_ORDER.includes(size));
+  }, [hasSizes, product]);
+
+  const canRecommendFit = availableApparelSizes.length > 0;
+  const isShoes = product?.categoryId === 'shoes';
+
+  const sizeGuideTitle = isShoes
+    ? '한국 여성 신발 사이즈 가이드'
+    : product?.categoryId === 'bottom'
+      ? '한국 여성 하의 사이즈 가이드'
+      : product?.categoryId === 'sets' || isSet
+        ? '한국 여성 세트 사이즈 가이드'
+        : '한국 여성 의류 사이즈 가이드';
 
   const selectedSizeData = hasSizes
     ? product.sizes.find((item) => String(item.size) === String(selectedSize))
@@ -173,6 +551,7 @@ function ProductDetailPage() {
     (hasSizes && !selectedSize);
 
   const price = Number(product?.price ?? 0);
+  const reviewDetailPath = `/products/${productId}/reviews${isSet ? '?type=set' : ''}`;
 
   const originalPrice =
     product?.originalPrice === null || product?.originalPrice === undefined
@@ -182,21 +561,25 @@ function ProductDetailPage() {
   const discountRate =
     originalPrice && originalPrice > price ? Math.round((1 - price / originalPrice) * 100) : null;
 
-  const detailImageOne = normalizeImageUrl(
-    product?.images?.styled || product?.images?.front || product?.imageUrl
-  );
+  const detailImageOne =
+    getProductImageByType(product, 'styled') ||
+    getProductImageByType(product, 'front') ||
+    normalizeImageUrl(product?.imageUrl);
 
-  const detailImageTwo = normalizeImageUrl(
-    product?.images?.front || product?.images?.side || product?.imageUrl
-  );
+  const detailImageTwo =
+    getProductImageByType(product, 'front') ||
+    getProductImageByType(product, 'side') ||
+    normalizeImageUrl(product?.imageUrl);
 
-  const detailWideImage = normalizeImageUrl(
-    product?.images?.side || product?.images?.back || product?.imageUrl
-  );
+  const detailWideImage =
+    getProductImageByType(product, 'side') ||
+    getProductImageByType(product, 'back') ||
+    normalizeImageUrl(product?.imageUrl);
 
-  const detailImageThree = normalizeImageUrl(
-    product?.images?.back || product?.images?.styled || product?.imageUrl
-  );
+  const detailImageThree =
+    getProductImageByType(product, 'back') ||
+    getProductImageByType(product, 'styled') ||
+    normalizeImageUrl(product?.imageUrl);
 
   const setComponents =
     product?.components ??
@@ -266,7 +649,62 @@ function ProductDetailPage() {
     });
   };
 
-  const handleWishlistToggle = () => {
+  const handleWriteReview = () => {
+    navigate(reviewDetailPath);
+  };
+
+  const handleFitRecommendation = () => {
+    const height = Number(fitHeight);
+    const weight = Number(fitWeight);
+
+    setFitError('');
+    setFitRecommendation(null);
+
+    if (!Number.isFinite(height) || !Number.isFinite(weight) || !fitHeight || !fitWeight) {
+      setFitError('키와 몸무게를 모두 입력해 주세요.');
+      return;
+    }
+
+    if (height < 130 || height > 200) {
+      setFitError('키는 130cm부터 200cm 사이로 입력해 주세요.');
+      return;
+    }
+
+    if (weight < 30 || weight > 150) {
+      setFitError('몸무게는 30kg부터 150kg 사이로 입력해 주세요.');
+      return;
+    }
+
+    if (!canRecommendFit) {
+      setFitError('이 상품은 키와 몸무게를 이용한 사이즈 추천을 지원하지 않습니다.');
+      return;
+    }
+
+    const baseSize = getBaseFitSize(height, weight);
+    const recommendedSize = getClosestAvailableSize(baseSize, availableApparelSizes);
+
+    if (!recommendedSize) {
+      setFitError('현재 추천할 수 있는 재고 보유 사이즈가 없습니다.');
+      return;
+    }
+
+    setFitRecommendation({
+      size: recommendedSize,
+      fit: getFitLabel(baseSize, recommendedSize),
+      isAdjusted: recommendedSize !== baseSize,
+    });
+  };
+
+  const handleApplyRecommendedSize = () => {
+    if (!fitRecommendation?.size) {
+      return;
+    }
+
+    setSelectedSize(fitRecommendation.size);
+    setQuantity(1);
+  };
+
+  const handleWishlistToggle = async () => {
     if (!product) {
       return;
     }
@@ -283,7 +721,7 @@ function ProductDetailPage() {
         throw new Error('상품 정보를 확인할 수 없습니다.');
       }
 
-      toggleWishlistItem({
+      await toggleWishlistItem({
         ...product,
         id: product.id ?? normalizedProductId,
         productId: normalizedProductId,
@@ -300,13 +738,31 @@ function ProductDetailPage() {
     }
 
     const selectedColorData = product.colors?.find(
-      (color) => (color.value ?? color.filterGroup) === selectedColor
+      (color) =>
+        (color.value ??
+          color.filterGroup ??
+          color.filterColor ??
+          color.color ??
+          color.name ??
+          color.label) === selectedColor
     );
 
     const colorValue =
-      selectedColor || product.colors?.[0]?.value || product.colors?.[0]?.filterGroup || '';
+      selectedColor ||
+      product.colors?.[0]?.value ||
+      product.colors?.[0]?.filterGroup ||
+      product.colors?.[0]?.filterColor ||
+      product.colors?.[0]?.color ||
+      product.colors?.[0]?.name ||
+      product.colors?.[0]?.label ||
+      '';
 
-    const colorLabel = selectedColorData?.label ?? product.colors?.[0]?.label ?? colorValue;
+    const colorLabel =
+      selectedColorData?.label ??
+      selectedColorData?.filterColor ??
+      product.colors?.[0]?.label ??
+      product.colors?.[0]?.filterColor ??
+      colorValue;
 
     const optionParts = [];
 
@@ -333,7 +789,7 @@ function ProductDetailPage() {
       productId: productIdNumber,
       productType,
       name: product.name,
-      imageUrl: normalizeImageUrl(product.images?.thumbnail || product.imageUrl),
+      imageUrl: getProductImageByType(product, 'thumbnail') || normalizeImageUrl(product.imageUrl),
       price,
       originalPrice,
       color: colorValue,
@@ -503,14 +959,17 @@ function ProductDetailPage() {
             )}
           </div>
 
-          <div className="star-rating">
-            <span>★</span>
-            <span>★</span>
-            <span>★</span>
-            <span>★</span>
-            <span>☆</span>
-            <span className="review-count">(23)</span>
-          </div>
+          <Link
+            to={reviewDetailPath}
+            className="star-rating product-rating-link"
+            aria-label={`평균 별점 ${reviewSummary.averageRating.toFixed(1)}점, 리뷰 ${reviewSummary.reviewCount}개`}
+          >
+            <span className="product-rating-stars">
+              {getReviewStars(reviewSummary.averageRating)}
+            </span>
+            <span className="product-rating-score">{reviewSummary.averageRating.toFixed(1)}</span>
+            <span className="review-count">({reviewSummary.reviewCount})</span>
+          </Link>
 
           <p className="product-description">{product.description}</p>
 
@@ -520,7 +979,13 @@ function ProductDetailPage() {
 
               <div className="color-list">
                 {product.colors.map((color) => {
-                  const colorValue = color.value ?? color.filterGroup;
+                  const colorValue =
+                    color.value ??
+                    color.filterGroup ??
+                    color.filterColor ??
+                    color.color ??
+                    color.name ??
+                    color.label;
 
                   return (
                     <label className="color-option" key={colorValue}>
@@ -826,23 +1291,61 @@ function ProductDetailPage() {
         <div className="review-section-header">
           <h2 className="review-section-title">리뷰</h2>
 
-          <button type="button" className="write-review-button">
+          <button type="button" className="write-review-button" onClick={handleWriteReview}>
             리뷰 작성
           </button>
         </div>
 
         <div className="review-summary">
           <div className="review-score">
-            <strong>0.0</strong>
+            <strong>{reviewSummary.averageRating.toFixed(1)}</strong>
 
             <div>
-              <div className="review-stars">☆☆☆☆☆</div>
-              <span>0개의 리뷰</span>
+              <div className="review-stars">{getReviewStars(reviewSummary.averageRating)}</div>
+              <span>{reviewSummary.reviewCount}개의 리뷰</span>
             </div>
           </div>
+
+          {reviewSummary.reviewCount > 0 && (
+            <Link to={reviewDetailPath} className="review-summary-link">
+              전체 리뷰 보기
+            </Link>
+          )}
         </div>
 
-        <div className="review-list" />
+        {reviewLoadError ? (
+          <div className="review-list-state">{reviewLoadError}</div>
+        ) : recentReviews.length === 0 ? (
+          <div className="review-list-state">아직 등록된 리뷰가 없습니다.</div>
+        ) : (
+          <div className="review-list">
+            {recentReviews.map((review) => (
+              <article className="review-preview-card" key={review.reviewId}>
+                <div className="review-preview-header">
+                  <div>
+                    <strong>{review.userName || '구매 고객'}</strong>
+                    <span>{formatReviewDate(review.createdAt)}</span>
+                  </div>
+
+                  <span className="review-preview-badge">구매 리뷰</span>
+                </div>
+
+                <div className="review-preview-rating">
+                  <span>{getReviewStars(review.rating)}</span>
+                  <strong>{Number(review.rating ?? 0).toFixed(1)}</strong>
+                </div>
+
+                <p>{review.content}</p>
+              </article>
+            ))}
+          </div>
+        )}
+
+        {reviewSummary.reviewCount > 0 && (
+          <Link to={reviewDetailPath} className="review-all-button">
+            전체 리뷰 보기
+          </Link>
+        )}
       </section>
 
       {hasSizes && (
@@ -850,137 +1353,200 @@ function ProductDetailPage() {
           <div className="size-guide-heading">
             <span>사이즈 가이드</span>
 
-            <h2>여성 상의 사이즈 가이드</h2>
+            <h2>{sizeGuideTitle}</h2>
 
-            <p>사이즈 변환을 위해 위치를 선택해 주세요.</p>
-          </div>
-
-          <div className="size-guide-country">
-            <select defaultValue="international">
-              <option value="international">국제</option>
-              <option value="korea">한국</option>
-            </select>
-          </div>
-
-          <p className="size-guide-description">
-            US 사이즈 탭을 선택하여 차트에서 해당 사이즈를 확인해 보세요.
-          </p>
-
-          <div className="size-guide-tabs">
-            <button type="button" className="size-guide-tab is-active">
-              US 사이즈 0 - 20
-            </button>
-
-            <button type="button" className="size-guide-tab">
-              US 사이즈 XXXS - 2X
-            </button>
-
-            <button type="button" className="size-guide-tab">
-              US 사이즈 XS/S - XL/XXL
-            </button>
+            <p>
+              한국에서 익숙한 사이즈 표기를 기준으로 확인해 주세요. 실제 착용감은 상품 디자인과
+              체형에 따라 달라질 수 있습니다.
+            </p>
           </div>
 
           <div className="size-guide-content">
-            <h3>US 사이즈 0 - 20</h3>
+            <h3>한국 기준 사이즈</h3>
 
-            <p>
-              US 사이즈 기준으로 디자인했어요. 아래 차트를 참고해 사이즈를 선택하시거나, 바디 치수를
-              측정해 정확한 사이즈를 찾아보세요.
-            </p>
-
-            <div className="size-unit">
-              <span className="is-active">CM</span>
-
-              <span className="size-unit-toggle">
-                <span />
-              </span>
-
-              <span>IN</span>
-            </div>
+            <p>현재 상품에서 선택할 수 있는 사이즈를 한국 기준 참고 표기와 함께 정리했습니다.</p>
 
             <div className="size-table-scroll">
               <table className="size-guide-table">
                 <tbody>
                   <tr>
-                    <th>국제 사이즈</th>
-                    <td>XXS</td>
-                    <td>XS</td>
-                    <td>S</td>
-                    <td>M</td>
-                    <td>L</td>
-                    <td>XL</td>
-                    <td>XXL</td>
-                    <td>XXL</td>
-                    <td>3XL</td>
-                    <td>4XL</td>
+                    <th>{isShoes ? '한국 사이즈' : 'ARC 사이즈'}</th>
+                    {product.sizes.map((sizeData) => (
+                      <td key={`arc-${sizeData.size}`}>
+                        {isShoes ? `${sizeData.size}mm` : String(sizeData.size).toUpperCase()}
+                      </td>
+                    ))}
                   </tr>
 
-                  <tr>
-                    <th>US 사이즈</th>
-                    <td>0</td>
-                    <td>2</td>
-                    <td>4</td>
-                    <td>6</td>
-                    <td>8</td>
-                    <td>10</td>
-                    <td>12</td>
-                    <td>14</td>
-                    <td>16</td>
-                    <td>18</td>
-                  </tr>
+                  {!isShoes && (
+                    <tr>
+                      <th>한국 기준 참고</th>
+                      {product.sizes.map((sizeData) => {
+                        const size = String(sizeData.size).toUpperCase();
+
+                        return (
+                          <td key={`kr-${sizeData.size}`}>{KOREAN_SIZE_LABELS[size] ?? size}</td>
+                        );
+                      })}
+                    </tr>
+                  )}
 
                   <tr>
-                    <th>가슴둘레</th>
-                    <td>72.4cm</td>
-                    <td>76.2cm</td>
-                    <td>78.7-81.3cm</td>
-                    <td>83.8-86.4cm</td>
-                    <td>88.9-91.4cm</td>
-                    <td>94-97.8cm</td>
-                    <td>101.6cm</td>
-                    <td>106.7cm</td>
-                    <td>114.3cm</td>
-                    <td>119.4cm</td>
+                    <th>재고 상태</th>
+                    {product.sizes.map((sizeData) => (
+                      <td key={`stock-${sizeData.size}`}>
+                        {Number(sizeData.stock ?? 0) > 0 ? '선택 가능' : '품절'}
+                      </td>
+                    ))}
                   </tr>
                 </tbody>
               </table>
             </div>
 
-            <div className="measurement-guide">
-              <div className="measurement-text">
-                <h3>측정 방법</h3>
+            {canRecommendFit && (
+              <section className="fit-recommendation">
+                <div className="fit-recommendation-heading">
+                  <span>MY FIT</span>
 
-                <p>
-                  편안한 자세로 허리를 곧게 펴고 발끝이 나란하게 서 주세요. 줄자를 사용해 정확한
-                  치수를 측정해 보세요.
+                  <h3>키와 몸무게로 사이즈 찾기</h3>
+
+                  <p>
+                    키와 몸무게를 입력하면 현재 상품의 재고가 있는 사이즈 중 가장 가까운 사이즈를
+                    추천합니다.
+                  </p>
+                </div>
+
+                <div className="fit-recommendation-form">
+                  <label className="fit-input-field">
+                    <span>키</span>
+
+                    <div>
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        min="130"
+                        max="200"
+                        step="1"
+                        value={fitHeight}
+                        onChange={(event) => {
+                          setFitHeight(event.target.value);
+                          setFitRecommendation(null);
+                          setFitError('');
+                        }}
+                        placeholder="165"
+                        aria-label="키 입력"
+                      />
+
+                      <span>cm</span>
+                    </div>
+                  </label>
+
+                  <label className="fit-input-field">
+                    <span>몸무게</span>
+
+                    <div>
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        min="30"
+                        max="150"
+                        step="0.1"
+                        value={fitWeight}
+                        onChange={(event) => {
+                          setFitWeight(event.target.value);
+                          setFitRecommendation(null);
+                          setFitError('');
+                        }}
+                        placeholder="55"
+                        aria-label="몸무게 입력"
+                      />
+
+                      <span>kg</span>
+                    </div>
+                  </label>
+
+                  <button
+                    type="button"
+                    className="fit-recommendation-button"
+                    onClick={handleFitRecommendation}
+                  >
+                    추천 사이즈 확인
+                  </button>
+                </div>
+
+                {fitError && <p className="fit-recommendation-error">{fitError}</p>}
+
+                {fitRecommendation && (
+                  <div className="fit-recommendation-result">
+                    <div>
+                      <span>추천 사이즈</span>
+                      <strong>{fitRecommendation.size}</strong>
+                    </div>
+
+                    <div>
+                      <span>예상 착용감</span>
+                      <strong>{fitRecommendation.fit}</strong>
+                    </div>
+
+                    <p>
+                      {fitRecommendation.isAdjusted
+                        ? '기본 추천 사이즈와 가장 가까운 재고 보유 사이즈를 안내했습니다.'
+                        : '입력한 키와 몸무게를 기준으로 가장 가까운 사이즈를 안내했습니다.'}
+                    </p>
+
+                    <button
+                      type="button"
+                      className="fit-apply-button"
+                      onClick={handleApplyRecommendedSize}
+                    >
+                      추천 사이즈 선택
+                    </button>
+                  </div>
+                )}
+
+                <p className="fit-recommendation-note">
+                  키와 몸무게를 이용한 간단 추천으로, 실제 핏은 체형과 상품별 실측에 따라 달라질 수
+                  있습니다.
                 </p>
+              </section>
+            )}
 
-                <div className="measurement-item">
-                  <strong>1. 가슴둘레</strong>
+            {!isShoes && (
+              <div className="measurement-guide">
+                <div className="measurement-text">
+                  <h3>측정 방법</h3>
 
                   <p>
-                    양팔을 내린 상태로 가슴의 가장 넓은 부분을 측정하세요. 줄자를 등 뒤로 두른 때
-                    너무 조이거나 느슨하지 않도록 유지하세요.
+                    편안한 자세로 허리를 곧게 펴고 발끝이 나란하게 서 주세요. 줄자를 몸에 너무
+                    조이거나 느슨하지 않게 두고 측정하면 사이즈를 비교하기 쉽습니다.
                   </p>
-                </div>
 
-                <div className="measurement-item">
-                  <strong>2. 허리둘레</strong>
-                  <p>허리의 가장 가는 부분의 둘레를 측정하세요.</p>
-                </div>
+                  <div className="measurement-item">
+                    <strong>1. 가슴둘레</strong>
 
-                <div className="measurement-item">
-                  <strong>3. 엉덩이둘레</strong>
-                  <p>
-                    양발을 골반 너비로 벌려 선 후, 엉덩이의 가장 볼록한 부분의 둘레를 측정하세요.
-                  </p>
+                    <p>
+                      양팔을 자연스럽게 내린 상태에서 가슴의 가장 넓은 부분을 수평으로 측정해
+                      주세요.
+                    </p>
+                  </div>
+
+                  <div className="measurement-item">
+                    <strong>2. 허리둘레</strong>
+
+                    <p>허리의 가장 가는 부분을 기준으로 둘레를 측정해 주세요.</p>
+                  </div>
+
+                  <div className="measurement-item">
+                    <strong>3. 엉덩이둘레</strong>
+
+                    <p>
+                      양발을 골반 너비로 벌리고 선 뒤 엉덩이의 가장 볼록한 부분을 수평으로 측정해
+                      주세요.
+                    </p>
+                  </div>
                 </div>
               </div>
-
-              <div className="measurement-image">
-                <img src="/images/products/size-guide.jpg" alt="상의 사이즈 측정 방법" />
-              </div>
-            </div>
+            )}
           </div>
         </section>
       )}
