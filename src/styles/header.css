@@ -341,86 +341,6 @@
   cursor: pointer;
 }
 
-.site-header-action--search {
-  display: none;
-}
-
-.site-mobile-search {
-  position: fixed;
-  inset: 0;
-  z-index: 200;
-
-  display: none;
-
-  background: #fff;
-  color: #0b0c0e;
-}
-
-.site-mobile-search-form {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-
-  width: calc(100% - 56px);
-  max-width: 696px;
-  height: 58px;
-  margin: 14px auto 0;
-
-  border-bottom: 4px solid #bcbcbc;
-}
-
-.site-mobile-search-icon {
-  flex: 0 0 22px;
-  width: 22px;
-  height: 22px;
-
-  color: #c4c4c4;
-}
-
-.site-mobile-search-form input {
-  flex: 1 1 auto;
-  min-width: 0;
-
-  border: 0;
-  outline: 0;
-  background: transparent;
-
-  color: #111;
-
-  font-family: inherit;
-  font-size: 28px;
-  font-weight: 300;
-}
-
-.site-mobile-search-form input::placeholder {
-  color: #c4c4c4;
-  opacity: 1;
-}
-
-.site-mobile-search-form input::-webkit-search-cancel-button,
-.site-mobile-search-form input::-webkit-search-decoration {
-  display: none;
-  -webkit-appearance: none;
-}
-
-.site-mobile-search-submit {
-  flex: 0 0 34px;
-  width: 34px;
-  height: 34px;
-  padding: 0;
-
-  border: 0;
-  background: transparent;
-  color: #0b0c0e;
-
-  font-family: inherit;
-  font-size: 32px;
-  font-weight: 700;
-  line-height: 1;
-
-  cursor: pointer;
-}
-
 .site-header-cart-badge {
   position: absolute;
   top: -8px;
@@ -525,28 +445,6 @@
 
   .site-header-action--mypage {
     display: none;
-  }
-
-  .site-header-action--search {
-    display: flex;
-  }
-
-  .site-mobile-search {
-    display: block;
-  }
-
-  .site-mobile-search-form {
-    width: calc(100% - 56px);
-    height: 56px;
-    margin-top: 12px;
-  }
-
-  .site-mobile-search-form input {
-    font-size: 24px;
-  }
-
-  .site-mobile-search-submit {
-    font-size: 30px;
   }
 
   .site-logo {

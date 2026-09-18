@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 import LogoutConfirmButton from '@/components/common/LogoutConfirmButton';
 import useAuthStore from '@/store/authStore';
@@ -150,11 +150,8 @@ function getCurrentNavMenu(pathname, search) {
 
 function Header() {
   const location = useLocation();
-  const navigate = useNavigate();
   const [hidden, setHidden] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
-  const [mobileSearchQuery, setMobileSearchQuery] = useState('');
   const [mobileCategory, setMobileCategory] = useState(null);
   const [activeMenu, setActiveMenu] = useState(null);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
@@ -176,26 +173,6 @@ function Header() {
   const closeMobileMenu = () => {
     setMenuOpen(false);
     setMobileCategory(null);
-  };
-
-  const closeMobileSearch = () => {
-    setMobileSearchOpen(false);
-  };
-
-  const handleMobileSearchSubmit = (event) => {
-    event.preventDefault();
-
-    const query = mobileSearchQuery.trim();
-    const nextParams = new URLSearchParams();
-
-    nextParams.set('gender', 'women');
-
-    if (query) {
-      nextParams.set('q', query);
-    }
-
-    setMobileSearchOpen(false);
-    navigate(`/products?${nextParams.toString()}`);
   };
 
   useEffect(() => {
@@ -285,22 +262,6 @@ function Header() {
     };
   }, [menuOpen]);
 
-  useEffect(() => {
-    if (!mobileSearchOpen) return undefined;
-
-    const onKey = (e) => {
-      if (e.key === 'Escape') closeMobileSearch();
-    };
-
-    document.body.style.overflow = 'hidden';
-    window.addEventListener('keydown', onKey);
-
-    return () => {
-      document.body.style.overflow = '';
-      window.removeEventListener('keydown', onKey);
-    };
-  }, [mobileSearchOpen]);
-
   return (
     <header
       className={`site-header${hidden ? ' site-header--hidden' : ''}`}
@@ -362,28 +323,6 @@ function Header() {
 
         {/* HEADER ACTIONS */}
         <div className="site-header-actions">
-          <button
-            type="button"
-            className="site-header-action site-header-action--search"
-            aria-label="상품 검색"
-            aria-expanded={mobileSearchOpen}
-            onClick={() => {
-              setMobileSearchOpen(true);
-              setMenuOpen(false);
-            }}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              fill="currentColor"
-              viewBox="0 0 256 256"
-              aria-hidden="true"
-            >
-              <path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z" />
-            </svg>
-          </button>
-
           {!isLoggedIn && (
             <Link to="/login" className="site-header-action header-login-btn">
               로그인
@@ -617,35 +556,6 @@ function Header() {
               장바구니
             </Link>
           </div>
-        </div>
-      )}
-
-      {mobileSearchOpen && (
-        <div className="site-mobile-search" role="dialog" aria-modal="true" aria-label="상품 검색">
-          <form className="site-mobile-search-form" onSubmit={handleMobileSearchSubmit}>
-            <svg
-              className="site-mobile-search-icon"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 256 256"
-              fill="currentColor"
-              aria-hidden="true"
-            >
-              <path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z" />
-            </svg>
-
-            <input
-              type="search"
-              value={mobileSearchQuery}
-              onChange={(event) => setMobileSearchQuery(event.target.value)}
-              placeholder="검색어를 입력하세요."
-              aria-label="검색어 입력"
-              autoFocus
-            />
-
-            <button type="submit" className="site-mobile-search-submit" aria-label="검색">
-              →
-            </button>
-          </form>
         </div>
       )}
     </header>
