@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import kakiTop from '@/assets/home/kaki_top.webp';
@@ -11,9 +11,16 @@ function useIsCompact() {
 
   useEffect(() => {
     const mql = window.matchMedia(COMPACT_QUERY);
-    const onChange = (e) => setCompact(e.matches);
+
+    const onChange = (event) => {
+      setCompact(event.matches);
+    };
+
     mql.addEventListener('change', onChange);
-    return () => mql.removeEventListener('change', onChange);
+
+    return () => {
+      mql.removeEventListener('change', onChange);
+    };
   }, []);
 
   return compact;
@@ -58,10 +65,18 @@ function ChevronRight({ size = 18, className }) {
 }
 
 const CATEGORY_META = {
-  tops: { label: '상의' },
-  bottoms: { label: '하의' },
-  sunglasses: { label: '선글라스' },
-  hats: { label: '모자' },
+  tops: {
+    label: '상의',
+  },
+  bottoms: {
+    label: '하의',
+  },
+  sunglasses: {
+    label: '선글라스',
+  },
+  hats: {
+    label: '모자',
+  },
 };
 
 const CATEGORY_ORDER = ['tops', 'bottoms', 'sunglasses', 'hats'];
@@ -153,6 +168,7 @@ function ProductTile({ product, position, onSelect, onStep, animate, compact, ti
 
 export default function CustomCarousel({ categories, isLoading = false, error = null }) {
   const navigate = useNavigate();
+
   const source = useMemo(() => {
     if (Array.isArray(categories) && categories.length > 0) {
       return Object.fromEntries(categories.map((entry) => [entry.id, entry.products ?? []]));
@@ -169,57 +185,98 @@ export default function CustomCarousel({ categories, isLoading = false, error = 
   const tileWidth = compact ? TILE_WIDTH_COMPACT : TILE_WIDTH_DESKTOP;
 
   const [category, setCategory] = useState(DEFAULT_CATEGORY);
+  const [pos, setPos] = useState(null);
+  const [animate, setAnimate] = useState(true);
+
   const items = source[category] ?? [];
   const len = items.length;
 
   const COPIES = 3;
   const slides = Array(COPIES).fill(items).flat();
 
-  const [pos, setPos] = useState(len);
-  const [animate, setAnimate] = useState(true);
-  const realIndex = len > 0 ? ((pos % len) + len) % len : 0;
+  const displayPos = pos ?? len;
 
-  useEffect(() => {
-    setAnimate(false);
-    setPos(len);
-  }, [category, len]);
+  const realIndex = len > 0 ? ((displayPos % len) + len) % len : 0;
 
   useEffect(() => {
     Object.values(source)
       .flat()
-      .forEach((p) => {
-        const img = new Image();
-        img.src = p.imageUrl ?? p.image ?? FALLBACK_IMAGE;
+      .forEach((product) => {
+        const image = new Image();
+        image.src = product.imageUrl ?? product.image ?? FALLBACK_IMAGE;
       });
   }, [source]);
 
   useEffect(() => {
-    if (animate) return;
-    const id = requestAnimationFrame(() => requestAnimationFrame(() => setAnimate(true)));
-    return () => cancelAnimationFrame(id);
+    if (animate) {
+      return;
+    }
+
+    const id = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setAnimate(true);
+      });
+    });
+
+    return () => {
+      cancelAnimationFrame(id);
+    };
   }, [animate]);
 
   const changeCategory = (key) => {
+    if (key === category) {
+      return;
+    }
+
+    setAnimate(false);
+    setPos(null);
     setCategory(key);
   };
 
-  const go = (delta) => setPos((p) => p + delta);
+  const go = (delta) => {
+    if (len <= 1) {
+      return;
+    }
 
-  const handleTransitionEnd = (e) => {
-    if (e.target !== e.currentTarget || e.propertyName !== 'transform') return;
-    if (pos < len || pos >= len * 2) {
+    setPos((current) => {
+      const currentPosition = current ?? len;
+
+      return currentPosition + delta;
+    });
+  };
+
+  const handleTransitionEnd = (event) => {
+    if (event.target !== event.currentTarget || event.propertyName !== 'transform' || len === 0) {
+      return;
+    }
+
+    if (displayPos < len || displayPos >= len * 2) {
       setAnimate(false);
       setPos(len + realIndex);
     }
   };
 
-  const goToIndex = (i) => {
-    setPos((p) => {
-      const cur = ((p % len) + len) % len;
-      let d = i - cur;
-      if (d > len / 2) d -= len;
-      if (d < -len / 2) d += len;
-      return p + d;
+  const goToIndex = (index) => {
+    if (len === 0) {
+      return;
+    }
+
+    setPos((current) => {
+      const currentPosition = current ?? len;
+
+      const currentIndex = ((currentPosition % len) + len) % len;
+
+      let distance = index - currentIndex;
+
+      if (distance > len / 2) {
+        distance -= len;
+      }
+
+      if (distance < -len / 2) {
+        distance += len;
+      }
+
+      return currentPosition + distance;
     });
   };
 
@@ -234,10 +291,20 @@ export default function CustomCarousel({ categories, isLoading = false, error = 
   };
 
   const positionOf = (slot) => {
-    const dist = slot - pos;
-    if (dist === 0) return POS.CENTER;
-    if (dist === -1) return POS.LEFT;
-    if (dist === 1) return POS.RIGHT;
+    const distance = slot - displayPos;
+
+    if (distance === 0) {
+      return POS.CENTER;
+    }
+
+    if (distance === -1) {
+      return POS.LEFT;
+    }
+
+    if (distance === 1) {
+      return POS.RIGHT;
+    }
+
     return POS.FAR;
   };
 
@@ -245,15 +312,18 @@ export default function CustomCarousel({ categories, isLoading = false, error = 
     <nav className="custom-carousel__tabs" role="tablist" aria-label="상품 카테고리">
       {CATEGORY_ORDER.map((key) => {
         const active = key === category;
+
         return (
           <button
             key={key}
+            type="button"
             role="tab"
             aria-selected={active}
             onClick={() => changeCategory(key)}
             className={`custom-carousel__tab ${active ? 'custom-carousel__tab--active' : ''}`}
           >
             {CATEGORY_META[key].label}
+
             <span
               className="custom-carousel__tab-underline"
               style={{
@@ -276,8 +346,10 @@ export default function CustomCarousel({ categories, isLoading = false, error = 
 
     return (
       <div className="custom-carousel">
-        <h1 className="custom-carousel__title">NEW & TRENDING</h1>
+        <h1 className="custom-carousel__title">NEW &amp; TRENDING</h1>
+
         {tabs}
+
         <p className="custom-carousel__empty">{message}</p>
       </div>
     );
@@ -285,7 +357,7 @@ export default function CustomCarousel({ categories, isLoading = false, error = 
 
   return (
     <div className="custom-carousel">
-      <h1 className="custom-carousel__title">NEW & TRENDING</h1>
+      <h1 className="custom-carousel__title">NEW &amp; TRENDING</h1>
 
       {tabs}
 
@@ -304,7 +376,9 @@ export default function CustomCarousel({ categories, isLoading = false, error = 
             className="custom-carousel__track"
             onTransitionEnd={handleTransitionEnd}
             style={{
-              transform: `translate(calc(-50% - ${(pos - (slides.length - 1) / 2) * tileWidth}px), -50%)`,
+              transform: `translate(calc(-50% - ${
+                (displayPos - (slides.length - 1) / 2) * tileWidth
+              }px), -50%)`,
               transition: animate ? `transform ${SLIDE_MS}ms cubic-bezier(.22,.61,.36,1)` : 'none',
             }}
           >
@@ -349,6 +423,7 @@ export default function CustomCarousel({ categories, isLoading = false, error = 
           className="custom-carousel__meta"
         >
           <span className="custom-carousel__meta-name">{items[realIndex].name}</span>
+
           <span className="custom-carousel__meta-price">
             ₩ {Number(items[realIndex].price ?? 0).toLocaleString()}
           </span>
@@ -365,15 +440,16 @@ export default function CustomCarousel({ categories, isLoading = false, error = 
       </div>
 
       <div className="custom-carousel__dots" role="tablist" aria-label="슬라이드 위치">
-        {items.map((it, i) => (
+        {items.map((item, index) => (
           <button
-            key={it.productId ?? it.id}
-            aria-label={`${i + 1}번째 상품로 이동`}
-            onClick={() => goToIndex(i)}
+            key={item.productId ?? item.id}
+            type="button"
+            aria-label={`${index + 1}번째 상품으로 이동`}
+            onClick={() => goToIndex(index)}
             className="custom-carousel__dot"
             style={{
-              width: i === realIndex ? 28 : 16,
-              backgroundColor: i === realIndex ? '#111111' : '#DADADA',
+              width: index === realIndex ? 28 : 16,
+              backgroundColor: index === realIndex ? '#111111' : '#DADADA',
             }}
           />
         ))}
