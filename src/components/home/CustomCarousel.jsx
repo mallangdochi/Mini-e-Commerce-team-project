@@ -65,11 +65,17 @@ function ChevronRight({ size = 18, className }) {
 }
 
 const CATEGORY_META = {
+  outer: {
+    label: '아우터',
+  },
   tops: {
     label: '상의',
   },
   bottoms: {
     label: '하의',
+  },
+  shoes: {
+    label: '신발',
   },
   sunglasses: {
     label: '선글라스',
@@ -79,7 +85,7 @@ const CATEGORY_META = {
   },
 };
 
-const CATEGORY_ORDER = ['tops', 'bottoms', 'sunglasses', 'hats'];
+const CATEGORY_ORDER = ['outer', 'tops', 'bottoms', 'shoes', 'sunglasses', 'hats'];
 
 const DEFAULT_CATEGORY = CATEGORY_ORDER[0];
 
@@ -91,8 +97,10 @@ const POS = {
 };
 
 const EMPTY_CATEGORIES = {
+  outer: [],
   tops: [],
   bottoms: [],
+  shoes: [],
   sunglasses: [],
   hats: [],
 };
@@ -263,7 +271,6 @@ export default function CustomCarousel({ categories, isLoading = false, error = 
 
     setPos((current) => {
       const currentPosition = current ?? len;
-
       const currentIndex = ((currentPosition % len) + len) % len;
 
       let distance = index - currentIndex;
