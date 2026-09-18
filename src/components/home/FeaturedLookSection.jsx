@@ -12,7 +12,7 @@ import model10513Bottom from '@/assets/home/featured-look/arc-model-10513-bottom
 import model10513Shoes from '@/assets/home/featured-look/arc-model-10513-shoes.png';
 import model10515Full from '@/assets/home/featured-look/arc-model-10515-full.png';
 import model10515Top from '@/assets/home/featured-look/arc-model-10515-top.png';
-import model10515Bottom from '@/assets/home/featured-look/arc-model-10515-bottom.png';
+import model10515Bottom from'@/assets/home/featured-look/arc-model-10515-bottom.png';
 import model10515Shoes from '@/assets/home/featured-look/arc-model-10515-shoes.png';
 import '@/styles/featured-look.css';
 
@@ -701,3 +701,4 @@ function FeaturedLookSection() {
 }
 
 export default FeaturedLookSection;
+
