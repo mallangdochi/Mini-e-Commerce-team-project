@@ -181,6 +181,11 @@
   filter: drop-shadow(0 18px 18px rgba(0, 0, 0, 0.12));
 }
 
+/* 선글라스 상품 사진은 피사체가 작게 찍혀 있어서 이미지만 확대 — 타일/트랙 크기는 그대로 */
+.custom-carousel__tile-image--sunglasses {
+  transform: scale(1.2);
+}
+
 .custom-carousel__nav {
   margin-top: 8px;
   display: flex;
