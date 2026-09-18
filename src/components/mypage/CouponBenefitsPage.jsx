@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
+import { getCoupons } from '@/api/coupons';
 import EmptyState from '@/components/common/EmptyState';
 import ErrorState from '@/components/common/ErrorState';
+import LoadingState from '@/components/common/LoadingState';
 import useOrders from '@/hooks/useOrders';
 import useAuthStore from '@/store/authStore';
 import '@/styles/order-history.css';
@@ -50,20 +52,7 @@ function IconHeart() {
   );
 }
 
-const SERVER_COUPON_CATALOG = [
-  {
-    couponId: 'WELCOME10',
-    name: '신규 회원 10% 할인',
-    description: '신규 회원에게 제공되는 10% 할인 쿠폰',
-    discountType: 'percent',
-    discountValue: 10,
-    maxDiscount: 0,
-    minOrderAmount: 0,
-    expiresAt: null,
-  },
-];
-
-function normalizeServerCoupons(userCoupons, orderDetails) {
+function normalizeServerCoupons(userCoupons) {
   if (Array.isArray(userCoupons) && userCoupons.length > 0) {
     return userCoupons.map((coupon, index) => {
       const expiresAt = coupon.expiresAt ?? coupon.expiredAt ?? coupon.endDate ?? null;
@@ -97,18 +86,7 @@ function normalizeServerCoupons(userCoupons, orderDetails) {
     });
   }
 
-  return SERVER_COUPON_CATALOG.map((coupon) => {
-    const usedOrder = Object.values(orderDetails).find((detail) => {
-      return detail?.coupon?.couponId === coupon.couponId && detail?.orderStatus !== 'cancelled';
-    });
-
-    return {
-      ...coupon,
-      status: usedOrder ? 'used' : 'available',
-      usedAt: usedOrder?.orderDate ?? null,
-      discountAmount: Number(usedOrder?.coupon?.discountAmount ?? 0),
-    };
-  });
+  return [];
 }
 
 function formatDate(dateString) {
@@ -141,17 +119,49 @@ function getDiscountLabel(coupon) {
 
 function CouponBenefitsPage() {
   const patchUserSummary = useAuthStore((state) => state.patchUserSummary);
-  const { user, orders, orderDetails, errorMessage } = useOrders();
+
+  const { user, orders, errorMessage: orderErrorMessage } = useOrders();
+
   const [selectedTab, setSelectedTab] = useState('available');
+  const [couponItems, setCouponItems] = useState([]);
+  const [isCouponLoading, setIsCouponLoading] = useState(true);
+  const [couponErrorMessage, setCouponErrorMessage] = useState('');
 
-  const coupons = useMemo(() => {
-    const userCoupons =
-      (Array.isArray(user?.coupons) && user.coupons) ||
-      (Array.isArray(user?.couponList) && user.couponList) ||
-      [];
+  const coupons = useMemo(() => normalizeServerCoupons(couponItems), [couponItems]);
 
-    return normalizeServerCoupons(userCoupons, orderDetails);
-  }, [orderDetails, user]);
+  useEffect(() => {
+    let isActive = true;
+
+    const loadCoupons = async () => {
+      setIsCouponLoading(true);
+      setCouponErrorMessage('');
+
+      try {
+        const response = await getCoupons();
+
+        const nextCoupons = Array.isArray(response?.data) ? response.data : [];
+
+        if (isActive) {
+          setCouponItems(nextCoupons);
+        }
+      } catch (error) {
+        if (isActive) {
+          setCouponItems([]);
+          setCouponErrorMessage(error.message || '쿠폰 정보를 불러오지 못했습니다.');
+        }
+      } finally {
+        if (isActive) {
+          setIsCouponLoading(false);
+        }
+      }
+    };
+
+    void loadCoupons();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   const filteredCoupons = useMemo(() => {
     return coupons.filter((coupon) => coupon.status === selectedTab);
@@ -178,7 +188,8 @@ function CouponBenefitsPage() {
     });
   }, [counts.available, patchUserSummary]);
 
-  const pointBalance = Number(user?.points ?? user?.pointBalance ?? user?.mileage ?? 12000);
+  const pointBalance = Number(user?.points ?? user?.pointBalance ?? user?.mileage ?? 0);
+
   const wishlistCount = Number(user?.wishlistCount ?? user?.wishCount ?? 0);
 
   const summaryItems = [
@@ -221,6 +232,7 @@ function CouponBenefitsPage() {
             <Link key={item.label} to={item.to} className="order-history-summary-card">
               <div className="order-history-summary-top">
                 <span className="order-history-summary-icon">{item.icon}</span>
+
                 <span aria-hidden="true">›</span>
               </div>
 
@@ -260,8 +272,10 @@ function CouponBenefitsPage() {
           ))}
         </div>
 
-        {errorMessage ? (
-          <ErrorState className="coupon-empty" message={errorMessage} />
+        {isCouponLoading ? (
+          <LoadingState className="coupon-empty" message="쿠폰 정보를 불러오는 중입니다." />
+        ) : couponErrorMessage || orderErrorMessage ? (
+          <ErrorState className="coupon-empty" message={couponErrorMessage || orderErrorMessage} />
         ) : filteredCoupons.length === 0 ? (
           <EmptyState
             className="coupon-empty"

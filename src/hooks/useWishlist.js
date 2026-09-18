@@ -4,26 +4,29 @@ import useWishlistStore from '@/store/wishlistStore';
 
 function useWishlist() {
   const wishlistItems = useWishlistStore((state) => state.items);
-  const syncFromStorage = useWishlistStore((state) => state.syncFromStorage);
-  const removeByWishlistId = useWishlistStore((state) => state.removeByWishlistId);
+  const isLoading = useWishlistStore((state) => state.isLoading);
+  const errorMessage = useWishlistStore((state) => state.errorMessage);
+  const loadWishlistStore = useWishlistStore((state) => state.loadWishlist);
+  const removeByProductId = useWishlistStore((state) => state.removeByProductId);
 
   useEffect(() => {
-    syncFromStorage();
-  }, [syncFromStorage]);
+    void loadWishlistStore().catch(() => {});
+  }, [loadWishlistStore]);
 
-  const loadWishlist = useCallback(async () => syncFromStorage(), [syncFromStorage]);
+  const loadWishlist = useCallback(
+    async (options) => loadWishlistStore(options),
+    [loadWishlistStore]
+  );
 
   const removeWishlistItem = useCallback(
-    async (wishlistId) => {
-      removeByWishlistId(wishlistId);
-    },
-    [removeByWishlistId]
+    async (productId) => removeByProductId(productId),
+    [removeByProductId]
   );
 
   return {
     wishlistItems,
-    errorMessage: '',
-    isLoading: false,
+    errorMessage,
+    isLoading,
     loadWishlist,
     removeWishlistItem,
   };

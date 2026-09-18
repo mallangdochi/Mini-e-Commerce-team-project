@@ -244,8 +244,32 @@
   font-size: 22px;
 }
 
+.product-detail-page .product-rating-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+
+  color: #111;
+  text-decoration: none;
+}
+
+.product-detail-page .product-rating-link:hover .product-rating-score,
+.product-detail-page .product-rating-link:hover .review-count {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.product-detail-page .product-rating-stars {
+  letter-spacing: 1px;
+}
+
+.product-detail-page .product-rating-score {
+  font-size: 11px;
+  font-weight: 600;
+}
+
 .product-detail-page .review-count {
-  margin-left: 4px;
+  margin-left: 0;
 
   font-size: 9px;
 }
@@ -1197,10 +1221,25 @@
 }
 
 .product-detail-page .review-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+
   padding: 30px 0;
 
   border-top: 1px solid #ddd;
   border-bottom: 1px solid #ddd;
+}
+
+.product-detail-page .review-summary-link {
+  flex-shrink: 0;
+
+  color: #111;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
 
 .product-detail-page .review-score {
@@ -1237,7 +1276,143 @@
 }
 
 .product-detail-page .review-list {
+  width: 100%;
   min-height: 100px;
+}
+
+.product-detail-page .review-list-state {
+  display: flex;
+  min-height: 170px;
+  align-items: center;
+  justify-content: center;
+
+  border-bottom: 1px solid #e5e5e5;
+
+  color: #888;
+  font-size: 12px;
+  text-align: center;
+}
+
+.product-detail-page .review-preview-card {
+  padding: 28px 0 30px;
+
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.product-detail-page .review-preview-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.product-detail-page .review-preview-header > div {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.product-detail-page .review-preview-header strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.product-detail-page .review-preview-header div > span {
+  position: relative;
+
+  padding-left: 13px;
+
+  color: #aaa;
+  font-size: 11px;
+}
+
+.product-detail-page .review-preview-header div > span::before {
+  position: absolute;
+  top: 50%;
+  left: 0;
+
+  width: 1px;
+  height: 9px;
+
+  background: #ddd;
+
+  content: '';
+
+  transform: translateY(-50%);
+}
+
+.product-detail-page .review-preview-badge {
+  display: inline-flex;
+  min-height: 24px;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0 9px;
+
+  border: 1px solid #dcdcdc;
+
+  color: #777;
+  font-size: 9px;
+  font-weight: 500;
+}
+
+.product-detail-page .review-preview-rating {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  margin-top: 18px;
+}
+
+.product-detail-page .review-preview-rating span {
+  letter-spacing: 1px;
+  font-size: 15px;
+}
+
+.product-detail-page .review-preview-rating strong {
+  color: #777;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.product-detail-page .review-preview-card > p {
+  max-width: 850px;
+
+  margin: 16px 0 0;
+
+  color: #333;
+  font-size: 14px;
+  line-height: 1.85;
+  white-space: pre-line;
+  word-break: keep-all;
+}
+
+.product-detail-page .review-all-button {
+  display: flex;
+  width: 180px;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+
+  margin: 34px auto 0;
+
+  border: 1px solid #111;
+
+  background: #fff;
+
+  color: #111;
+  font-size: 11px;
+  font-weight: 600;
+  text-decoration: none;
+
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.product-detail-page .review-all-button:hover {
+  background: #111;
+  color: #fff;
 }
 
 /* 상세 콘텐츠 - TABLET */
@@ -1348,6 +1523,19 @@
     padding: 35px 0 50px;
   }
 
+  .product-detail-page .review-section-title {
+    font-size: 28px;
+  }
+
+  .product-detail-page .review-summary {
+    align-items: flex-end;
+    gap: 18px;
+  }
+
+  .product-detail-page .review-score {
+    gap: 16px;
+  }
+
   .product-detail-page .review-score strong {
     font-size: 40px;
   }
@@ -1356,6 +1544,41 @@
     height: 32px;
 
     padding: 0 14px;
+  }
+
+  .product-detail-page .review-summary-link {
+    font-size: 10px;
+  }
+
+  .product-detail-page .review-preview-card {
+    padding: 24px 0 26px;
+  }
+
+  .product-detail-page .review-preview-header {
+    gap: 12px;
+  }
+
+  .product-detail-page .review-preview-header > div {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+
+  .product-detail-page .review-preview-header div > span {
+    padding-left: 0;
+  }
+
+  .product-detail-page .review-preview-header div > span::before {
+    display: none;
+  }
+
+  .product-detail-page .review-preview-card > p {
+    font-size: 13px;
+    line-height: 1.8;
+  }
+
+  .product-detail-page .review-all-button {
+    width: 100%;
   }
 }
 

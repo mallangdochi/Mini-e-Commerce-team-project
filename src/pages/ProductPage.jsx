@@ -1020,22 +1020,15 @@ function ProductPage() {
           page: targetPage,
           limit: PRODUCTS_PER_LOAD,
         };
-        const hasAllColorsApplied =
-          filterOptions.colors.length > 0 &&
-          appliedFilters.color.length === filterOptions.colors.length;
-        const hasAllSizesApplied =
-          filterOptions.sizes.length > 0 &&
-          appliedFilters.size.length === filterOptions.sizes.length;
-
         if (activeCategory.subCategoryId) {
           params.subCategoryId = activeCategory.subCategoryId;
         }
 
-        if (appliedFilters.color.length > 0 && !hasAllColorsApplied) {
+        if (appliedFilters.color.length > 0) {
           params.color = appliedFilters.color.join(',');
         }
 
-        if (appliedFilters.size.length > 0 && !hasAllSizesApplied) {
+        if (appliedFilters.size.length > 0) {
           params.size = appliedFilters.size.join(',');
         }
 
@@ -1151,8 +1144,6 @@ function ProductPage() {
       activeCategory.categoryId,
       activeCategory.subCategoryId,
       appliedFilters,
-      filterOptions.colors.length,
-      filterOptions.sizes.length,
       isAccessorySearchScope,
       searchCategoryIntent,
       searchQuery,
@@ -1183,7 +1174,7 @@ function ProductPage() {
     };
   }, [searchQuery]);
 
-  const handleWishlist = (product) => {
+  const handleWishlist = async (product) => {
     const accessToken = getAccessToken();
 
     if (!accessToken) {
@@ -1200,7 +1191,7 @@ function ProductPage() {
     setWishlistLoadingIds((prev) => new Set(prev).add(productId));
 
     try {
-      toggleWishlistItem({
+      await toggleWishlistItem({
         ...product,
         id: product.id ?? productId,
         productId,

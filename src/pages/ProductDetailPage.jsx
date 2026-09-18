@@ -5,6 +5,7 @@ import { handleAddToCart } from '@/api/alert';
 import { getAccessToken } from '@/utils/storage';
 import { useCartStore } from '@/store/cartStore';
 import { getProduct, getSet } from '@/api/products';
+import { getProductReviews, getSetReviews } from '@/api/reviews';
 import useWishlistStore from '@/store/wishlistStore';
 import '@/styles/product-detail.css';
 
@@ -58,6 +59,30 @@ function ProductImage({ src, alt, placeholder = 'PRODUCT IMAGE' }) {
   return <img src={src} alt={alt} onError={() => setFailedSrc(src)} />;
 }
 
+function getReviewStars(rating) {
+  const filledCount = Math.max(0, Math.min(5, Math.round(Number(rating) || 0)));
+
+  return `${'★'.repeat(filledCount)}${'☆'.repeat(5 - filledCount)}`;
+}
+
+function formatReviewDate(value) {
+  if (!value) {
+    return '';
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
+  }
+
+  return new Intl.DateTimeFormat('ko-KR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
+}
+
 function ProductDetailPage() {
   const navigate = useNavigate();
   const { productId } = useParams();
@@ -68,6 +93,12 @@ function ProductDetailPage() {
   const [product, setProduct] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
+  const [reviewSummary, setReviewSummary] = useState({
+    averageRating: 0,
+    reviewCount: 0,
+  });
+  const [recentReviews, setRecentReviews] = useState([]);
+  const [reviewLoadError, setReviewLoadError] = useState('');
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
@@ -136,6 +167,49 @@ function ProductDetailPage() {
     };
   }, [isSet, productId]);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchReviews = async () => {
+      try {
+        setReviewLoadError('');
+
+        const response = isSet
+          ? await getSetReviews(productId, { page: 1, limit: 3 })
+          : await getProductReviews(productId, { page: 1, limit: 3 });
+
+        if (!isMounted) {
+          return;
+        }
+
+        const data = response?.data ?? {};
+
+        setReviewSummary({
+          averageRating: Number(data.averageRating ?? 0),
+          reviewCount: Number(data.reviewCount ?? 0),
+        });
+        setRecentReviews(Array.isArray(data.reviews) ? data.reviews : []);
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        setReviewSummary({
+          averageRating: 0,
+          reviewCount: 0,
+        });
+        setRecentReviews([]);
+        setReviewLoadError(error.message || '리뷰를 불러오지 못했습니다.');
+      }
+    };
+
+    fetchReviews();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isSet, productId]);
+
   const isWishlisted = wishlistItems.some((item) => {
     const itemProductId = Number(
       item?.productId ?? item?.product?.productId ?? item?.product?.id ?? item?.id
@@ -173,6 +247,7 @@ function ProductDetailPage() {
     (hasSizes && !selectedSize);
 
   const price = Number(product?.price ?? 0);
+  const reviewDetailPath = `/products/${productId}/reviews${isSet ? '?type=set' : ''}`;
 
   const originalPrice =
     product?.originalPrice === null || product?.originalPrice === undefined
@@ -266,7 +341,16 @@ function ProductDetailPage() {
     });
   };
 
-  const handleWishlistToggle = () => {
+  const handleWriteReview = () => {
+    if (!getAccessToken()) {
+      navigate('/login');
+      return;
+    }
+
+    navigate('/mypage/reviews');
+  };
+
+  const handleWishlistToggle = async () => {
     if (!product) {
       return;
     }
@@ -283,7 +367,7 @@ function ProductDetailPage() {
         throw new Error('상품 정보를 확인할 수 없습니다.');
       }
 
-      toggleWishlistItem({
+      await toggleWishlistItem({
         ...product,
         id: product.id ?? normalizedProductId,
         productId: normalizedProductId,
@@ -503,14 +587,19 @@ function ProductDetailPage() {
             )}
           </div>
 
-          <div className="star-rating">
-            <span>★</span>
-            <span>★</span>
-            <span>★</span>
-            <span>★</span>
-            <span>☆</span>
-            <span className="review-count">(23)</span>
-          </div>
+          <Link
+            to={reviewDetailPath}
+            className="star-rating product-rating-link"
+            aria-label={`평균 별점 ${reviewSummary.averageRating.toFixed(1)}점, 리뷰 ${reviewSummary.reviewCount}개`}
+          >
+            <span className="product-rating-stars">
+              {getReviewStars(reviewSummary.averageRating)}
+            </span>
+
+            <span className="product-rating-score">{reviewSummary.averageRating.toFixed(1)}</span>
+
+            <span className="review-count">({reviewSummary.reviewCount})</span>
+          </Link>
 
           <p className="product-description">{product.description}</p>
 
@@ -573,6 +662,7 @@ function ProductDetailPage() {
                           setQuantity(1);
                         }}
                       />
+
                       <span>{size}</span>
                     </label>
                   );
@@ -826,23 +916,62 @@ function ProductDetailPage() {
         <div className="review-section-header">
           <h2 className="review-section-title">리뷰</h2>
 
-          <button type="button" className="write-review-button">
+          <button type="button" className="write-review-button" onClick={handleWriteReview}>
             리뷰 작성
           </button>
         </div>
 
         <div className="review-summary">
           <div className="review-score">
-            <strong>0.0</strong>
+            <strong>{reviewSummary.averageRating.toFixed(1)}</strong>
 
             <div>
-              <div className="review-stars">☆☆☆☆☆</div>
-              <span>0개의 리뷰</span>
+              <div className="review-stars">{getReviewStars(reviewSummary.averageRating)}</div>
+
+              <span>{reviewSummary.reviewCount}개의 리뷰</span>
             </div>
           </div>
+
+          {reviewSummary.reviewCount > 0 && (
+            <Link to={reviewDetailPath} className="review-summary-link">
+              전체 리뷰 보기
+            </Link>
+          )}
         </div>
 
-        <div className="review-list" />
+        {reviewLoadError ? (
+          <div className="review-list-state">{reviewLoadError}</div>
+        ) : recentReviews.length === 0 ? (
+          <div className="review-list-state">아직 등록된 리뷰가 없습니다.</div>
+        ) : (
+          <div className="review-list">
+            {recentReviews.map((review) => (
+              <article className="review-preview-card" key={review.reviewId}>
+                <div className="review-preview-header">
+                  <div>
+                    <strong>{review.userName || '구매 고객'}</strong>
+                    <span>{formatReviewDate(review.createdAt)}</span>
+                  </div>
+
+                  <span className="review-preview-badge">구매 리뷰</span>
+                </div>
+
+                <div className="review-preview-rating">
+                  <span>{getReviewStars(review.rating)}</span>
+                  <strong>{Number(review.rating ?? 0).toFixed(1)}</strong>
+                </div>
+
+                <p>{review.content}</p>
+              </article>
+            ))}
+          </div>
+        )}
+
+        {reviewSummary.reviewCount > 0 && (
+          <Link to={reviewDetailPath} className="review-all-button">
+            전체 리뷰 보기
+          </Link>
+        )}
       </section>
 
       {hasSizes && (

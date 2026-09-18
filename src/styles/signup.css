@@ -112,6 +112,7 @@
 .signup-form-group input[type='text'],
 .signup-form-group input[type='email'],
 .signup-form-group input[type='password'],
+.signup-form-group input[type='tel'],
 .signup-form-group input[type='date'] {
   width: 100%;
 
@@ -425,9 +426,23 @@
   border-color: #c9c9c9;
   background: #fafafa;
 }
+
+.signup-page .signup-form-group input[type='tel'] {
+  width: 100%;
+  padding: 12px 46px 12px 14px;
+  border: 1px solid #c9c9c9;
+  border-radius: 8px;
+  outline: none;
+  background: #fafafa;
+  color: #222;
+  font-family: inherit;
+  font-size: 13px;
+  appearance: none;
+}
 .signup-page .signup-input-with-icon {
   position: relative;
   display: block;
+  width: 100%;
   height: 48px;
   min-width: 0;
 }
