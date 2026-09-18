@@ -112,14 +112,23 @@ const SLIDE_MS = 420;
 const TILE_WIDTH_DESKTOP = 440;
 const TILE_WIDTH_COMPACT = 340;
 
-function ProductTile({ product, position, onSelect, onStep, animate, compact, tileWidth }) {
+function ProductTile({
+  product,
+  category,
+  position,
+  onSelect,
+  onStep,
+  animate,
+  compact,
+  tileWidth,
+}) {
   const isCenter = position === POS.CENTER;
   const isLeft = position === POS.LEFT;
   const isRight = position === POS.RIGHT;
   const isNear = isLeft || isRight;
 
   const centerScale = compact ? 'scale(1)' : 'scale(1.1)';
-  const nearScale = compact ? 'scale(0.66)' : 'scale(0.5)';
+  const nearScale = compact ? 'scale(0.68)' : 'scale(0.6)';
   const farScale = compact ? 'scale(0.4)' : 'scale(0.3)';
 
   const wrapStyle = {
@@ -167,7 +176,9 @@ function ProductTile({ product, position, onSelect, onStep, animate, compact, ti
         <img
           src={product.imageUrl ?? product.image ?? FALLBACK_IMAGE}
           alt={`${product.name} 상품 이미지`}
-          className="custom-carousel__tile-image"
+          className={`custom-carousel__tile-image ${
+            category === 'sunglasses' && isCenter ? 'custom-carousel__tile-image--sunglasses' : ''
+          }`}
         />
       </button>
     </div>
@@ -393,6 +404,7 @@ export default function CustomCarousel({ categories, isLoading = false, error = 
               <ProductTile
                 key={`${category}-${product.productId ?? product.id}-${Math.floor(slot / len)}`}
                 product={product}
+                category={category}
                 position={positionOf(slot)}
                 onSelect={handleSelect}
                 onStep={go}
