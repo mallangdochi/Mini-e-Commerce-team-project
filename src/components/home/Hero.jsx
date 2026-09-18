@@ -8,7 +8,7 @@ import '@/styles/hero.css';
 
 const BASE_WIDTH = 1440;
 const SCALE_BREAKPOINT = 1024;
-const SLIDE_DURATION = 3000;
+const SLIDE_DURATION = 3200;
 const SWIPE_THRESHOLD = 40;
 const DOT_R = 5;
 const DOT_CIRC = 2 * Math.PI * DOT_R;
