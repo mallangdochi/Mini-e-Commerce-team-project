@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 
 import { getCoupons } from '@/api/coupons';
 import { createOrder } from '@/api/orders';
+import { getProduct, getSet } from '@/api/products';
 import { registerCreatedOrder } from '@/hooks/useOrders';
 import { useCartStore } from '@/store/cartStore';
 import useAuthStore from '@/store/authStore';
@@ -251,24 +252,85 @@ function CheckoutPage2() {
     return memoMap[memo] ?? memo ?? '';
   };
 
-  const getOrderItems = () => {
-    return orderItems.map((item) => {
-      const colorValue =
-        typeof item.color === 'string' ? item.color : (item.color?.value ?? item.colorValue ?? '');
+  const getColorValue = (color) => {
+    if (typeof color === 'string') {
+      return color.trim();
+    }
 
-      const orderItem = {
-        productId: Number(item.productId),
-        productType: item.productType ?? 'product',
-        color: String(colorValue),
-        quantity: Number(item.quantity),
-      };
+    if (!color || typeof color !== 'object') {
+      return '';
+    }
 
-      if (item.size !== undefined && item.size !== null && item.size !== '') {
-        orderItem.size = String(item.size);
+    return String(
+      color.value ??
+        color.filterGroup ??
+        color.filterColor ??
+        color.color ??
+        color.name ??
+        color.label ??
+        ''
+    ).trim();
+  };
+
+  const getItemColorValue = (item) => {
+    return (
+      getColorValue(item.color) ||
+      getColorValue(item.colorValue) ||
+      getColorValue(item.filterGroup) ||
+      getColorValue(item.filterColor) ||
+      getColorValue(item.colorLabel)
+    );
+  };
+
+  const getFallbackProductColor = (product) => {
+    const colors = Array.isArray(product?.colors) ? product.colors : [];
+
+    for (const color of colors) {
+      const value = getColorValue(color);
+
+      if (value) {
+        return value;
       }
+    }
 
-      return orderItem;
-    });
+    return '';
+  };
+
+  const getOrderItems = async () => {
+    return Promise.all(
+      orderItems.map(async (item) => {
+        const productId = Number(item.productId);
+        const productType = item.productType ?? 'product';
+        let colorValue = getItemColorValue(item);
+
+        if (!colorValue && Number.isInteger(productId) && productId > 0) {
+          try {
+            const response =
+              productType === 'set' ? await getSet(productId) : await getProduct(productId);
+
+            colorValue = getFallbackProductColor(response?.data);
+          } catch {
+            colorValue = '';
+          }
+        }
+
+        const orderItem = {
+          productId,
+          productType,
+          quantity: Number(item.quantity),
+        };
+
+        if (colorValue) {
+          orderItem.color = colorValue;
+        }
+
+        if (item.size !== undefined && item.size !== null && item.size !== '') {
+          orderItem.size = String(item.size);
+        }
+
+        return orderItem;
+      })
+    );
   };
 
   const getShippingPayload = () => {
@@ -345,7 +407,7 @@ function CheckoutPage2() {
       return;
     }
 
-    const apiItems = getOrderItems();
+    const apiItems = await getOrderItems();
     const shippingPayload = getShippingPayload();
 
     const invalidItem = apiItems.find(
@@ -353,7 +415,6 @@ function CheckoutPage2() {
         !Number.isInteger(item.productId) ||
         item.productId <= 0 ||
         !item.productType ||
-        !item.color ||
         !Number.isInteger(item.quantity) ||
         item.quantity <= 0
     );

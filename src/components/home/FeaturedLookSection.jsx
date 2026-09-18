@@ -6,6 +6,14 @@ import modelFull from '@/assets/home/featured-look/arc-model-full.png';
 import partTop from '@/assets/home/featured-look/arc-top.png';
 import partBottom from '@/assets/home/featured-look/arc-bottom.png';
 import partShoes from '@/assets/home/featured-look/arc-shoes.png';
+import model10513Full from '@/assets/home/featured-look/arc-model-10513-full.png';
+import model10513Top from '@/assets/home/featured-look/arc-model-10513-top.png';
+import model10513Bottom from '@/assets/home/featured-look/arc-model-10513-bottom.png';
+import model10513Shoes from '@/assets/home/featured-look/arc-model-10513-shoes.png';
+import model10515Full from '@/assets/home/featured-look/arc-model-10515-full.png';
+import model10515Top from '@/assets/home/featured-look/arc-model-10515-top.png';
+import model10515Bottom from '@/assets/home/featured-look/arc-model-10515-bottom.png';
+import model10515Shoes from '@/assets/home/featured-look/arc-model-10515-shoes.png';
 import '@/styles/featured-look.css';
 
 const VIEW_ORDER = ['full', 'top', 'bottom', 'shoes'];
@@ -71,27 +79,64 @@ const VIEW_ICONS = {
   ...HOTSPOT_ICONS,
 };
 
-const SET_SUMMARY = {
-  title: 'ARC TRACK SET-UP',
-  price: 159000,
-  thumbnail: partTop,
-};
-
-const FEATURED_LOOK_DETAIL_PATHS = {
-  top: '/products/10101',
-  bottom: '/products/10305',
-  shoes: '/products/10401',
-  set: '/products/10501?type=set',
-};
-
 const COMPACT_QUERY = '(max-width: 767px)';
 const SWIPE_THRESHOLD = 40;
 
-const FEATURED_LOOK_PRODUCT_IDS = {
-  full: 10501,
-  top: 10101,
-  bottom: 10305,
-  shoes: 10401,
+const LOOKS = [
+  {
+    id: 'look-01',
+    label: 'LOOK 01',
+    setId: 10501,
+    fallbackProductIds: {
+      top: 10101,
+      bottom: 10305,
+      shoes: 10401,
+    },
+    images: {
+      full: modelFull,
+      top: partTop,
+      bottom: partBottom,
+      shoes: partShoes,
+    },
+  },
+  {
+    id: 'look-02',
+    label: 'LOOK 02',
+    setId: 10513,
+    fallbackProductIds: {
+      top: 10115,
+      bottom: 10323,
+      shoes: null,
+    },
+    images: {
+      full: model10513Full,
+      top: model10513Top,
+      bottom: model10513Bottom,
+      shoes: model10513Shoes,
+    },
+  },
+  {
+    id: 'look-03',
+    label: 'LOOK 03',
+    setId: 10515,
+    fallbackProductIds: {
+      top: 10119,
+      bottom: 10327,
+      shoes: null,
+    },
+    images: {
+      full: model10515Full,
+      top: model10515Top,
+      bottom: model10515Bottom,
+      shoes: model10515Shoes,
+    },
+  },
+];
+
+const PART_EYEBROWS = {
+  top: 'ARC TOP',
+  bottom: 'ARC BOTTOM',
+  shoes: 'ARC SHOES',
 };
 
 function normalizeImageUrl(url) {
@@ -116,8 +161,11 @@ function getProductImageCandidates(product) {
     .filter((url, index, urls) => urls.indexOf(url) === index);
 }
 
-function ProductApiImage({ product, alt }) {
-  const imageCandidates = getProductImageCandidates(product);
+function ProductApiImage({ product, alt, fallbackImage = '', className = '' }) {
+  const imageCandidates = [...getProductImageCandidates(product), fallbackImage]
+    .map(normalizeImageUrl)
+    .filter(Boolean)
+    .filter((url, index, urls) => urls.indexOf(url) === index);
   const [imageIndex, setImageIndex] = useState(0);
   const imageUrl = imageCandidates[imageIndex] ?? '';
 
@@ -129,6 +177,7 @@ function ProductApiImage({ product, alt }) {
     <img
       src={imageUrl}
       alt={alt}
+      className={className}
       draggable="false"
       onError={() => {
         setImageIndex((currentIndex) => currentIndex + 1);
@@ -142,38 +191,95 @@ function useIsCompact() {
 
   useEffect(() => {
     const mql = window.matchMedia(COMPACT_QUERY);
-    const onChange = (e) => setIsCompact(e.matches);
+    const onChange = (event) => setIsCompact(event.matches);
+
     mql.addEventListener('change', onChange);
-    return () => mql.removeEventListener('change', onChange);
+
+    return () => {
+      mql.removeEventListener('change', onChange);
+    };
   }, []);
 
   return isCompact;
 }
 
-const PRODUCT_INFO = {
-  full: {
-    eyebrow: 'ARC LOOK 01',
-    image: modelFull,
-  },
-  top: {
-    eyebrow: 'ARC TOP',
-    image: partTop,
-  },
-  bottom: {
-    eyebrow: 'ARC BOTTOM',
-    image: partBottom,
-  },
-  shoes: {
-    eyebrow: 'ARC SHOES',
-    image: partShoes,
-  },
-};
+function getPartFromCategory(product) {
+  const categoryId = String(product?.categoryId ?? '').toLowerCase();
 
-const MODELS = [
-  { id: 'look-01', label: 'LOOK 01', image: modelFull },
-  { id: 'look-02', label: 'LOOK 02', image: modelFull },
-  { id: 'look-03', label: 'LOOK 03', image: modelFull },
-];
+  if (categoryId === 'outer' || categoryId === 'top') {
+    return 'top';
+  }
+
+  if (categoryId === 'bottom') {
+    return 'bottom';
+  }
+
+  if (categoryId === 'shoes') {
+    return 'shoes';
+  }
+
+  return null;
+}
+
+async function loadLookProducts(look) {
+  const setResponse = await getSet(look.setId);
+  const setProduct = setResponse?.data ?? null;
+  const componentIds = Array.isArray(setProduct?.componentProductIds)
+    ? setProduct.componentProductIds
+    : [];
+  const requestedIds = new Set(componentIds);
+
+  Object.values(look.fallbackProductIds).forEach((productId) => {
+    if (productId) {
+      requestedIds.add(productId);
+    }
+  });
+
+  const productResponses = await Promise.all(
+    Array.from(requestedIds).map(async (productId) => {
+      const response = await getProduct(productId);
+      return response?.data ?? null;
+    })
+  );
+
+  const products = {
+    full: setProduct,
+    top: null,
+    bottom: null,
+    shoes: null,
+  };
+
+  productResponses.filter(Boolean).forEach((product) => {
+    const part = getPartFromCategory(product);
+
+    if (part && !products[part]) {
+      products[part] = product;
+    }
+  });
+
+  Object.entries(look.fallbackProductIds).forEach(([part, productId]) => {
+    if (!productId || products[part]) {
+      return;
+    }
+
+    products[part] =
+      productResponses.find((product) => Number(product?.productId) === Number(productId)) ?? null;
+  });
+
+  return products;
+}
+
+function getProductPath(product, look) {
+  if (!product) {
+    return `/products/${look.setId}?type=set`;
+  }
+
+  if (product.productType === 'set' || Number(product.productId) === Number(look.setId)) {
+    return `/products/${product.productId ?? look.setId}?type=set`;
+  }
+
+  return `/products/${product.productId}`;
+}
 
 function FeaturedLookSection() {
   const isCompact = useIsCompact();
@@ -181,7 +287,7 @@ function FeaturedLookSection() {
   const [selectedView, setSelectedView] = useState('full');
   const [hoveredPart, setHoveredPart] = useState(null);
   const [isModelHovered, setIsModelHovered] = useState(false);
-  const [featuredProducts, setFeaturedProducts] = useState({});
+  const [lookProducts, setLookProducts] = useState({});
   const [isFeaturedProductsLoading, setIsFeaturedProductsLoading] = useState(true);
   const [featuredProductsError, setFeaturedProductsError] = useState('');
   const [isSliding, setIsSliding] = useState(false);
@@ -190,17 +296,19 @@ function FeaturedLookSection() {
   const modelSlideTimerRef = useRef(null);
   const touchStartX = useRef(0);
 
-  const current = MODELS[currentModel];
-  const nextModelIndex = (currentModel + 1) % MODELS.length;
-  const afterNextModelIndex = (currentModel + 2) % MODELS.length;
-  const next = MODELS[nextModelIndex];
-  const afterNext = MODELS[afterNextModelIndex];
-  const activeInfo = PRODUCT_INFO[selectedView];
-  const activeProduct = featuredProducts[selectedView] ?? null;
-  const activeDetailPath =
-    selectedView === 'full'
-      ? FEATURED_LOOK_DETAIL_PATHS.set
-      : FEATURED_LOOK_DETAIL_PATHS[selectedView];
+  const current = LOOKS[currentModel];
+  const nextModelIndex = (currentModel + 1) % LOOKS.length;
+  const afterNextModelIndex = (currentModel + 2) % LOOKS.length;
+  const next = LOOKS[nextModelIndex];
+  const afterNext = LOOKS[afterNextModelIndex];
+  const currentProducts = lookProducts[current.id] ?? {};
+  const exactActiveProduct = currentProducts[selectedView] ?? null;
+  const activeProduct = exactActiveProduct ?? currentProducts.full ?? null;
+  const activeVisual = current.images[selectedView];
+  const activeDetailPath = getProductPath(exactActiveProduct ?? currentProducts.full, current);
+  const activeEyebrow =
+    selectedView === 'full' ? `ARC ${current.label}` : PART_EYEBROWS[selectedView];
+  const currentSet = currentProducts.full ?? null;
 
   const clearViewTransitionTimer = () => {
     if (viewTransitionTimerRef.current) {
@@ -225,30 +333,25 @@ function FeaturedLookSection() {
 
   const finishModelSlide = () => {
     clearModelSlideTimer();
-    setCurrentModel((currentIndex) => (currentIndex + 1) % MODELS.length);
+    setCurrentModel((currentIndex) => (currentIndex + 1) % LOOKS.length);
     setIsSliding(false);
   };
 
   useEffect(() => {
     let isMounted = true;
 
-    Promise.all([
-      getSet(FEATURED_LOOK_PRODUCT_IDS.full),
-      getProduct(FEATURED_LOOK_PRODUCT_IDS.top),
-      getProduct(FEATURED_LOOK_PRODUCT_IDS.bottom),
-      getProduct(FEATURED_LOOK_PRODUCT_IDS.shoes),
-    ])
-      .then(([fullResponse, topResponse, bottomResponse, shoesResponse]) => {
+    Promise.all(
+      LOOKS.map(async (look) => {
+        const products = await loadLookProducts(look);
+        return [look.id, products];
+      })
+    )
+      .then((entries) => {
         if (!isMounted) {
           return;
         }
 
-        setFeaturedProducts({
-          full: fullResponse?.data ?? null,
-          top: topResponse?.data ?? null,
-          bottom: bottomResponse?.data ?? null,
-          shoes: shoesResponse?.data ?? null,
-        });
+        setLookProducts(Object.fromEntries(entries));
         setFeaturedProductsError('');
         setIsFeaturedProductsLoading(false);
       })
@@ -257,7 +360,7 @@ function FeaturedLookSection() {
           return;
         }
 
-        setFeaturedProducts({});
+        setLookProducts({});
         setFeaturedProductsError('상품 정보를 불러오지 못했습니다.');
         setIsFeaturedProductsLoading(false);
       });
@@ -275,7 +378,7 @@ function FeaturedLookSection() {
   }, []);
 
   const goToNextModel = () => {
-    setCurrentModel((i) => (i + 1) % MODELS.length);
+    setCurrentModel((currentIndex) => (currentIndex + 1) % LOOKS.length);
   };
 
   const handleHeroTouchStart = (event) => {
@@ -291,7 +394,9 @@ function FeaturedLookSection() {
   };
 
   const changeView = (view) => {
-    if (isSliding || view === selectedView) return;
+    if (isSliding || view === selectedView) {
+      return;
+    }
 
     clearViewTransitionTimer();
     setHoveredPart(null);
@@ -305,14 +410,17 @@ function FeaturedLookSection() {
   };
 
   const handleViewTransitionEnd = (event) => {
-    if (event.currentTarget !== event.target) return;
-    if (event.propertyName !== 'transform') return;
+    if (event.currentTarget !== event.target || event.propertyName !== 'transform') {
+      return;
+    }
 
     finishViewTransition();
   };
 
   const handleNextModel = () => {
-    if (selectedView !== 'full' || isSliding || isViewTransitioning) return;
+    if (selectedView !== 'full' || isSliding || isViewTransitioning) {
+      return;
+    }
 
     setHoveredPart(null);
     setIsModelHovered(false);
@@ -326,9 +434,13 @@ function FeaturedLookSection() {
   };
 
   const handleNextModelAnimationEnd = (event) => {
-    if (event.currentTarget !== event.target) return;
-    if (event.animationName !== 'arc-next-to-center') return;
-    if (!isSliding) return;
+    if (event.currentTarget !== event.target) {
+      return;
+    }
+
+    if (event.animationName !== 'arc-next-to-center' || !isSliding) {
+      return;
+    }
 
     finishModelSlide();
   };
@@ -340,6 +452,7 @@ function FeaturedLookSection() {
           <nav className="arc-view-switcher">
             {VIEW_ORDER.map((view) => {
               const ViewIcon = VIEW_ICONS[view];
+
               return (
                 <button
                   key={view}
@@ -364,8 +477,9 @@ function FeaturedLookSection() {
                 <span className="arc-product-image-state">상품 이미지를 불러오는 중입니다.</span>
               ) : (
                 <ProductApiImage
-                  key={selectedView}
-                  product={activeProduct}
+                  key={`${current.id}-${selectedView}-${exactActiveProduct?.productId ?? 'fallback'}`}
+                  product={exactActiveProduct}
+                  fallbackImage={activeVisual}
                   alt={`${activeProduct?.name ?? VIEW_LABELS[selectedView]} 상품 썸네일`}
                 />
               )}
@@ -373,7 +487,8 @@ function FeaturedLookSection() {
 
             <div className="arc-product-meta">
               <div>
-                <p className="arc-product-eyebrow">{activeInfo.eyebrow}</p>
+                <p className="arc-product-eyebrow">{activeEyebrow}</p>
+
                 <h1>
                   {activeProduct?.name ??
                     (isFeaturedProductsLoading
@@ -384,7 +499,8 @@ function FeaturedLookSection() {
             </div>
 
             <p className="arc-product-description">
-              {activeProduct?.description ||
+              {exactActiveProduct?.description ||
+                activeProduct?.description ||
                 (featuredProductsError ? featuredProductsError : '상품 설명을 불러오는 중입니다.')}
             </p>
 
@@ -395,7 +511,9 @@ function FeaturedLookSection() {
           </article>
         </aside>
 
-        <section className={`arc-model-stage arc-model-stage--${selectedView}`}>
+        <section
+          className={`arc-model-stage arc-model-stage--${selectedView} arc-model-stage--${current.id}`}
+        >
           <div className={`arc-model-track ${isSliding ? 'is-sliding' : ''}`}>
             <div
               className={`arc-track-model arc-track-model--current ${
@@ -416,7 +534,7 @@ function FeaturedLookSection() {
               <div className="arc-model-canvas" onTransitionEnd={handleViewTransitionEnd}>
                 <img
                   className="arc-model-full-image"
-                  src={current.image}
+                  src={current.images.full}
                   alt={`${current.label} 모델`}
                   draggable="false"
                 />
@@ -431,12 +549,12 @@ function FeaturedLookSection() {
                         hoveredPart && hoveredPart !== part ? 'is-muted' : ''
                       }`}
                       style={{
-                        '--part-mask': `url("${PRODUCT_INFO[part].image}")`,
+                        '--part-mask': `url("${current.images[part]}")`,
                       }}
                     >
                       <img
                         className="arc-part-overlay-image"
-                        src={PRODUCT_INFO[part].image}
+                        src={current.images[part]}
                         alt=""
                         draggable="false"
                       />
@@ -476,7 +594,12 @@ function FeaturedLookSection() {
               <span className="arc-next-model-tag">NEXT</span>
 
               <div className="arc-model-canvas arc-model-canvas--preview">
-                <img className="arc-model-full-image" src={next.image} alt="" draggable="false" />
+                <img
+                  className="arc-model-full-image"
+                  src={next.images.full}
+                  alt=""
+                  draggable="false"
+                />
               </div>
             </button>
 
@@ -485,7 +608,7 @@ function FeaturedLookSection() {
                 <div className="arc-model-canvas arc-model-canvas--preview">
                   <img
                     className="arc-model-full-image"
-                    src={afterNext.image}
+                    src={afterNext.images.full}
                     alt=""
                     draggable="false"
                   />
@@ -506,20 +629,24 @@ function FeaturedLookSection() {
               onTouchStart={handleHeroTouchStart}
               onTouchEnd={handleHeroTouchEnd}
             >
-              <img src={current.image} alt={`${current.label} 모델`} draggable="false" />
+              <img src={current.images.full} alt={`${current.label} 모델`} draggable="false" />
 
               {PARTS.map((part) => {
                 const HotspotIcon = HOTSPOT_ICONS[part];
+                const partProduct = currentProducts[part] ?? null;
+                const partPath = getProductPath(partProduct ?? currentSet, current);
+
                 return (
                   <Link
                     key={part}
-                    to={FEATURED_LOOK_DETAIL_PATHS[part]}
+                    to={partPath}
                     className={`arc-hotspot-pill arc-hotspot-pill--${part}`}
                     aria-label={`${VIEW_LABELS[part]} 자세히 보기`}
                   >
                     <span className="arc-hotspot-pill-icon">
                       <HotspotIcon />
                     </span>
+
                     <span className="arc-hotspot-pill-label">{HOTSPOT_LABELS[part]}</span>
                     <span className="arc-hotspot-pill-arrow">›</span>
                   </Link>
@@ -538,20 +665,23 @@ function FeaturedLookSection() {
           </div>
 
           <Link
-            to={FEATURED_LOOK_DETAIL_PATHS.set}
+            to={getProductPath(currentSet, current)}
             className="arc-set-summary"
-            aria-label={`${SET_SUMMARY.title} 세트 상품 자세히 보기`}
+            aria-label={`${currentSet?.name ?? current.label} 세트 상품 자세히 보기`}
           >
-            <img
+            <ProductApiImage
+              key={`mobile-${current.id}`}
+              product={currentSet}
+              fallbackImage={current.images.top}
               className="arc-set-summary-thumb"
-              src={SET_SUMMARY.thumbnail}
               alt=""
-              draggable="false"
             />
 
             <div className="arc-set-summary-info">
-              <p className="arc-set-summary-title">{SET_SUMMARY.title}</p>
-              <p className="arc-set-summary-price">₩ {SET_SUMMARY.price.toLocaleString()}</p>
+              <p className="arc-set-summary-title">{currentSet?.name ?? current.label}</p>
+              <p className="arc-set-summary-price">
+                ₩ {Number(currentSet?.price ?? 0).toLocaleString()}
+              </p>
             </div>
 
             <span className="arc-set-summary-divider" aria-hidden="true" />
@@ -561,7 +691,7 @@ function FeaturedLookSection() {
             </span>
           </Link>
 
-          <Link to={FEATURED_LOOK_DETAIL_PATHS.set} className="arc-buy-button">
+          <Link to={getProductPath(currentSet, current)} className="arc-buy-button">
             <span>상세 설명</span>
           </Link>
         </div>

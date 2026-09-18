@@ -106,27 +106,38 @@
   border-radius: 12px;
 }
 
-.arc-product-card .arc-product-image img {
+.arc-product-image img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  object-position: center 68%;
+  object-fit: contain;
   display: block;
 }
 
-.arc-product-image-state {
-  display: flex;
-  width: 100%;
-  height: 100%;
-  align-items: center;
-  justify-content: center;
-  color: rgba(23, 23, 23, 0.48);
-  font-size: 11px;
-  text-align: center;
+.arc-product-image--full img {
+  width: 77%;
+  height: 96%;
+}
+
+.arc-product-image--top img {
+  width: 96%;
+  height: 96%;
+}
+
+.arc-product-image--bottom img {
+  width: 88%;
+  height: 112%;
+}
+
+.arc-product-image--shoes img {
+  width: 108%;
+  height: 75%;
 }
 
 .arc-product-meta {
-  display: block;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 15px;
+  align-items: end;
 }
 
 .arc-product-eyebrow {
@@ -152,6 +163,39 @@
   font-size: 8px;
   font-weight: 700;
   letter-spacing: 0.08em;
+}
+
+.arc-color-list {
+  display: flex;
+  gap: 4px;
+}
+
+.arc-color {
+  width: 23px;
+  height: 23px;
+  padding: 0;
+  border: 2px solid transparent;
+  cursor: pointer;
+}
+
+.arc-color.is-active {
+  border-color: #111111;
+}
+
+.arc-color--black {
+  background: #111111;
+}
+
+.arc-color--charcoal {
+  background: #565656;
+}
+
+.arc-color--light {
+  background: #dedede;
+}
+
+.arc-color--olive {
+  background: #898a82;
 }
 
 .arc-product-description {
@@ -488,6 +532,18 @@
   top: 91.211%;
   width: 37.813%;
   height: 6.592%;
+}
+
+/* LOOK별 파츠 위치 보정
+   검은 LOOK 01의 기존 위치는 그대로 유지한다.
+   LOOK 03의 숏 팬츠만 실제 허리선에 맞춰 아래로 이동한다. */
+.arc-model-stage--look-03 .arc-part-overlay--bottom {
+  top: 44.5%;
+}
+
+.arc-model-stage--look-03 .arc-part-hotspot--bottom {
+  top: 44%;
+  height: 18%;
 }
 
 .arc-part-overlay-image {
