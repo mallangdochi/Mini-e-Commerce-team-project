@@ -215,6 +215,45 @@ function getProductImageByType(product, type) {
   return '';
 }
 
+function getProductImagesByType(product, type) {
+  if (!product) {
+    return [];
+  }
+
+  const images = getImagesContainer(product);
+
+  if (Array.isArray(images)) {
+    return [...images]
+      .filter((image) => getImageType(image) === type)
+      .sort(
+        (a, b) =>
+          Number(a?.sortOrder ?? a?.sort_order ?? 999) -
+          Number(b?.sortOrder ?? b?.sort_order ?? 999)
+      )
+      .map(getImageValue)
+      .filter(Boolean);
+  }
+
+  if (images && typeof images === 'object') {
+    const matchedEntry = Object.entries(images).find(([key]) => String(key).toLowerCase() === type);
+    const matchedValue = matchedEntry?.[1];
+
+    if (!matchedValue) {
+      return [];
+    }
+
+    if (Array.isArray(matchedValue)) {
+      return matchedValue.map(getImageValue).filter(Boolean);
+    }
+
+    const value = getImageValue(matchedValue);
+
+    return value ? [value] : [];
+  }
+
+  return [];
+}
+
 function getExtraImageCandidates(product, selectedColor) {
   const candidates = [];
   const images = getImagesContainer(product);
@@ -277,42 +316,32 @@ function getImageList(product, selectedColor) {
     return [];
   }
 
-  const slots = IMAGE_TYPE_ORDER.map((type) => {
-    if (type === 'thumbnail') {
-      return (
-        getProductImageByType(product, type) ||
-        normalizeImageUrl(product.thumbnail) ||
-        normalizeImageUrl(product.thumbnailUrl) ||
-        normalizeImageUrl(product.thumbnail_url) ||
-        normalizeImageUrl(product.imageUrl) ||
-        normalizeImageUrl(product.image_url)
-      );
-    }
+  const result = [];
 
-    return getProductImageByType(product, type);
+  const pushUnique = (image) => {
+    const normalized = normalizeImageUrl(image);
+
+    if (normalized && !result.includes(normalized)) {
+      result.push(normalized);
+    }
+  };
+
+  getProductImagesByType(product, 'thumbnail').forEach(pushUnique);
+
+  [product.thumbnail, product.thumbnailUrl, product.thumbnail_url].forEach(pushUnique);
+
+  IMAGE_TYPE_ORDER.filter((type) => type !== 'thumbnail').forEach((type) => {
+    getProductImagesByType(product, type).forEach(pushUnique);
   });
 
-  const extras = getExtraImageCandidates(product, selectedColor);
-  let extraIndex = 0;
+  getExtraImageCandidates(product, selectedColor).forEach(pushUnique);
 
-  const filledSlots = slots.map((slot) => {
-    if (slot) {
-      return slot;
-    }
+  if (result.length === 0) {
+    pushUnique(product.imageUrl);
+    pushUnique(product.image_url);
+  }
 
-    while (extraIndex < extras.length) {
-      const candidate = extras[extraIndex];
-      extraIndex += 1;
-
-      if (candidate) {
-        return candidate;
-      }
-    }
-
-    return '';
-  });
-
-  return filledSlots.filter(Boolean).slice(0, 5);
+  return result.slice(0, 5);
 }
 
 function ProductImage({ src, alt, placeholder = 'PRODUCT IMAGE' }) {
