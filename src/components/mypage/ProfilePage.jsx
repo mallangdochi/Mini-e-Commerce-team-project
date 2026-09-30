@@ -3,7 +3,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { changePassword, updateMe } from '@/api/authApi';
 import useAddresses from '@/hooks/useAddresses';
 import useAuthStore from '@/store/authStore';
-import { getStoredNoticeSettings, setStoredNoticeSettings } from '@/utils/storage';
 import '@/styles/mypage.css';
 
 const PASSWORD_MAX_LENGTH = 12;
@@ -112,16 +111,6 @@ function formatPhoneNumber(value) {
   return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
 }
 
-function getInitialNoticeSetting(key, fallbackValue) {
-  const settings = getStoredNoticeSettings();
-
-  if (settings[key] === undefined) {
-    return fallbackValue;
-  }
-
-  return Boolean(settings[key]);
-}
-
 function createInitialProfileForm(user) {
   return {
     name: user?.name ?? '',
@@ -140,13 +129,11 @@ function ProfilePage() {
 
   const [isProfileEditorOpen, setIsProfileEditorOpen] = useState(false);
 
-  const [emailNotice, setEmailNotice] = useState(() =>
-    getInitialNoticeSetting('emailNotice', true)
-  );
+  const [emailNotice, setEmailNotice] = useState(user?.noticeEmail ?? true);
 
-  const [smsNotice, setSmsNotice] = useState(() => getInitialNoticeSetting('smsNotice', true));
+  const [smsNotice, setSmsNotice] = useState(user?.noticeSms ?? true);
 
-  const [pushNotice, setPushNotice] = useState(() => getInitialNoticeSetting('pushNotice', false));
+  const [pushNotice, setPushNotice] = useState(user?.noticePush ?? false);
 
   const [profileForm, setProfileForm] = useState(() => createInitialProfileForm(user));
 
@@ -181,6 +168,9 @@ function ProfilePage() {
 
   const openProfileEditor = () => {
     setProfileForm(createInitialProfileForm(user));
+    setEmailNotice(user?.noticeEmail ?? true);
+    setSmsNotice(user?.noticeSms ?? true);
+    setPushNotice(user?.noticePush ?? false);
     setSaveMessage('');
     setIsProfileEditorOpen(true);
   };
@@ -299,12 +289,9 @@ function ProfilePage() {
         name: profileForm.name,
         email: profileForm.email,
         phone: phoneNumbers,
-      });
-
-      setStoredNoticeSettings({
-        emailNotice,
-        smsNotice,
-        pushNotice,
+        noticeEmail: emailNotice,
+        noticeSms: smsNotice,
+        noticePush: pushNotice,
       });
 
       await fetchMe({ force: true });

@@ -1,11 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
+import { createInquiry, deleteInquiry, getInquiries, updateInquiry } from '@/api/inquiries';
 import ConfirmModal from '@/components/common/ConfirmModal';
 import EmptyState from '@/components/common/EmptyState';
 import ErrorState from '@/components/common/ErrorState';
 
-import { getStoredInquiries, setStoredInquiries } from '@/utils/storage';
 import useOrders from '@/hooks/useOrders';
 import '@/styles/order-history.css';
 import '@/styles/inquiry-history.css';
@@ -132,21 +132,11 @@ function isWithinPeriod(dateString, months) {
   return date >= boundary;
 }
 
-function makeInquiryId() {
-  const now = new Date();
-  const date = [
-    now.getFullYear(),
-    String(now.getMonth() + 1).padStart(2, '0'),
-    String(now.getDate()).padStart(2, '0'),
-  ].join('');
-  const random = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
-
-  return `INQ-${date}-${random}`;
-}
-
 function InquiryHistoryPage() {
   const { user, orders, errorMessage } = useOrders();
-  const [inquiries, setInquiries] = useState(() => getStoredInquiries());
+  const [inquiries, setInquiries] = useState([]);
+  const [inquiryLoadError, setInquiryLoadError] = useState('');
+  const [isInquiryLoading, setIsInquiryLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState('all');
   const [selectedCategory, setSelectedCategory] = useState('전체');
   const [periodMonths, setPeriodMonths] = useState(3);
@@ -189,6 +179,30 @@ function InquiryHistoryPage() {
       icon: <IconHeart />,
     },
   ];
+
+  const loadInquiries = async () => {
+    setIsInquiryLoading(true);
+    setInquiryLoadError('');
+
+    try {
+      const response = await getInquiries();
+      setInquiries(Array.isArray(response?.data) ? response.data : []);
+    } catch (error) {
+      setInquiryLoadError(error.message || '문의 내역을 불러오지 못했습니다.');
+    } finally {
+      setIsInquiryLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void loadInquiries();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, []);
 
   const counts = useMemo(() => {
     return inquiries.reduce(
@@ -268,7 +282,7 @@ function InquiryHistoryPage() {
     }, 1800);
   };
 
-  const handleSubmitInquiry = () => {
+  const handleSubmitInquiry = async () => {
     if (!form.category) {
       setFormError('문의 유형을 선택해주세요.');
       return;
@@ -284,54 +298,45 @@ function InquiryHistoryPage() {
       return;
     }
 
-    let nextInquiries;
+    try {
+      if (editingInquiryId) {
+        await updateInquiry(editingInquiryId, {
+          category: form.category,
+          orderId: form.orderId,
+          title: form.title.trim(),
+          content: form.content.trim(),
+        });
+      } else {
+        await createInquiry({
+          category: form.category,
+          orderId: form.orderId,
+          title: form.title.trim(),
+          content: form.content.trim(),
+        });
+      }
 
-    if (editingInquiryId) {
-      nextInquiries = inquiries.map((inquiry) =>
-        inquiry.inquiryId === editingInquiryId
-          ? {
-              ...inquiry,
-              category: form.category,
-              orderId: form.orderId,
-              title: form.title.trim(),
-              content: form.content.trim(),
-              updatedAt: new Date().toISOString(),
-            }
-          : inquiry
-      );
-    } else {
-      const newInquiry = {
-        inquiryId: makeInquiryId(),
-        category: form.category,
-        orderId: form.orderId,
-        title: form.title.trim(),
-        content: form.content.trim(),
-        status: 'waiting',
-        answer: '',
-        answeredAt: null,
-        createdAt: new Date().toISOString(),
-      };
-
-      nextInquiries = [newInquiry, ...inquiries];
+      await loadInquiries();
+      closeEditor();
+      showSavedToast();
+    } catch (error) {
+      setFormError(error.message || '문의를 저장하지 못했습니다.');
     }
-
-    setInquiries(nextInquiries);
-    setStoredInquiries(nextInquiries);
-    closeEditor();
-    showSavedToast();
   };
 
-  const handleDeleteInquiry = () => {
+  const handleDeleteInquiry = async () => {
     if (!deleteTargetId) {
       return;
     }
 
-    const nextInquiries = inquiries.filter((inquiry) => inquiry.inquiryId !== deleteTargetId);
-
-    setInquiries(nextInquiries);
-    setStoredInquiries(nextInquiries);
-    setDeleteTargetId(null);
-    setExpandedId(null);
+    try {
+      await deleteInquiry(deleteTargetId);
+      await loadInquiries();
+      setDeleteTargetId(null);
+      setExpandedId(null);
+    } catch (error) {
+      setInquiryLoadError(error.message || '문의를 삭제하지 못했습니다.');
+      setDeleteTargetId(null);
+    }
   };
 
   return (
@@ -417,8 +422,10 @@ function InquiryHistoryPage() {
           </div>
         </div>
 
-        {errorMessage ? (
-          <ErrorState className="inquiry-empty" message={errorMessage} />
+        {errorMessage || inquiryLoadError ? (
+          <ErrorState className="inquiry-empty" message={inquiryLoadError || errorMessage} />
+        ) : isInquiryLoading ? (
+          <div className="inquiry-empty">문의 내역을 불러오는 중입니다.</div>
         ) : filteredInquiries.length === 0 ? (
           <EmptyState
             className="inquiry-empty"

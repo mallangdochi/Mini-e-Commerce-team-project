@@ -1,7 +1,18 @@
 import { create } from 'zustand';
 
 import {
+  addRemoteCartItem,
+  clearRemoteCart,
+  getCartItemKey,
+  getRemoteCartItems,
+  mergeGuestCartToRemote,
+  removeRemoteCartItem,
+  removeRemoteCartItems,
+  setRemoteCartItemQuantity,
+} from '@/api/cart';
+import {
   clearStoredCartSnapshot,
+  getAccessToken,
   getCartOwnerId,
   getStoredCartSnapshot,
   setStoredCartSnapshot,
@@ -14,10 +25,8 @@ const TAB_ID =
     : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 let cartChannel = null;
-
-const getCartKey = ({ productId, productType, color, size }) => {
-  return [productType ?? 'product', productId, color || 'none', size || 'none'].join(':');
-};
+let remoteWriteQueue = Promise.resolve();
+let pendingRemoteSync = null;
 
 const normalizeItems = (items) => (Array.isArray(items) ? items : []);
 
@@ -45,7 +54,7 @@ const mergeCartItems = (baseItems, incomingItems) => {
   const merged = new Map();
 
   for (const item of [...normalizeItems(baseItems), ...normalizeItems(incomingItems)]) {
-    const id = item.id ?? getCartKey(item);
+    const id = getCartItemKey(item);
     const normalizedItem = {
       ...item,
       id,
@@ -65,6 +74,7 @@ const mergeCartItems = (baseItems, incomingItems) => {
     merged.set(id, {
       ...existing,
       ...normalizedItem,
+      id,
       quantity: Math.min(maxQuantity, existing.quantity + normalizedItem.quantity),
     });
   }
@@ -78,20 +88,38 @@ const createSnapshot = ({ ownerId, items, previousUpdatedAt = 0 }) => ({
   updatedAt: Math.max(Date.now(), Number(previousUpdatedAt) + 1),
 });
 
+const isLoggedInOwner = (ownerId = getCartOwnerId()) => {
+  return ownerId !== 'guest' && Boolean(getAccessToken());
+};
+
 const initialSnapshot = getStoredCartSnapshot();
 
 export const useCartStore = create((set, get) => {
-  const applySnapshot = (snapshot) => {
-    set({
+  const applySnapshot = (snapshot, { persist = true, broadcast = false } = {}) => {
+    const normalizedSnapshot = {
       ownerId: snapshot.ownerId,
       items: normalizeItems(snapshot.items),
-      lastSyncedAt: Number(snapshot.updatedAt) || 0,
+      updatedAt: Number(snapshot.updatedAt) || Date.now(),
+    };
+
+    if (persist) {
+      setStoredCartSnapshot(normalizedSnapshot);
+    }
+
+    set({
+      ownerId: normalizedSnapshot.ownerId,
+      items: normalizedSnapshot.items,
+      lastSyncedAt: normalizedSnapshot.updatedAt,
     });
 
-    return normalizeItems(snapshot.items);
+    if (broadcast) {
+      broadcastSnapshot(normalizedSnapshot);
+    }
+
+    return normalizedSnapshot.items;
   };
 
-  const commitItems = (items, ownerId = getCartOwnerId()) => {
+  const commitLocalItems = (items, ownerId = getCartOwnerId(), { broadcast = true } = {}) => {
     const state = get();
     const snapshot = createSnapshot({
       ownerId,
@@ -99,11 +127,10 @@ export const useCartStore = create((set, get) => {
       previousUpdatedAt: state.lastSyncedAt,
     });
 
-    setStoredCartSnapshot(snapshot);
-    applySnapshot(snapshot);
-    broadcastSnapshot(snapshot);
-
-    return snapshot.items;
+    return applySnapshot(snapshot, {
+      persist: true,
+      broadcast,
+    });
   };
 
   const ensureCurrentOwner = () => {
@@ -115,146 +142,267 @@ export const useCartStore = create((set, get) => {
     }
 
     const nextSnapshot = getStoredCartSnapshot(currentOwnerId);
-    applySnapshot(nextSnapshot);
+
+    applySnapshot(nextSnapshot, {
+      persist: false,
+      broadcast: false,
+    });
 
     return get();
+  };
+
+  const refreshRemoteCart = async ({ broadcast = true } = {}) => {
+    const currentOwnerId = getCartOwnerId();
+
+    if (!isLoggedInOwner(currentOwnerId)) {
+      return get().items;
+    }
+
+    const remoteItems = await getRemoteCartItems();
+    const snapshot = createSnapshot({
+      ownerId: currentOwnerId,
+      items: remoteItems,
+      previousUpdatedAt: get().lastSyncedAt,
+    });
+
+    applySnapshot(snapshot, {
+      persist: true,
+      broadcast,
+    });
+
+    set({
+      syncError: '',
+    });
+
+    return remoteItems;
+  };
+
+  const queueRemoteMutation = (mutation) => {
+    remoteWriteQueue = remoteWriteQueue
+      .then(async () => {
+        await mutation();
+        await refreshRemoteCart();
+      })
+      .catch(async (error) => {
+        set({
+          syncError: error?.message || '장바구니 동기화 중 오류가 발생했습니다.',
+        });
+
+        try {
+          await refreshRemoteCart();
+        } catch {
+          return;
+        }
+      });
+
+    return remoteWriteQueue;
+  };
+
+  const getMatchedOrderedItems = (cartItems, orderItems) => {
+    const normalizedOrderItems = normalizeItems(orderItems);
+
+    return cartItems.filter((cartItem) => {
+      return normalizedOrderItems.some((orderItem) => {
+        if (orderItem.id && cartItem.id === orderItem.id) {
+          return true;
+        }
+
+        return (
+          Number(cartItem.productId) === Number(orderItem.productId) &&
+          (cartItem.productType ?? 'product') === (orderItem.productType ?? 'product') &&
+          String(cartItem.color || '') === String(orderItem.color || '') &&
+          String(cartItem.size || '') === String(orderItem.size || '')
+        );
+      });
+    });
   };
 
   return {
     ownerId: initialSnapshot.ownerId,
     items: initialSnapshot.items,
     lastSyncedAt: initialSnapshot.updatedAt,
+    isSyncing: false,
+    syncError: '',
 
     addItem: (item) => {
       const state = ensureCurrentOwner();
-      const cartKey = getCartKey(item);
-      const existingItem = state.items.find((cartItem) => cartItem.id === cartKey);
+      const nextItems = mergeCartItems(state.items, [item]);
 
-      if (!existingItem) {
-        commitItems([
-          ...state.items,
-          {
-            ...item,
-            id: cartKey,
-            quantity: Math.max(1, Number(item.quantity) || 1),
-          },
-        ]);
+      commitLocalItems(nextItems, state.ownerId);
+
+      if (!isLoggedInOwner(state.ownerId)) {
         return;
       }
 
-      const stock = Number(existingItem.stock ?? item.stock);
-      const maxQuantity = Number.isFinite(stock) && stock > 0 ? stock : Number.MAX_SAFE_INTEGER;
-      const incomingQuantity = Math.max(1, Number(item.quantity) || 1);
-
-      commitItems(
-        state.items.map((cartItem) =>
-          cartItem.id === cartKey
-            ? {
-                ...cartItem,
-                ...item,
-                id: cartKey,
-                quantity: Math.min(maxQuantity, cartItem.quantity + incomingQuantity),
-              }
-            : cartItem
-        )
-      );
+      void queueRemoteMutation(() => addRemoteCartItem(item));
     },
 
     updateQuantity: (itemId, quantity) => {
       const state = ensureCurrentOwner();
+      const targetItem = state.items.find((item) => item.id === itemId);
 
-      commitItems(
-        state.items.map((item) => {
-          if (item.id !== itemId) {
-            return item;
-          }
+      if (!targetItem) {
+        return;
+      }
 
-          const stock = Number(item.stock);
-          const maxQuantity = Number.isFinite(stock) && stock > 0 ? stock : Number.MAX_SAFE_INTEGER;
+      const stock = Number(targetItem.stock);
+      const maxQuantity = Number.isFinite(stock) && stock > 0 ? stock : Number.MAX_SAFE_INTEGER;
+      const nextQuantity = Math.min(maxQuantity, Math.max(1, Number(quantity) || 1));
 
-          return {
-            ...item,
-            quantity: Math.min(maxQuantity, Math.max(1, Number(quantity) || 1)),
-          };
-        })
+      const nextItems = state.items.map((item) =>
+        item.id === itemId
+          ? {
+              ...item,
+              quantity: nextQuantity,
+            }
+          : item
       );
+
+      commitLocalItems(nextItems, state.ownerId);
+
+      if (!isLoggedInOwner(state.ownerId)) {
+        return;
+      }
+
+      void queueRemoteMutation(() => setRemoteCartItemQuantity(targetItem, nextQuantity));
     },
 
     removeItem: (itemId) => {
       const state = ensureCurrentOwner();
-      commitItems(state.items.filter((item) => item.id !== itemId));
+      const targetItem = state.items.find((item) => item.id === itemId);
+
+      if (!targetItem) {
+        return;
+      }
+
+      commitLocalItems(
+        state.items.filter((item) => item.id !== itemId),
+        state.ownerId
+      );
+
+      if (!isLoggedInOwner(state.ownerId)) {
+        return;
+      }
+
+      void queueRemoteMutation(() => removeRemoteCartItem(targetItem));
     },
 
     removeItems: (itemIds) => {
       const state = ensureCurrentOwner();
       const targetIds = new Set(itemIds);
+      const targetItems = state.items.filter((item) => targetIds.has(item.id));
 
-      commitItems(state.items.filter((item) => !targetIds.has(item.id)));
+      commitLocalItems(
+        state.items.filter((item) => !targetIds.has(item.id)),
+        state.ownerId
+      );
+
+      if (!isLoggedInOwner(state.ownerId) || targetItems.length === 0) {
+        return;
+      }
+
+      void queueRemoteMutation(() => removeRemoteCartItems(targetItems));
     },
 
     removeOrderedItems: (orderItems) => {
       const state = ensureCurrentOwner();
+      const targetItems = getMatchedOrderedItems(state.items, orderItems);
 
-      commitItems(
-        state.items.filter((cartItem) => {
-          return !orderItems.some((orderItem) => {
-            if (orderItem.id && cartItem.id === orderItem.id) {
-              return true;
-            }
+      if (targetItems.length === 0) {
+        return;
+      }
 
-            return (
-              Number(cartItem.productId) === Number(orderItem.productId) &&
-              (cartItem.productType ?? 'product') === (orderItem.productType ?? 'product') &&
-              (cartItem.color || '') === (orderItem.color || '') &&
-              (cartItem.size || '') === (orderItem.size || '')
-            );
-          });
-        })
+      const targetIds = new Set(targetItems.map((item) => item.id));
+
+      commitLocalItems(
+        state.items.filter((item) => !targetIds.has(item.id)),
+        state.ownerId
       );
+
+      if (!isLoggedInOwner(state.ownerId)) {
+        return;
+      }
+
+      void queueRemoteMutation(() => removeRemoteCartItems(targetItems));
     },
 
     clearCart: () => {
-      ensureCurrentOwner();
-      commitItems([]);
+      const state = ensureCurrentOwner();
+
+      commitLocalItems([], state.ownerId);
+
+      if (!isLoggedInOwner(state.ownerId)) {
+        return;
+      }
+
+      void queueRemoteMutation(() => clearRemoteCart());
     },
 
-    syncCart: ({ force = false, mergeGuest = true } = {}) => {
+    syncCart: async ({ force = false, mergeGuest = true } = {}) => {
+      if (pendingRemoteSync) {
+        return pendingRemoteSync;
+      }
+
       const currentOwnerId = getCartOwnerId();
-      const state = get();
 
-      if (state.ownerId !== currentOwnerId) {
-        const targetSnapshot = getStoredCartSnapshot(currentOwnerId);
+      if (!isLoggedInOwner(currentOwnerId)) {
+        const state = get();
 
-        if (mergeGuest && state.ownerId === 'guest' && currentOwnerId !== 'guest') {
-          const guestSnapshot = getStoredCartSnapshot('guest');
-          const mergedItems = mergeCartItems(targetSnapshot.items, guestSnapshot.items);
+        if (force || state.ownerId !== currentOwnerId) {
+          const guestSnapshot = getStoredCartSnapshot(currentOwnerId);
 
-          if (guestSnapshot.items.length > 0) {
-            const mergedSnapshot = createSnapshot({
-              ownerId: currentOwnerId,
-              items: mergedItems,
-              previousUpdatedAt: Math.max(state.lastSyncedAt, targetSnapshot.updatedAt),
-            });
-
-            setStoredCartSnapshot(mergedSnapshot);
-            clearStoredCartSnapshot('guest');
-            applySnapshot(mergedSnapshot);
-            broadcastSnapshot(mergedSnapshot);
-
-            return mergedSnapshot.items;
-          }
+          return applySnapshot(guestSnapshot, {
+            persist: false,
+            broadcast: false,
+          });
         }
 
-        return applySnapshot(targetSnapshot);
+        return state.items;
       }
 
-      const storedSnapshot = getStoredCartSnapshot(currentOwnerId);
+      pendingRemoteSync = (async () => {
+        set({
+          isSyncing: true,
+          syncError: '',
+        });
 
-      if (force || Number(storedSnapshot.updatedAt) > Number(state.lastSyncedAt)) {
-        return applySnapshot(storedSnapshot);
-      }
+        try {
+          if (mergeGuest) {
+            const guestSnapshot = getStoredCartSnapshot('guest');
 
-      return state.items;
+            if (guestSnapshot.items.length > 0) {
+              await mergeGuestCartToRemote(guestSnapshot.items);
+
+              clearStoredCartSnapshot('guest');
+            }
+          }
+
+          return await refreshRemoteCart({
+            broadcast: true,
+          });
+        } catch (error) {
+          set({
+            syncError: error?.message || '장바구니를 불러오지 못했습니다.',
+          });
+
+          const cachedSnapshot = getStoredCartSnapshot(currentOwnerId);
+
+          applySnapshot(cachedSnapshot, {
+            persist: false,
+            broadcast: false,
+          });
+
+          return cachedSnapshot.items;
+        } finally {
+          set({
+            isSyncing: false,
+          });
+
+          pendingRemoteSync = null;
+        }
+      })();
+
+      return pendingRemoteSync;
     },
 
     applyExternalSnapshot: (snapshot) => {
@@ -269,11 +417,17 @@ export const useCartStore = create((set, get) => {
         return;
       }
 
-      applySnapshot({
-        ownerId: snapshot.ownerId,
-        items: normalizeItems(snapshot.items),
-        updatedAt: incomingUpdatedAt,
-      });
+      applySnapshot(
+        {
+          ownerId: snapshot.ownerId,
+          items: normalizeItems(snapshot.items),
+          updatedAt: incomingUpdatedAt,
+        },
+        {
+          persist: true,
+          broadcast: false,
+        }
+      );
     },
   };
 });
