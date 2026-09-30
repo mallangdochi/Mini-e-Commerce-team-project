@@ -7,7 +7,9 @@ const AUTH_STORAGE_KEYS = new Set(['accessToken', 'userInfo']);
 
 function useCartSync() {
   useEffect(() => {
-    const syncCart = (options) => useCartStore.getState().syncCart(options);
+    const syncCart = (options) => {
+      void useCartStore.getState().syncCart(options);
+    };
 
     const unsubscribeBroadcast = subscribeToCartBroadcast((snapshot) => {
       useCartStore.getState().applyExternalSnapshot(snapshot);
@@ -15,30 +17,48 @@ function useCartSync() {
 
     const handleStorage = (event) => {
       if (isCartStorageKey(event.key)) {
-        syncCart({ force: true, mergeGuest: false });
+        syncCart({
+          force: true,
+          mergeGuest: false,
+        });
         return;
       }
 
       if (AUTH_STORAGE_KEYS.has(event.key)) {
-        syncCart({ force: true, mergeGuest: true });
+        syncCart({
+          force: true,
+          mergeGuest: true,
+        });
       }
     };
 
     const handleFocus = () => {
-      syncCart({ force: true, mergeGuest: true });
+      syncCart({
+        force: true,
+        mergeGuest: true,
+      });
     };
 
     const handleVisibilityChange = () => {
       if (!document.hidden) {
-        syncCart({ force: true, mergeGuest: true });
+        syncCart({
+          force: true,
+          mergeGuest: true,
+        });
       }
     };
 
     const handleAuthChange = () => {
-      syncCart({ force: true, mergeGuest: true });
+      syncCart({
+        force: true,
+        mergeGuest: true,
+      });
     };
 
-    syncCart({ force: true, mergeGuest: true });
+    syncCart({
+      force: true,
+      mergeGuest: true,
+    });
 
     window.addEventListener('storage', handleStorage);
     window.addEventListener('focus', handleFocus);

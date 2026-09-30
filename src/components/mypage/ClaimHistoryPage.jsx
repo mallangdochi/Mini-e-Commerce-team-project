@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
+import { getOrderRequests } from '@/api/claims';
 import EmptyState from '@/components/common/EmptyState';
 import ErrorState from '@/components/common/ErrorState';
-import { getStoredCancelReasons, getStoredClaims } from '@/utils/storage';
 import useOrders from '@/hooks/useOrders';
 import { getOptionText, getOrderImage, getOrderName } from './order-history/orderHistoryUtils';
 import '@/styles/order-history.css';
@@ -118,8 +118,9 @@ function isWithinPeriod(dateString, months) {
 function ClaimHistoryPage() {
   const { user, orders, orderDetails, errorMessage, loadOrderDetails, isOrderDetailLoading } =
     useOrders();
-  const [localClaims] = useState(getStoredClaims);
-  const [cancelReasons] = useState(getStoredCancelReasons);
+  const [remoteClaims, setRemoteClaims] = useState([]);
+  const [claimLoadError, setClaimLoadError] = useState('');
+  const [isClaimLoading, setIsClaimLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState('all');
   const [periodMonths, setPeriodMonths] = useState(3);
   const [selectedClaim, setSelectedClaim] = useState(null);
@@ -155,34 +156,62 @@ function ClaimHistoryPage() {
     },
   ];
 
+  useEffect(() => {
+    let isActive = true;
+
+    const loadClaims = async () => {
+      setIsClaimLoading(true);
+      setClaimLoadError('');
+
+      try {
+        const response = await getOrderRequests();
+
+        if (!isActive) {
+          return;
+        }
+
+        setRemoteClaims(Array.isArray(response?.data) ? response.data : []);
+      } catch (error) {
+        if (isActive) {
+          setClaimLoadError(error.message || '취소/교환/반품 내역을 불러오지 못했습니다.');
+        }
+      } finally {
+        if (isActive) {
+          setIsClaimLoading(false);
+        }
+      }
+    };
+
+    void loadClaims();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
   const claims = useMemo(() => {
-    const cancelledClaims = orders
-      .filter((order) => order.orderStatus === 'cancelled')
+    const remoteOrderIds = new Set(
+      remoteClaims.filter((claim) => claim.type === 'cancel').map((claim) => String(claim.orderId))
+    );
+
+    const legacyCancelledOrders = orders
+      .filter(
+        (order) => order.orderStatus === 'cancelled' && !remoteOrderIds.has(String(order.orderId))
+      )
       .map((order) => ({
         claimId: `cancel-${order.orderId}`,
         orderId: order.orderId,
         type: 'cancel',
         status: 'completed',
-        reason: cancelReasons[order.orderId] ?? '취소 사유 정보 없음',
+        reason: order.cancelReason || '취소 사유 정보 없음',
         requestedAt:
           orderDetails[order.orderId]?.cancelledAt ?? order.cancelledAt ?? order.orderDate,
       }));
 
-    const exchangeReturnClaims = localClaims
-      .filter((claim) => claim?.type === 'exchange' || claim?.type === 'return')
-      .map((claim, index) => ({
-        claimId: claim.claimId ?? `claim-${index}`,
-        orderId: claim.orderId,
-        type: claim.type,
-        status: claim.status ?? 'requested',
-        reason: claim.reason ?? '사유 정보 없음',
-        requestedAt: claim.requestedAt ?? claim.createdAt ?? new Date().toISOString(),
-      }));
-
-    return [...cancelledClaims, ...exchangeReturnClaims].sort((a, b) => {
+    return [...remoteClaims, ...legacyCancelledOrders].sort((a, b) => {
       return new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime();
     });
-  }, [cancelReasons, localClaims, orderDetails, orders]);
+  }, [orderDetails, orders, remoteClaims]);
 
   const filteredClaims = useMemo(() => {
     return claims.filter((claim) => {
@@ -287,8 +316,10 @@ function ClaimHistoryPage() {
           </select>
         </div>
 
-        {errorMessage ? (
-          <ErrorState className="order-history-empty" message={errorMessage} />
+        {errorMessage || claimLoadError ? (
+          <ErrorState className="order-history-empty" message={claimLoadError || errorMessage} />
+        ) : isClaimLoading ? (
+          <div className="claim-history-empty">처리 내역을 불러오는 중입니다.</div>
         ) : filteredClaims.length === 0 ? (
           <EmptyState
             className="claim-history-empty"

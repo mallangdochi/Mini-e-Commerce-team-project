@@ -6,10 +6,8 @@ import { getProduct, getSet } from '@/api/products';
 import useAuthStore from '@/store/authStore';
 import {
   getPersonalStorageOwnerId,
-  getStoredCancelReasons,
   getStoredOrderDetails,
   getStoredOrders,
-  setStoredCancelReasons,
   setStoredOrderDetails,
   setStoredOrders,
 } from '@/utils/storage';
@@ -750,15 +748,10 @@ function useOrders() {
       }
 
       const detail = orderDetailsRef.current[orderId] ?? (await loadOrderDetail(orderId));
-      const response = await cancelOrder(orderId);
+      const response = await cancelOrder(orderId, reasonText);
       const cancelledOrder = response?.data ?? null;
       const cancelledAt =
         cancelledOrder?.cancelledAt ?? detail?.cancelledAt ?? new Date().toISOString();
-
-      setStoredCancelReasons({
-        ...getStoredCancelReasons(),
-        [orderId]: reasonText,
-      });
 
       setOrders((prev) => {
         const next = prev.map((order) =>
