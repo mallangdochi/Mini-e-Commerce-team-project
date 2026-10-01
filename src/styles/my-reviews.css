@@ -51,6 +51,62 @@
   padding-bottom: 2px;
 }
 
+
+.my-reviews-tabs {
+  display: flex;
+  align-items: center;
+
+  margin-top: 22px;
+  padding-bottom: 14px;
+
+  border-bottom: 1px solid #e8e8e8;
+
+  gap: 10px;
+}
+
+.my-reviews-tabs button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-width: 132px;
+  height: 42px;
+  padding: 0 20px;
+
+  border: 1px solid #e1e1e1;
+  border-radius: 999px;
+
+  background: #fff;
+  color: #555;
+
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    background 150ms ease,
+    color 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.my-reviews-tabs button:hover {
+  border-color: #bdbdbd;
+
+  background: #fafafa;
+}
+
+.my-reviews-tabs button.is-active {
+  border-color: #111;
+
+  background: #111;
+  color: #fff;
+
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
 .my-reviews-tab-count {
   margin-left: 7px;
 
@@ -825,5 +881,26 @@
 @media (max-width: 360px) {
   .my-reviews-list {
     margin-top: 0;
+  }
+}
+
+
+@media (max-width: 640px) {
+  .my-reviews-tabs {
+    overflow-x: auto;
+
+    padding-bottom: 12px;
+
+    scrollbar-width: none;
+  }
+
+  .my-reviews-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .my-reviews-tabs button {
+    flex: 0 0 auto;
+
+    min-width: 124px;
   }
 }

@@ -305,11 +305,6 @@ function InquiryHistoryPage() {
             className="inquiry-empty"
             title="등록된 문의가 없습니다."
             description="궁금한 점이 있다면 1:1 문의를 남겨주세요."
-            action={
-              <button type="button" onClick={openNewInquiry}>
-                문의 작성하기
-              </button>
-            }
           />
         ) : (
           <div className="inquiry-list">
