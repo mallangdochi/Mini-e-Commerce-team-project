@@ -1,13 +1,11 @@
 import { getProduct } from '@/api/products';
+import {
+  getCurrentUserId,
+  getErrorMessage,
+  normalizeText,
+  unwrapRelation,
+} from '@/api/supabaseUtils';
 import { supabase } from '@/lib/supabase';
-
-function getErrorMessage(error, fallbackMessage) {
-  return error?.message || fallbackMessage;
-}
-
-function normalizeText(value) {
-  return String(value ?? '').trim();
-}
 
 function getColorValue(color) {
   if (typeof color === 'string') {
@@ -49,23 +47,6 @@ export function getCartItemKey({ productId, productType, color, size }) {
     getColorValue(color) || 'none',
     normalizeText(size) || 'none',
   ].join(':');
-}
-
-async function getCurrentUserId() {
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-
-  if (error) {
-    throw error;
-  }
-
-  if (!user) {
-    throw new Error('로그인이 필요합니다.');
-  }
-
-  return user.id;
 }
 
 async function getCartId({ create = false } = {}) {
@@ -225,8 +206,8 @@ function getNormalizedProductType(product) {
 }
 
 function buildCartItemFromRemote(row, product) {
-  const variant = Array.isArray(row.variant) ? row.variant[0] : row.variant;
-  const colorRelation = Array.isArray(row.color) ? row.color[0] : row.color;
+  const variant = unwrapRelation(row.variant);
+  const colorRelation = unwrapRelation(row.color);
 
   const productType = getNormalizedProductType(product);
   const productColor =
@@ -337,7 +318,7 @@ export async function getRemoteCartItems() {
       ...new Set(
         rows
           .map((row) => {
-            const variant = Array.isArray(row.variant) ? row.variant[0] : row.variant;
+            const variant = unwrapRelation(row.variant);
 
             return Number(variant?.product_id);
           })
@@ -357,7 +338,7 @@ export async function getRemoteCartItems() {
 
     return rows
       .map((row) => {
-        const variant = Array.isArray(row.variant) ? row.variant[0] : row.variant;
+        const variant = unwrapRelation(row.variant);
         const productId = Number(variant?.product_id);
         const product = productMap.get(productId);
 

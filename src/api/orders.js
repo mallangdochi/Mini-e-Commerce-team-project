@@ -1,8 +1,5 @@
+import { getErrorMessage, getProductImageUrl, unwrapRelation } from '@/api/supabaseUtils';
 import { supabase } from '@/lib/supabase';
-
-function getErrorMessage(error, fallbackMessage) {
-  return error?.message || fallbackMessage;
-}
 
 function mapOrderStatus(status) {
   const statusMap = {
@@ -20,18 +17,8 @@ function mapOrderStatus(status) {
   return statusMap[status] ?? status ?? 'paymentCompleted';
 }
 
-function getPublicImageUrl(storagePath) {
-  if (!storagePath) {
-    return '';
-  }
-
-  const { data } = supabase.storage.from('product-images').getPublicUrl(storagePath);
-
-  return data?.publicUrl ?? '';
-}
-
 function normalizeOrderItem(item) {
-  const productRelation = Array.isArray(item?.product) ? item.product[0] : item?.product;
+  const productRelation = unwrapRelation(item?.product);
 
   return {
     orderItemId: item.id,
@@ -43,7 +30,7 @@ function normalizeOrderItem(item) {
     color: item.color_name ?? '',
     size: item.size ?? '',
     imagePath: item.image_path ?? '',
-    imageUrl: getPublicImageUrl(item.image_path),
+    imageUrl: getProductImageUrl(item.image_path),
     unitPrice: Number(item.unit_price ?? 0),
     price: Number(item.unit_price ?? 0),
     quantity: Number(item.quantity ?? 1),

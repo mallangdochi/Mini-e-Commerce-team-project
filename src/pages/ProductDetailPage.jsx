@@ -8,6 +8,7 @@ import { getProduct, getSet } from '@/api/products';
 import { getProductReviews, getSetReviews } from '@/api/reviews';
 import useWishlistStore from '@/store/wishlistStore';
 import '@/styles/product-detail.css';
+import { normalizeImageUrl } from '@/utils/image';
 
 const COLOR_MAP = {
   black: '#111111',
@@ -117,14 +118,6 @@ function getFitLabel(baseSize, recommendedSize) {
   }
 
   return '조금 슬림한 핏 예상';
-}
-
-function normalizeImageUrl(url) {
-  if (!url || typeof url !== 'string') {
-    return '';
-  }
-
-  return url.trim().replace(/^<|>$/g, '');
 }
 
 const IMAGE_TYPE_ORDER = ['thumbnail', 'styled', 'front', 'side', 'back'];

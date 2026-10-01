@@ -3,17 +3,8 @@ const STORAGE_KEYS = {
   userInfo: 'userInfo',
   profileOverrides: 'arc-profile-overrides',
   mypageSummary: 'arc-mypage-summary',
-  noticeSettings: 'arc-notice-settings',
-  addresses: 'arc-addresses',
   orders: 'arc-orders-cache',
   orderDetails: 'arc-order-details-cache',
-  wishlist: 'arc-wishlist-cache',
-  reviews: 'arc-reviews',
-  claims: 'arc-order-claims',
-  inquiries: 'arc-inquiries',
-  cancelReasons: 'arc-order-cancel-reasons',
-  passwordChangeDraft: 'arc-password-change-draft',
-  productSort: 'arc-product-sort',
   personalPrefix: 'arc-user-data-v1',
   legacyCart: 'arc-cart',
   cartPrefix: 'arc-cart-v2',
@@ -122,7 +113,7 @@ export const getPersonalStorageOwnerId = (user = getStoredUserInfo()) => {
   return 'guest';
 };
 
-export const getPersonalStorageKey = (baseKey, ownerId = getPersonalStorageOwnerId()) =>
+const getPersonalStorageKey = (baseKey, ownerId = getPersonalStorageOwnerId()) =>
   `${STORAGE_KEYS.personalPrefix}:${ownerId}:${baseKey}`;
 
 function readPersonalJson(baseKey, fallbackValue, user) {
@@ -134,9 +125,6 @@ function writePersonalJson(baseKey, value, user) {
   const ownerId = getPersonalStorageOwnerId(user);
   return writeJson(getPersonalStorageKey(baseKey, ownerId), value);
 }
-
-export const isPersonalStorageKey = (storageKey) =>
-  Boolean(storageKey?.startsWith(`${STORAGE_KEYS.personalPrefix}:`));
 
 export const getAccessToken = () => readText(STORAGE_KEYS.accessToken);
 
@@ -167,10 +155,7 @@ export const setStoredUserInfo = (user) => {
 export const getStoredProfileOverrides = (user = getStoredUserInfo()) =>
   asObject(readPersonalJson(STORAGE_KEYS.profileOverrides, {}, user));
 
-export const setStoredProfileOverrides = (profileOverrides, user = getStoredUserInfo()) =>
-  writePersonalJson(STORAGE_KEYS.profileOverrides, asObject(profileOverrides), user);
-
-export const getStoredSummary = (user = getStoredUserInfo()) =>
+const getStoredSummary = (user = getStoredUserInfo()) =>
   asObject(readPersonalJson(STORAGE_KEYS.mypageSummary, {}, user));
 
 export const updateStoredSummary = (partialSummary, user = getStoredUserInfo()) => {
@@ -202,33 +187,10 @@ export const getStoredUser = () => {
   };
 };
 
-export const resolveUserProfile = (response) => {
-  const remoteUser =
-    response?.data?.user ?? response?.data ?? response?.user ?? response?.userInfo ?? {};
-  const normalizedRemoteUser = asObject(remoteUser);
-
-  return {
-    ...normalizedRemoteUser,
-    ...getStoredProfileOverrides(normalizedRemoteUser),
-    ...getStoredSummary(normalizedRemoteUser),
-  };
-};
-
 export const clearAuthSessionStorage = () => {
   removeValue(STORAGE_KEYS.accessToken);
   removeValue(STORAGE_KEYS.userInfo);
 };
-
-export const getStoredNoticeSettings = () =>
-  asObject(readPersonalJson(STORAGE_KEYS.noticeSettings, {}));
-
-export const setStoredNoticeSettings = (settings) =>
-  writePersonalJson(STORAGE_KEYS.noticeSettings, asObject(settings));
-
-export const getStoredAddresses = () => asArray(readPersonalJson(STORAGE_KEYS.addresses, []));
-
-export const setStoredAddresses = (addresses) =>
-  writePersonalJson(STORAGE_KEYS.addresses, asArray(addresses));
 
 export const getStoredOrders = () => asArray(readPersonalJson(STORAGE_KEYS.orders, []));
 
@@ -247,59 +209,11 @@ export const getStoredOrderDetails = () =>
 export const setStoredOrderDetails = (details) =>
   writePersonalJson(STORAGE_KEYS.orderDetails, asObject(details));
 
-export const getStoredWishlistItems = () => asArray(readPersonalJson(STORAGE_KEYS.wishlist, []));
-
-export const setStoredWishlistItems = (items) => {
-  const nextItems = asArray(items);
-
-  writePersonalJson(STORAGE_KEYS.wishlist, nextItems);
-  updateStoredSummary({ wishlistCount: nextItems.length });
-
-  return nextItems;
-};
-
-export const getStoredReviews = () => asArray(readPersonalJson(STORAGE_KEYS.reviews, []));
-
-export const setStoredReviews = (reviews) =>
-  writePersonalJson(STORAGE_KEYS.reviews, asArray(reviews));
-
-export const getStoredClaims = () => asArray(readPersonalJson(STORAGE_KEYS.claims, []));
-
-export const setStoredClaims = (claims) => writePersonalJson(STORAGE_KEYS.claims, asArray(claims));
-
-export const getStoredInquiries = () => asArray(readPersonalJson(STORAGE_KEYS.inquiries, []));
-
-export const setStoredInquiries = (inquiries) =>
-  writePersonalJson(STORAGE_KEYS.inquiries, asArray(inquiries));
-
-export const getStoredCancelReasons = () =>
-  asObject(readPersonalJson(STORAGE_KEYS.cancelReasons, {}));
-
-export const setStoredCancelReasons = (cancelReasons) =>
-  writePersonalJson(STORAGE_KEYS.cancelReasons, asObject(cancelReasons));
-
-export const setStoredPasswordChangeDraft = (draft) =>
-  writePersonalJson(STORAGE_KEYS.passwordChangeDraft, asObject(draft));
-
-export const getStoredProductSort = () => readText(STORAGE_KEYS.productSort);
-
-export const setStoredProductSort = (sortType) => {
-  if (!sortType) {
-    removeValue(STORAGE_KEYS.productSort);
-    return null;
-  }
-
-  writeText(STORAGE_KEYS.productSort, sortType);
-  return sortType;
-};
-
 export const getCartOwnerId = () => getPersonalStorageOwnerId();
 
-export const getCartStorageKey = (ownerId = getCartOwnerId()) => {
-  return `${STORAGE_KEYS.cartPrefix}:${ownerId}`;
-};
+const getCartStorageKey = (ownerId = getCartOwnerId()) => `${STORAGE_KEYS.cartPrefix}:${ownerId}`;
 
-const normalizeCartSnapshot = (value, ownerId) => {
+function normalizeCartSnapshot(value, ownerId) {
   const snapshot = asObject(value);
 
   return {
@@ -307,9 +221,9 @@ const normalizeCartSnapshot = (value, ownerId) => {
     items: asArray(snapshot.items),
     updatedAt: Number(snapshot.updatedAt) || 0,
   };
-};
+}
 
-const getLegacyCartItems = () => {
+function getLegacyCartItems() {
   const legacyValue = readJson(STORAGE_KEYS.legacyCart, null);
 
   if (!legacyValue) {
@@ -325,7 +239,7 @@ const getLegacyCartItems = () => {
   }
 
   return asArray(legacyValue.state?.items);
-};
+}
 
 export const getStoredCartSnapshot = (ownerId = getCartOwnerId()) => {
   const storageKey = getCartStorageKey(ownerId);

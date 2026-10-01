@@ -1,3 +1,4 @@
+import { getCurrentUserId, getErrorMessage, unwrapRelation } from '@/api/supabaseUtils';
 import { supabase } from '@/lib/supabase';
 
 const CATEGORY_TO_TYPE = {
@@ -18,27 +19,6 @@ const TYPE_TO_CATEGORY = {
   cancel_return: '취소 / 교환 / 반품',
   account: '회원 / 혜택',
 };
-
-function getErrorMessage(error, fallbackMessage) {
-  return error?.message || fallbackMessage;
-}
-
-async function getCurrentUserId() {
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-
-  if (error) {
-    throw error;
-  }
-
-  if (!user) {
-    throw new Error('로그인이 필요합니다.');
-  }
-
-  return user.id;
-}
 
 async function resolveOrderDatabaseId(userId, orderNumber) {
   const normalizedOrderNumber = String(orderNumber ?? '').trim();
@@ -69,7 +49,7 @@ async function resolveOrderDatabaseId(userId, orderNumber) {
 }
 
 function normalizeInquiry(row) {
-  const order = Array.isArray(row?.order) ? row.order[0] : row?.order;
+  const order = unwrapRelation(row?.order);
 
   return {
     inquiryId: row.id,

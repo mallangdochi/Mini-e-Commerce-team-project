@@ -3,6 +3,8 @@ import { create } from 'zustand';
 import { addWishlist, getWishlist, removeWishlist } from '@/api/wishlist';
 import useAuthStore from '@/store/authStore';
 
+let pendingWishlistRequest = null;
+
 const normalizeWishlistItem = (item) => {
   const productId = Number(item?.productId ?? item?.product?.productId ?? item?.product?.id);
   const product = item?.product ?? item;
@@ -49,16 +51,32 @@ const useWishlistStore = create((set, get) => ({
       set({ isLoading: true, errorMessage: '' });
     }
 
-    try {
-      const response = await getWishlist();
-      const items = extractWishlistItems(response);
-      set({ items, isLoading: false, errorMessage: '' });
-      updateWishlistCount(items);
-      return items;
-    } catch (error) {
-      set({ isLoading: false, errorMessage: error.message || '찜 목록을 불러오지 못했습니다.' });
-      throw error;
+    if (pendingWishlistRequest) {
+      return pendingWishlistRequest;
     }
+
+    const request = getWishlist()
+      .then((response) => {
+        const items = extractWishlistItems(response);
+        set({ items, isLoading: false, errorMessage: '' });
+        updateWishlistCount(items);
+        return items;
+      })
+      .catch((error) => {
+        set({
+          isLoading: false,
+          errorMessage: error.message || '찜 목록을 불러오지 못했습니다.',
+        });
+        throw error;
+      })
+      .finally(() => {
+        if (pendingWishlistRequest === request) {
+          pendingWishlistRequest = null;
+        }
+      });
+
+    pendingWishlistRequest = request;
+    return request;
   },
 
   toggleItem: async (product) => {

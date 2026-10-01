@@ -9,7 +9,7 @@ function IconBag() {
   );
 }
 
-function IconCoupon() {
+export function IconCoupon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path d="M4 7.5A2.5 2.5 0 0 0 6.5 10 2.5 2.5 0 0 0 4 12.5V17h16v-4.5A2.5 2.5 0 0 0 17.5 10 2.5 2.5 0 0 0 20 7.5V3H4v4.5Z" />

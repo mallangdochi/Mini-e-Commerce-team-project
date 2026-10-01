@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 
 import { getCoupons } from '@/api/coupons';
 import EmptyState from '@/components/common/EmptyState';
@@ -9,48 +8,14 @@ import useOrders from '@/hooks/useOrders';
 import useAuthStore from '@/store/authStore';
 import '@/styles/order-history.css';
 import '@/styles/coupon-benefits.css';
+import { formatCompactDate } from '@/utils/formatters';
+import OrderSummary, { IconCoupon } from './order-history/OrderSummary';
 
 const COUPON_TABS = [
   { label: '사용 가능', value: 'available' },
   { label: '사용 완료', value: 'used' },
   { label: '기간 만료', value: 'expired' },
 ];
-
-function IconBag() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M5.5 8.5h13l-.8 11h-11.4l-.8-11Z" />
-      <path d="M9 9V6.7a3 3 0 0 1 6 0V9" />
-    </svg>
-  );
-}
-
-function IconCoupon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M4 7.5A2.5 2.5 0 0 0 6.5 10 2.5 2.5 0 0 0 4 12.5V17h16v-4.5A2.5 2.5 0 0 0 17.5 10 2.5 2.5 0 0 0 20 7.5V3H4v4.5Z" />
-    </svg>
-  );
-}
-
-function IconCoin() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <ellipse cx="12" cy="6" rx="7" ry="3" />
-      <path d="M5 6v4c0 1.7 3.1 3 7 3s7-1.3 7-3V6" />
-      <path d="M5 10v4c0 1.7 3.1 3 7 3s7-1.3 7-3v-4" />
-      <path d="M5 14v4c0 1.7 3.1 3 7 3s7-1.3 7-3v-4" />
-    </svg>
-  );
-}
-
-function IconHeart() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M20.8 5.9a5.2 5.2 0 0 0-7.4 0L12 7.3l-1.4-1.4a5.2 5.2 0 1 0-7.4 7.4L12 22l8.8-8.7a5.2 5.2 0 0 0 0-7.4Z" />
-    </svg>
-  );
-}
 
 function normalizeServerCoupons(userCoupons) {
   if (Array.isArray(userCoupons) && userCoupons.length > 0) {
@@ -87,26 +52,6 @@ function normalizeServerCoupons(userCoupons) {
   }
 
   return [];
-}
-
-function formatDate(dateString) {
-  if (!dateString) {
-    return '-';
-  }
-
-  const date = new Date(dateString);
-
-  if (Number.isNaN(date.getTime())) {
-    return '-';
-  }
-
-  return new Intl.DateTimeFormat('ko-KR', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  })
-    .format(date)
-    .replace(/\s/g, '');
 }
 
 function getDiscountLabel(coupon) {
@@ -192,33 +137,6 @@ function CouponBenefitsPage() {
 
   const wishlistCount = Number(user?.wishlistCount ?? user?.wishCount ?? 0);
 
-  const summaryItems = [
-    {
-      label: '주문 내역',
-      value: `${orders.length}건`,
-      to: '/mypage/orders',
-      icon: <IconBag />,
-    },
-    {
-      label: '보유 쿠폰',
-      value: `${counts.available}개`,
-      to: '/mypage/coupons',
-      icon: <IconCoupon />,
-    },
-    {
-      label: '적립금',
-      value: `${pointBalance.toLocaleString()}원`,
-      to: '/mypage/coupons',
-      icon: <IconCoin />,
-    },
-    {
-      label: '찜한 상품',
-      value: `${wishlistCount}개`,
-      to: '/mypage/wishlist',
-      icon: <IconHeart />,
-    },
-  ];
-
   return (
     <>
       <section className="order-history-content coupon-benefits-page">
@@ -227,20 +145,12 @@ function CouponBenefitsPage() {
           <p>보유 쿠폰과 적립금 혜택을 확인하세요.</p>
         </header>
 
-        <section className="order-history-summary">
-          {summaryItems.map((item) => (
-            <Link key={item.label} to={item.to} className="order-history-summary-card">
-              <div className="order-history-summary-top">
-                <span className="order-history-summary-icon">{item.icon}</span>
-
-                <span aria-hidden="true">›</span>
-              </div>
-
-              <span>{item.label}</span>
-              <strong>{item.value}</strong>
-            </Link>
-          ))}
-        </section>
+        <OrderSummary
+          orderCount={orders.length}
+          couponCount={counts.available}
+          pointBalance={pointBalance}
+          wishlistCount={wishlistCount}
+        />
 
         <section className="benefit-balance">
           <div>
@@ -330,7 +240,9 @@ function CouponBenefitsPage() {
 
                     <div>
                       <dt>유효기간</dt>
-                      <dd>{coupon.expiresAt ? formatDate(coupon.expiresAt) : '별도 표기 없음'}</dd>
+                      <dd>
+                        {coupon.expiresAt ? formatCompactDate(coupon.expiresAt) : '별도 표기 없음'}
+                      </dd>
                     </div>
                   </dl>
                 </div>

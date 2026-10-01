@@ -8,6 +8,7 @@ import useWishlist from '@/hooks/useWishlist';
 import { useCartStore } from '@/store/cartStore';
 import '@/styles/order-history.css';
 import '@/styles/wishlist.css';
+import { normalizeImageUrl } from '@/utils/image';
 
 const SORT_OPTIONS = [
   { label: '최근 등록순', value: 'recent' },
@@ -25,10 +26,6 @@ function HeartIcon({ filled = false }) {
       />
     </svg>
   );
-}
-
-function normalizeImageUrl(url) {
-  return typeof url === 'string' ? url.trim().replace(/^<|>$/g, '') : '';
 }
 
 function getProductImage(product) {

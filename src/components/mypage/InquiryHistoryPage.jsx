@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 
 import { createInquiry, deleteInquiry, getInquiries, updateInquiry } from '@/api/inquiries';
 import ConfirmModal from '@/components/common/ConfirmModal';
@@ -9,6 +8,8 @@ import ErrorState from '@/components/common/ErrorState';
 import useOrders from '@/hooks/useOrders';
 import '@/styles/order-history.css';
 import '@/styles/inquiry-history.css';
+import { formatDateTime, formatCompactDate, isWithinPeriod } from '@/utils/formatters';
+import OrderSummary from './order-history/OrderSummary';
 
 const INQUIRY_TABS = [
   { label: '전체', value: 'all' },
@@ -39,99 +40,6 @@ const EMPTY_FORM = {
   content: '',
 };
 
-function IconBag() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M5.5 8.5h13l-.8 11h-11.4l-.8-11Z" />
-      <path d="M9 9V6.7a3 3 0 0 1 6 0V9" />
-    </svg>
-  );
-}
-
-function IconCoupon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M4 7.5A2.5 2.5 0 0 0 6.5 10 2.5 2.5 0 0 0 4 12.5V17h16v-4.5A2.5 2.5 0 0 0 17.5 10 2.5 2.5 0 0 0 20 7.5V3H4v4.5Z" />
-    </svg>
-  );
-}
-
-function IconCoin() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <ellipse cx="12" cy="6" rx="7" ry="3" />
-      <path d="M5 6v4c0 1.7 3.1 3 7 3s7-1.3 7-3V6" />
-      <path d="M5 10v4c0 1.7 3.1 3 7 3s7-1.3 7-3v-4" />
-      <path d="M5 14v4c0 1.7 3.1 3 7 3s7-1.3 7-3v-4" />
-    </svg>
-  );
-}
-
-function IconHeart() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M20.8 5.9a5.2 5.2 0 0 0-7.4 0L12 7.3l-1.4-1.4a5.2 5.2 0 1 0-7.4 7.4L12 22l8.8-8.7a5.2 5.2 0 0 0 0-7.4Z" />
-    </svg>
-  );
-}
-
-function formatDate(dateString) {
-  if (!dateString) {
-    return '-';
-  }
-
-  const date = new Date(dateString);
-
-  if (Number.isNaN(date.getTime())) {
-    return '-';
-  }
-
-  return new Intl.DateTimeFormat('ko-KR', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  })
-    .format(date)
-    .replace(/\s/g, '');
-}
-
-function formatDateTime(dateString) {
-  if (!dateString) {
-    return '-';
-  }
-
-  const date = new Date(dateString);
-
-  if (Number.isNaN(date.getTime())) {
-    return '-';
-  }
-
-  return new Intl.DateTimeFormat('ko-KR', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date);
-}
-
-function isWithinPeriod(dateString, months) {
-  if (!months) {
-    return true;
-  }
-
-  const date = new Date(dateString);
-
-  if (Number.isNaN(date.getTime())) {
-    return false;
-  }
-
-  const boundary = new Date();
-  boundary.setMonth(boundary.getMonth() - months);
-
-  return date >= boundary;
-}
-
 function InquiryHistoryPage() {
   const { user, orders, errorMessage } = useOrders();
   const [inquiries, setInquiries] = useState([]);
@@ -152,33 +60,6 @@ function InquiryHistoryPage() {
   const couponCount = Number(user?.couponCount ?? user?.availableCouponCount ?? 0);
   const pointBalance = Number(user?.points ?? user?.pointBalance ?? user?.mileage ?? 0);
   const wishlistCount = Number(user?.wishlistCount ?? user?.wishCount ?? 0);
-
-  const summaryItems = [
-    {
-      label: '주문 내역',
-      value: `${orders.length}건`,
-      to: '/mypage/orders',
-      icon: <IconBag />,
-    },
-    {
-      label: '보유 쿠폰',
-      value: `${couponCount}개`,
-      to: '/mypage/coupons',
-      icon: <IconCoupon />,
-    },
-    {
-      label: '적립금',
-      value: `${pointBalance.toLocaleString()}원`,
-      to: '/mypage/coupons',
-      icon: <IconCoin />,
-    },
-    {
-      label: '찜한 상품',
-      value: `${wishlistCount}개`,
-      to: '/mypage/wishlist',
-      icon: <IconHeart />,
-    },
-  ];
 
   const loadInquiries = async () => {
     setIsInquiryLoading(true);
@@ -353,19 +234,12 @@ function InquiryHistoryPage() {
           </button>
         </header>
 
-        <section className="order-history-summary">
-          {summaryItems.map((item) => (
-            <Link key={item.label} to={item.to} className="order-history-summary-card">
-              <div className="order-history-summary-top">
-                <span className="order-history-summary-icon">{item.icon}</span>
-                <span aria-hidden="true">›</span>
-              </div>
-
-              <span>{item.label}</span>
-              <strong>{item.value}</strong>
-            </Link>
-          ))}
-        </section>
+        <OrderSummary
+          orderCount={orders.length}
+          couponCount={couponCount}
+          pointBalance={pointBalance}
+          wishlistCount={wishlistCount}
+        />
 
         <section className="inquiry-guide">
           <div>
@@ -470,7 +344,7 @@ function InquiryHistoryPage() {
                       {inquiry.orderId ? `주문 ${inquiry.orderId}` : '일반 문의'}
                     </span>
 
-                    <span className="inquiry-date">{formatDate(inquiry.createdAt)}</span>
+                    <span className="inquiry-date">{formatCompactDate(inquiry.createdAt)}</span>
 
                     <span className={`inquiry-chevron ${isExpanded ? 'is-open' : ''}`}>›</span>
                   </button>
@@ -582,7 +456,7 @@ function InquiryHistoryPage() {
                   <option value="">관련 주문 없음</option>
                   {orders.map((order) => (
                     <option key={order.orderId} value={order.orderId}>
-                      {formatDate(order.orderDate)} · {order.orderId}
+                      {formatCompactDate(order.orderDate)} · {order.orderId}
                     </option>
                   ))}
                 </select>

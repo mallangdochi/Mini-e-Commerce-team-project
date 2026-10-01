@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { getAddresses } from '@/api/addresses';
 import { getStoredProfileOverrides, getStoredUserInfo } from '@/utils/storage';
 import '@/styles/checkout2.css';
+import { formatPhoneNumber } from '@/utils/phone';
 
 function getStoredShippingInfo(savedShippingInfo) {
   if (savedShippingInfo) {
@@ -88,20 +89,6 @@ function CheckoutPage() {
   }, [savedShippingInfo]);
 
   const [activeErrorField, setActiveErrorField] = useState(null);
-
-  const formatPhoneNumber = (value) => {
-    const numbers = value.replace(/[^\d]/g, '').slice(0, 11);
-
-    if (numbers.length <= 3) {
-      return numbers;
-    }
-
-    if (numbers.length <= 7) {
-      return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
-    }
-
-    return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
-  };
 
   const handleChange = (event) => {
     const { name, value } = event.target;

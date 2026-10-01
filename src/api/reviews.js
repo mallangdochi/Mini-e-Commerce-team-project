@@ -1,42 +1,17 @@
+import {
+  getCurrentUserId,
+  getErrorMessage,
+  getProductImageUrl,
+  unwrapRelation,
+} from '@/api/supabaseUtils';
 import { supabase } from '@/lib/supabase';
 
-function getErrorMessage(error, fallbackMessage) {
-  return error?.message || fallbackMessage;
-}
-
-function getPublicImageUrl(storagePath) {
-  if (!storagePath) {
-    return '';
-  }
-
-  const { data } = supabase.storage.from('product-images').getPublicUrl(storagePath);
-
-  return data?.publicUrl ?? '';
-}
-
-async function getCurrentUserId() {
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-
-  if (error) {
-    throw error;
-  }
-
-  if (!user) {
-    throw new Error('로그인이 필요합니다.');
-  }
-
-  return user.id;
-}
-
 function normalizeReview(row) {
-  const orderItem = Array.isArray(row?.order_item) ? row.order_item[0] : row?.order_item;
+  const orderItem = unwrapRelation(row?.order_item);
 
-  const order = Array.isArray(orderItem?.order) ? orderItem.order[0] : orderItem?.order;
+  const order = unwrapRelation(orderItem?.order);
 
-  const product = Array.isArray(orderItem?.product) ? orderItem.product[0] : orderItem?.product;
+  const product = unwrapRelation(orderItem?.product);
 
   return {
     reviewId: row.id,
@@ -47,7 +22,7 @@ function normalizeReview(row) {
     productType: product?.product_type ?? 'product',
     name: orderItem?.product_name ?? product?.name ?? '구매 상품',
     productName: orderItem?.product_name ?? product?.name ?? '구매 상품',
-    imageUrl: getPublicImageUrl(orderItem?.image_path),
+    imageUrl: getProductImageUrl(orderItem?.image_path),
     price: Number(orderItem?.unit_price ?? product?.price ?? 0),
     color: orderItem?.color_name ?? '',
     size: orderItem?.size ?? '',
@@ -254,9 +229,9 @@ export const getEligibleReviews = async () => {
     const items = (orderItemsResult.data ?? [])
       .filter((item) => !reviewedOrderItemIds.has(Number(item.id)))
       .map((item) => {
-        const order = Array.isArray(item.order) ? item.order[0] : item.order;
+        const order = unwrapRelation(item.order);
 
-        const product = Array.isArray(item.product) ? item.product[0] : item.product;
+        const product = unwrapRelation(item.product);
 
         return {
           orderItemId: item.id,
@@ -265,7 +240,7 @@ export const getEligibleReviews = async () => {
           productType: product?.product_type ?? 'product',
           name: item.product_name ?? product?.name ?? '구매 상품',
           productName: item.product_name ?? product?.name ?? '구매 상품',
-          imageUrl: getPublicImageUrl(item.image_path),
+          imageUrl: getProductImageUrl(item.image_path),
           price: Number(item.unit_price ?? product?.price ?? 0),
           color: item.color_name ?? '',
           size: item.size ?? '',
