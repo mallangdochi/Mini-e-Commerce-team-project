@@ -52,10 +52,7 @@ function OrderToolbar({ selectedTab, periodMonths, onTabChange, onPeriodChange }
         ))}
       </div>
 
-      <div
-        className="order-history-period-control"
-        ref={periodControlRef}
-      >
+      <div className="order-history-period-control" ref={periodControlRef}>
         <span>조회 기간</span>
 
         <button
@@ -70,11 +67,7 @@ function OrderToolbar({ selectedTab, periodMonths, onTabChange, onPeriodChange }
         </button>
 
         {isPeriodOpen && (
-          <div
-            className="order-history-period-menu"
-            role="listbox"
-            aria-label="주문 조회 기간"
-          >
+          <div className="order-history-period-menu" role="listbox" aria-label="주문 조회 기간">
             {PERIOD_OPTIONS.map((option) => {
               const isSelected = Number(option.value) === Number(periodMonths);
 

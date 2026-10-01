@@ -1,5 +1,5 @@
-import { getProductImageUrl } from "@/api/supabaseUtils";
-import { supabase } from "@/lib/supabase";
+import { getProductImageUrl } from '@/api/supabaseUtils';
+import { supabase } from '@/lib/supabase';
 
 const PRODUCT_SELECT = `
   *,
@@ -8,7 +8,7 @@ const PRODUCT_SELECT = `
   product_images (*)
 `;
 
-const APPAREL_SIZE_ORDER = ["S", "M", "L", "XL", "XXL"];
+const APPAREL_SIZE_ORDER = ['S', 'M', 'L', 'XL', 'XXL'];
 const CATALOG_CACHE_TTL = 60 * 1000;
 
 let catalogCache = null;
@@ -18,22 +18,19 @@ let catalogRequest = null;
 function getLegacyImageType(image, index) {
   const displayOrder = Number(image?.display_order ?? index + 1);
 
-  if (displayOrder === 1) return "thumbnail";
-  if (displayOrder === 2) return "styled";
-  if (displayOrder === 3) return "front";
-  if (displayOrder === 4) return "side";
-  if (displayOrder === 5) return "back";
+  if (displayOrder === 1) return 'thumbnail';
+  if (displayOrder === 2) return 'styled';
+  if (displayOrder === 3) return 'front';
+  if (displayOrder === 4) return 'side';
+  if (displayOrder === 5) return 'back';
 
-  return image?.image_type ?? "detail";
+  return image?.image_type ?? 'detail';
 }
 
 function normalizeImages(images = []) {
   return [...images]
     .filter((image) => image?.is_active !== false)
-    .sort(
-      (a, b) =>
-        Number(a?.display_order ?? 999) - Number(b?.display_order ?? 999),
-    )
+    .sort((a, b) => Number(a?.display_order ?? 999) - Number(b?.display_order ?? 999))
     .map((image, index) => {
       const imageUrl = getProductImageUrl(image.storage_path);
       const imageType = getLegacyImageType(image, index);
@@ -48,7 +45,7 @@ function normalizeImages(images = []) {
         url: imageUrl,
         path: image.storage_path,
         storagePath: image.storage_path,
-        altText: image.alt_text ?? "",
+        altText: image.alt_text ?? '',
         sortOrder: Number(image.display_order ?? index + 1),
         isPrimary: Boolean(image.is_primary),
       };
@@ -58,13 +55,9 @@ function normalizeImages(images = []) {
 function normalizeColors(colors = []) {
   return [...colors]
     .filter((color) => color?.is_active !== false)
-    .sort(
-      (a, b) =>
-        Number(a?.display_order ?? 999) - Number(b?.display_order ?? 999),
-    )
+    .sort((a, b) => Number(a?.display_order ?? 999) - Number(b?.display_order ?? 999))
     .map((color) => {
-      const filterGroup =
-        color.filter_group ?? color.filter_color ?? color.color_name ?? "";
+      const filterGroup = color.filter_group ?? color.filter_color ?? color.color_name ?? '';
       const filterColor = color.filter_color ?? color.color_name ?? filterGroup;
       const colorName = color.color_name ?? filterColor;
 
@@ -83,7 +76,7 @@ function normalizeColors(colors = []) {
 }
 
 function getSizeSortValue(size) {
-  const normalized = String(size ?? "").toUpperCase();
+  const normalized = String(size ?? '').toUpperCase();
   const apparelIndex = APPAREL_SIZE_ORDER.indexOf(normalized);
 
   if (apparelIndex >= 0) {
@@ -119,13 +112,13 @@ function normalizeProduct(row) {
 
   const primaryImage =
     images.find((image) => image.isPrimary) ??
-    images.find((image) => image.type === "thumbnail") ??
+    images.find((image) => image.type === 'thumbnail') ??
     images[0];
 
   return {
     id: Number(row.id),
     productId: Number(row.id),
-    productType: row.product_type ?? "product",
+    productType: row.product_type ?? 'product',
     categoryId: row.category_id,
     subCategoryId: row.sub_category_id,
     name: row.name,
@@ -134,12 +127,12 @@ function normalizeProduct(row) {
       row.original_price === null || row.original_price === undefined
         ? null
         : Number(row.original_price),
-    description: row.description ?? "",
-    material: row.material ?? "",
-    features: row.features ?? "",
-    details: row.details ?? "",
-    care: row.care ?? "",
-    gender: row.gender ?? "women",
+    description: row.description ?? '',
+    material: row.material ?? '',
+    features: row.features ?? '',
+    details: row.details ?? '',
+    care: row.care ?? '',
+    gender: row.gender ?? 'women',
     lengthType: row.length_type ?? null,
     stock: Number(row.stock ?? 0),
     isSoldOut: Boolean(row.is_sold_out) || Number(row.stock ?? 0) <= 0,
@@ -151,9 +144,9 @@ function normalizeProduct(row) {
     sizes,
     images,
 
-    imageUrl: primaryImage?.imageUrl ?? "",
-    thumbnail: primaryImage?.imageUrl ?? "",
-    thumbnailUrl: primaryImage?.imageUrl ?? "",
+    imageUrl: primaryImage?.imageUrl ?? '',
+    thumbnail: primaryImage?.imageUrl ?? '',
+    thumbnailUrl: primaryImage?.imageUrl ?? '',
     imageUrls: images.map((image) => image.imageUrl),
 
     componentProductIds: [],
@@ -173,10 +166,10 @@ async function loadCatalog({ force = false } = {}) {
 
   catalogRequest = (async () => {
     const { data, error } = await supabase
-      .from("products")
+      .from('products')
       .select(PRODUCT_SELECT)
-      .eq("is_active", true)
-      .order("id", { ascending: true });
+      .eq('is_active', true)
+      .order('id', { ascending: true });
 
     if (error) {
       throw error;
@@ -205,28 +198,24 @@ function parseMultiValue(value) {
       .filter(Boolean);
   }
 
-  if (value === null || value === undefined || value === "") {
+  if (value === null || value === undefined || value === '') {
     return [];
   }
 
   return String(value)
-    .split(",")
+    .split(',')
     .map((item) => item.trim())
     .filter(Boolean);
 }
 
 function normalizeSearchValue(value) {
-  return String(value ?? "")
+  return String(value ?? '')
     .trim()
     .toLowerCase();
 }
 
 function matchesProduct(product, params = {}) {
-  if (
-    params.gender &&
-    !params.categoryId &&
-    product.categoryId === "accessories"
-  ) {
+  if (params.gender && !params.categoryId && product.categoryId === 'accessories') {
     return false;
   }
 
@@ -248,17 +237,12 @@ function matchesProduct(product, params = {}) {
     selectedColors.length > 0 &&
     !selectedColors.some((selectedColor) =>
       product.colors.some((color) => {
-        const candidates = [
-          color.filterGroup,
-          color.filterColor,
-          color.value,
-          color.label,
-        ]
+        const candidates = [color.filterGroup, color.filterColor, color.value, color.label]
           .filter(Boolean)
           .map((value) => normalizeSearchValue(value));
 
         return candidates.includes(normalizeSearchValue(selectedColor));
-      }),
+      })
     )
   ) {
     return false;
@@ -271,9 +255,9 @@ function matchesProduct(product, params = {}) {
     !selectedSizes.some((selectedSize) =>
       product.sizes.some(
         (size) =>
-          normalizeSearchValue(size.size) ===
-            normalizeSearchValue(selectedSize) && Number(size.stock ?? 0) > 0,
-      ),
+          normalizeSearchValue(size.size) === normalizeSearchValue(selectedSize) &&
+          Number(size.stock ?? 0) > 0
+      )
     )
   ) {
     return false;
@@ -285,21 +269,13 @@ function matchesProduct(product, params = {}) {
 
   const minPrice = Number(params.minPrice);
 
-  if (
-    params.minPrice !== undefined &&
-    Number.isFinite(minPrice) &&
-    product.price < minPrice
-  ) {
+  if (params.minPrice !== undefined && Number.isFinite(minPrice) && product.price < minPrice) {
     return false;
   }
 
   const maxPrice = Number(params.maxPrice);
 
-  if (
-    params.maxPrice !== undefined &&
-    Number.isFinite(maxPrice) &&
-    product.price > maxPrice
-  ) {
+  if (params.maxPrice !== undefined && Number.isFinite(maxPrice) && product.price > maxPrice) {
     return false;
   }
 
@@ -314,14 +290,10 @@ function matchesProduct(product, params = {}) {
       product.material,
       product.categoryId,
       product.subCategoryId,
-      ...product.colors.flatMap((color) => [
-        color.label,
-        color.filterColor,
-        color.filterGroup,
-      ]),
+      ...product.colors.flatMap((color) => [color.label, color.filterColor, color.filterGroup]),
     ]
       .filter(Boolean)
-      .join(" ")
+      .join(' ')
       .toLowerCase();
 
     if (!searchableText.includes(query)) {
@@ -332,31 +304,24 @@ function matchesProduct(product, params = {}) {
   return true;
 }
 
-function sortProducts(products, sort = "recommended") {
+function sortProducts(products, sort = 'recommended') {
   const nextProducts = [...products];
 
   switch (sort) {
-    case "priceAsc":
+    case 'priceAsc':
+      return nextProducts.sort((a, b) => a.price - b.price || a.productId - b.productId);
+
+    case 'priceDesc':
+      return nextProducts.sort((a, b) => b.price - a.price || a.productId - b.productId);
+
+    case 'new':
       return nextProducts.sort(
-        (a, b) => a.price - b.price || a.productId - b.productId,
+        (a, b) => Number(b.isNew) - Number(a.isNew) || b.productId - a.productId
       );
 
-    case "priceDesc":
+    case 'popular':
       return nextProducts.sort(
-        (a, b) => b.price - a.price || a.productId - b.productId,
-      );
-
-    case "new":
-      return nextProducts.sort(
-        (a, b) =>
-          Number(b.isNew) - Number(a.isNew) || b.productId - a.productId,
-      );
-
-    case "popular":
-      return nextProducts.sort(
-        (a, b) =>
-          Number(b.isPopular) - Number(a.isPopular) ||
-          a.productId - b.productId,
+        (a, b) => Number(b.isPopular) - Number(a.isPopular) || a.productId - b.productId
       );
 
     default:
@@ -364,7 +329,7 @@ function sortProducts(products, sort = "recommended") {
         (a, b) =>
           Number(b.isPopular) - Number(a.isPopular) ||
           Number(b.isNew) - Number(a.isNew) ||
-          a.productId - b.productId,
+          a.productId - b.productId
       );
   }
 }
@@ -420,9 +385,7 @@ function buildFilterOptions(products) {
   return {
     colors: [...colorMap.values()],
 
-    sizes: [...sizeSet].sort(
-      (a, b) => getSizeSortValue(a) - getSizeSortValue(b),
-    ),
+    sizes: [...sizeSet].sort((a, b) => getSizeSortValue(a) - getSizeSortValue(b)),
 
     lengthTypes: [...lengthTypeSet],
   };
@@ -430,10 +393,10 @@ function buildFilterOptions(products) {
 
 export const getCategories = async () => {
   const { data, error } = await supabase
-    .from("categories")
-    .select("*")
-    .eq("is_active", true)
-    .order("display_order", {
+    .from('categories')
+    .select('*')
+    .eq('is_active', true)
+    .order('display_order', {
       ascending: true,
     });
 
@@ -457,9 +420,7 @@ export const getCategories = async () => {
 export const getProducts = async (params = {}) => {
   const catalog = await loadCatalog();
 
-  const filteredProducts = catalog.filter((product) =>
-    matchesProduct(product, params),
-  );
+  const filteredProducts = catalog.filter((product) => matchesProduct(product, params));
 
   const sortedProducts = sortProducts(filteredProducts, params.sort);
 
@@ -479,9 +440,7 @@ export const getProductFilters = async (params = {}) => {
     subCategoryId: params.subCategoryId,
   };
 
-  const filteredProducts = catalog.filter((product) =>
-    matchesProduct(product, filterParams),
-  );
+  const filteredProducts = catalog.filter((product) => matchesProduct(product, filterParams));
 
   return {
     data: buildFilterOptions(filteredProducts),
@@ -491,12 +450,10 @@ export const getProductFilters = async (params = {}) => {
 export const getProduct = async (productId) => {
   const catalog = await loadCatalog();
 
-  const product = catalog.find(
-    (item) => Number(item.productId) === Number(productId),
-  );
+  const product = catalog.find((item) => Number(item.productId) === Number(productId));
 
   if (!product) {
-    throw new Error("상품 정보를 찾을 수 없습니다.");
+    throw new Error('상품 정보를 찾을 수 없습니다.');
   }
 
   return {
@@ -513,11 +470,11 @@ export const getSets = async (params = {}) => {
 
   const filteredSets = catalog.filter(
     (product) =>
-      (product.productType === "set" || product.categoryId === "sets") &&
+      (product.productType === 'set' || product.categoryId === 'sets') &&
       matchesProduct(product, {
         ...params,
-        categoryId: "sets",
-      }),
+        categoryId: 'sets',
+      })
   );
 
   const sortedSets = sortProducts(filteredSets, params.sort);
@@ -536,8 +493,8 @@ export const getSet = async (productId) => {
   const response = await getProduct(productId);
   const product = response.data;
 
-  if (product.productType !== "set" && product.categoryId !== "sets") {
-    throw new Error("세트 상품 정보를 찾을 수 없습니다.");
+  if (product.productType !== 'set' && product.categoryId !== 'sets') {
+    throw new Error('세트 상품 정보를 찾을 수 없습니다.');
   }
 
   return response;

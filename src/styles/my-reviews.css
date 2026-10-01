@@ -51,7 +51,6 @@
   padding-bottom: 2px;
 }
 
-
 .my-reviews-tabs {
   display: flex;
   align-items: center;
@@ -883,7 +882,6 @@
     margin-top: 0;
   }
 }
-
 
 @media (max-width: 640px) {
   .my-reviews-tabs {

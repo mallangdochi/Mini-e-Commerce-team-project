@@ -920,7 +920,6 @@
   font-weight: 700;
 }
 
-
 @media (max-width: 1180px) and (min-width: 901px) {
   .order-history-toolbar {
     gap: 12px;
