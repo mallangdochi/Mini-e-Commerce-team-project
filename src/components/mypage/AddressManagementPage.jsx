@@ -5,6 +5,7 @@ import EmptyState from '@/components/common/EmptyState';
 import useAddresses from '@/hooks/useAddresses';
 import useAuthStore from '@/store/authStore';
 import '@/styles/mypage.css';
+import { formatPhoneNumber } from '@/utils/phone';
 
 const EMPTY_ADDRESS_FORM = {
   label: '',
@@ -15,22 +16,6 @@ const EMPTY_ADDRESS_FORM = {
   detailAddress: '',
   isDefault: false,
 };
-
-function formatPhoneNumber(value) {
-  const numbers = String(value ?? '')
-    .replace(/[^\d]/g, '')
-    .slice(0, 11);
-
-  if (numbers.length <= 3) {
-    return numbers;
-  }
-
-  if (numbers.length <= 7) {
-    return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
-  }
-
-  return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
-}
 
 function loadPostcodeScript() {
   return new Promise((resolve, reject) => {

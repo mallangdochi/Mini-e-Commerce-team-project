@@ -156,7 +156,6 @@ function Header() {
   const [activeMenu, setActiveMenu] = useState(null);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
-  const syncAuthFromStorage = useAuthStore((state) => state.syncAuthFromStorage);
   const cartItemCount = useCartStore((state) =>
     state.items.reduce((total, item) => total + Number(item.quantity ?? 1), 0)
   );
@@ -174,18 +173,6 @@ function Header() {
     setMenuOpen(false);
     setMobileCategory(null);
   };
-
-  useEffect(() => {
-    syncAuthFromStorage();
-
-    window.addEventListener('auth-change', syncAuthFromStorage);
-    window.addEventListener('storage', syncAuthFromStorage);
-
-    return () => {
-      window.removeEventListener('auth-change', syncAuthFromStorage);
-      window.removeEventListener('storage', syncAuthFromStorage);
-    };
-  }, [syncAuthFromStorage]);
 
   useEffect(() => {
     if (!accountMenuOpen) return undefined;

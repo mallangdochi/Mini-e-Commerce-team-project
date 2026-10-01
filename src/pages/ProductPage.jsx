@@ -105,6 +105,16 @@ const CATEGORY_NAV = [
   { label: 'SHOES', to: '/products?category=shoes', value: 'shoes' },
 ];
 
+const ACCESSORY_CATEGORY_NAV = [
+  { label: 'ALL', to: '/products?category=accessories', value: 'accessories' },
+  {
+    label: 'SUNGLASSES',
+    to: '/products?category=sunglasses',
+    value: 'sunglasses',
+  },
+  { label: 'HAT', to: '/products?category=hat', value: 'hat' },
+];
+
 const CATEGORY_CONFIG = {
   all: {
     categoryId: null,
@@ -199,26 +209,26 @@ const CATEGORY_CONFIG = {
   accessories: {
     categoryId: 'accessories',
     subCategoryId: null,
-    label: 'ACCESSORIES',
-    sidebarValue: null,
+    label: 'ALL',
+    sidebarValue: 'accessories',
   },
   sunglasses: {
     categoryId: 'accessories',
     subCategoryId: 'sunglasses',
     label: 'SUNGLASSES',
-    sidebarValue: null,
+    sidebarValue: 'sunglasses',
   },
   cap: {
     categoryId: 'accessories',
     subCategoryId: 'hat',
     label: 'HAT',
-    sidebarValue: null,
+    sidebarValue: 'hat',
   },
   hat: {
     categoryId: 'accessories',
     subCategoryId: 'hat',
     label: 'HAT',
-    sidebarValue: null,
+    sidebarValue: 'hat',
   },
 };
 
@@ -387,7 +397,7 @@ const LENGTH_LABELS = {
   short: '숏',
 };
 
-const FILTERABLE_PRODUCT_CATEGORY_IDS = ['outer', 'top', 'bottom', 'shoes', 'accessories'];
+const FILTERABLE_PRODUCT_CATEGORY_IDS = ['outer', 'top', 'bottom', 'shoes'];
 
 const WISHLIST_HEART_PATHS = {
   filled:
@@ -848,12 +858,13 @@ function ProductPage() {
   const searchCategoryIntent = useMemo(() => getSearchCategoryIntent(searchQuery), [searchQuery]);
   const sortType = getSortTypeFromParams(searchParams);
   const searchParamsKey = searchParams.toString();
-  const requestGender = gender;
-
   const activeCategory = CATEGORY_CONFIG[categoryParam] ?? CATEGORY_CONFIG.all;
   const isAccessorySearchScope = activeCategory.categoryId === 'accessories';
+  const requestGender = isAccessorySearchScope ? null : gender;
+  const isAllFilterScope = activeCategory.categoryId === null || categoryParam === 'accessories';
+  const sidebarCategories = isAccessorySearchScope ? ACCESSORY_CATEGORY_NAV : CATEGORY_NAV;
   const searchScopeLabel = isAccessorySearchScope
-    ? '악세사리'
+    ? '액세서리'
     : gender === 'men'
       ? '남성복'
       : '여성복';
@@ -950,8 +961,8 @@ function ProductPage() {
     const hasPriceFilter = minPrice !== PRICE_MIN || maxPrice !== PRICE_MAX;
     const nextFilters = {
       color: selectedColor,
-      size: selectedSize,
-      lengthType: selectedLengthType,
+      size: isAllFilterScope ? [] : selectedSize,
+      lengthType: isAllFilterScope ? null : selectedLengthType,
       minPrice: hasPriceFilter ? minPrice : null,
       maxPrice: hasPriceFilter ? maxPrice : null,
     };
@@ -1025,11 +1036,31 @@ function ProductPage() {
     const nextParams = new URLSearchParams(searchParams);
     const [, queryString = ''] = item.to.split('?');
     const itemParams = new URLSearchParams(queryString);
+    const nextCategory = (
+      itemParams.get('category') ??
+      itemParams.get('categoryId') ??
+      'all'
+    ).toLowerCase();
+    const nextConfig = CATEGORY_CONFIG[nextCategory] ?? CATEGORY_CONFIG.all;
+    const isNextAccessoryScope = nextConfig.categoryId === 'accessories';
+    const isNextAllFilterScope = nextConfig.categoryId === null || nextCategory === 'accessories';
 
     nextParams.delete('q');
     nextParams.delete('category');
     nextParams.delete('categoryId');
-    nextParams.set('gender', gender);
+
+    if (isNextAccessoryScope) {
+      nextParams.delete('gender');
+    } else {
+      nextParams.set('gender', gender);
+    }
+
+    if (isNextAllFilterScope) {
+      nextParams.delete('size');
+      nextParams.delete('lengthType');
+      nextParams.delete('minPrice');
+      nextParams.delete('maxPrice');
+    }
 
     itemParams.forEach((value, key) => {
       nextParams.set(key, value);
@@ -1191,7 +1222,7 @@ function ProductPage() {
           const responses = await Promise.all(
             FILTERABLE_PRODUCT_CATEGORY_IDS.map((categoryId) =>
               getCategoryFilterOptions({
-                gender: requestGender,
+                ...(requestGender ? { gender: requestGender } : {}),
                 categoryId,
               })
             )
@@ -1200,7 +1231,7 @@ function ProductPage() {
           nextFilterOptions = mergeFilterOptionData(responses);
         } else {
           nextFilterOptions = await getCategoryFilterOptions({
-            gender: requestGender,
+            ...(requestGender ? { gender: requestGender } : {}),
             categoryId: activeCategory.categoryId,
             ...(activeCategory.subCategoryId
               ? { subCategoryId: activeCategory.subCategoryId }
@@ -1262,7 +1293,7 @@ function ProductPage() {
         setLoadError('');
 
         const params = {
-          gender: currentGender,
+          ...(isAccessorySearchScope ? {} : { gender: currentGender }),
           sort: sortType,
           page: targetPage,
           limit: PRODUCTS_PER_LOAD,
@@ -1275,11 +1306,11 @@ function ProductPage() {
           params.color = appliedFilters.color.join(',');
         }
 
-        if (appliedFilters.size.length > 0) {
+        if (!isAllFilterScope && appliedFilters.size.length > 0) {
           params.size = appliedFilters.size.join(',');
         }
 
-        if (appliedFilters.lengthType) {
+        if (!isAllFilterScope && appliedFilters.lengthType) {
           params.lengthType = appliedFilters.lengthType;
         }
 
@@ -1601,14 +1632,16 @@ function ProductPage() {
         resolveColorHex(color),
     })),
 
-    ...appliedFilters.size.map((size) => ({
-      id: `size-${size}`,
-      type: 'size',
-      value: size,
-      label: size,
-    })),
+    ...(!isAllFilterScope
+      ? appliedFilters.size.map((size) => ({
+          id: `size-${size}`,
+          type: 'size',
+          value: size,
+          label: size,
+        }))
+      : []),
 
-    ...(appliedFilters.lengthType
+    ...(!isAllFilterScope && appliedFilters.lengthType
       ? [
           {
             id: `length-${appliedFilters.lengthType}`,
@@ -1636,8 +1669,7 @@ function ProductPage() {
     : productItems;
 
   const hasActiveFilters = activeFilterTags.length > 0;
-  const isLengthFilterVisible =
-    activeCategory.categoryId === null || activeCategory.categoryId === 'bottom';
+  const isLengthFilterVisible = !isAllFilterScope && activeCategory.categoryId === 'bottom';
   const emptyMessage = searchCategoryIntent
     ? `"${searchQuery}"에 맞는 ${CATEGORY_CONFIG[searchCategoryIntent.category]?.label ?? '카테고리'} 상품이 없습니다.`
     : searchQuery
@@ -1682,7 +1714,7 @@ function ProductPage() {
 
         <aside className="product-sidebar">
           <nav className="product-sidebar-nav" aria-label="카테고리">
-            {CATEGORY_NAV.map((item) => {
+            {sidebarCategories.map((item) => {
               const active = item.value === activeCategory.sidebarValue;
 
               return (
@@ -1708,7 +1740,7 @@ function ProductPage() {
           {/* breadcrumb */}
 
           <nav className="product-breadcrumb" aria-label="위치">
-            <span>{gender.toUpperCase()}</span>
+            <span>{isAccessorySearchScope ? 'ACCESSORIES' : gender.toUpperCase()}</span>
 
             <span className="product-breadcrumb-sep">›</span>
 
@@ -1719,7 +1751,9 @@ function ProductPage() {
 
           <div className="mobile-category-row">
             <div className="category-heading">
-              <h2>{gender === 'men' ? '남성복' : '여성복'}</h2>
+              <h2>
+                {isAccessorySearchScope ? '액세서리' : gender === 'men' ? '남성복' : '여성복'}
+              </h2>
             </div>
 
             <div className="mobile-category-actions">
@@ -2112,7 +2146,7 @@ function ProductPage() {
         사이즈
     ================================ */}
 
-              {filterOptions.sizes.length > 0 && (
+              {!isAllFilterScope && filterOptions.sizes.length > 0 && (
                 <section className="filter-section">
                   <h3>사이즈</h3>
 
@@ -2196,7 +2230,7 @@ function ProductPage() {
             </button>
 
             <div className="responsive-category-track" ref={responsiveCategoryRef}>
-              {CATEGORY_NAV.map((item) => {
+              {sidebarCategories.map((item) => {
                 const active = item.value === activeCategory.sidebarValue;
 
                 return (

@@ -8,6 +8,7 @@ import { registerCreatedOrder } from '@/hooks/useOrders';
 import { useCartStore } from '@/store/cartStore';
 import useAuthStore from '@/store/authStore';
 import '@/styles/checkout.css';
+import { formatPhoneNumber } from '@/utils/phone';
 
 const POINT_EARN_RATE = 0.05;
 const MIN_POINT_USE = 1500;
@@ -342,22 +343,6 @@ function CheckoutPage2() {
       detailAddress: String(shippingInfo.detailAddress ?? '').trim(),
       memo: getShippingMemo(shippingInfo.memo),
     };
-  };
-
-  const formatPhoneNumber = (phone) => {
-    const numbers = String(phone ?? '')
-      .replace(/[^\d]/g, '')
-      .slice(0, 11);
-
-    if (numbers.length <= 3) {
-      return numbers;
-    }
-
-    if (numbers.length <= 7) {
-      return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
-    }
-
-    return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
   };
 
   const shippingSummary = getShippingPayload();

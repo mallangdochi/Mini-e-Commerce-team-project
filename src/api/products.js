@@ -1,3 +1,4 @@
+import { getProductImageUrl } from '@/api/supabaseUtils';
 import { supabase } from '@/lib/supabase';
 
 const PRODUCT_SELECT = `
@@ -13,16 +14,6 @@ const CATALOG_CACHE_TTL = 60 * 1000;
 let catalogCache = null;
 let catalogCacheTime = 0;
 let catalogRequest = null;
-
-function getPublicImageUrl(storagePath) {
-  if (!storagePath) {
-    return '';
-  }
-
-  const { data } = supabase.storage.from('product-images').getPublicUrl(storagePath);
-
-  return data?.publicUrl ?? '';
-}
 
 function getLegacyImageType(image, index) {
   const displayOrder = Number(image?.display_order ?? index + 1);
@@ -41,7 +32,7 @@ function normalizeImages(images = []) {
     .filter((image) => image?.is_active !== false)
     .sort((a, b) => Number(a?.display_order ?? 999) - Number(b?.display_order ?? 999))
     .map((image, index) => {
-      const imageUrl = getPublicImageUrl(image.storage_path);
+      const imageUrl = getProductImageUrl(image.storage_path);
       const imageType = getLegacyImageType(image, index);
 
       return {
@@ -224,6 +215,10 @@ function normalizeSearchValue(value) {
 }
 
 function matchesProduct(product, params = {}) {
+  if (params.gender && !params.categoryId && product.categoryId === 'accessories') {
+    return false;
+  }
+
   if (params.gender && product.gender !== params.gender) {
     return false;
   }

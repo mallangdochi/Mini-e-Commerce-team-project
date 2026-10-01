@@ -4,13 +4,17 @@
   justify-content: space-between;
 
   margin-top: 22px;
+  padding-bottom: 14px;
 
-  gap: 18px;
+  border-bottom: 1px solid #e8e8e8;
+
+  gap: 16px;
 }
 
 .claim-history-tabs {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
 
   gap: 10px;
 }
@@ -21,16 +25,14 @@
   justify-content: center;
 
   min-width: 104px;
-  min-height: 42px;
-  padding: 0 22px;
+  height: 42px;
+  padding: 0 20px;
 
-  border: 1px solid #e3e3e3;
+  border: 1px solid #e1e1e1;
   border-radius: 999px;
 
   background: #fff;
-  color: #4f4f4f;
-
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.025);
+  color: #555;
 
   gap: 6px;
 
@@ -48,7 +50,7 @@
 }
 
 .claim-history-tabs button:hover {
-  border-color: #cfcfcf;
+  border-color: #bdbdbd;
 
   background: #fafafa;
 }
@@ -59,13 +61,14 @@
   background: #111;
   color: #fff;
 
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .claim-history-tabs button span {
   color: #999;
 
   font-size: 9px;
+  font-weight: 700;
 }
 
 .claim-history-tabs button.is-active span {
@@ -75,17 +78,20 @@
 .claim-history-toolbar select {
   flex: 0 0 auto;
 
-  width: 122px;
+  width: 132px;
   height: 40px;
   padding: 0 12px;
 
-  border: 1px solid #dddddd;
-  border-radius: 999px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
 
   background: #fff;
+  color: #333;
 
   font: inherit;
   font-size: 10px;
+
+  cursor: pointer;
 }
 
 .claim-history-list {

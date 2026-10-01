@@ -1,3 +1,6 @@
+import { formatCompactDate, isWithinPeriod as isWithinPeriodValue } from '@/utils/formatters';
+import { normalizeImageUrl as normalizeImageUrlValue } from '@/utils/image';
+
 export const ORDER_TABS = [
   { label: '전체', value: 'all' },
   { label: '주문/결제', value: 'order' },
@@ -46,13 +49,7 @@ export const STATUS_META = {
   },
 };
 
-export function normalizeImageUrl(url) {
-  if (!url || typeof url !== 'string') {
-    return '';
-  }
-
-  return url.trim().replace(/^<|>$/g, '');
-}
+export const normalizeImageUrl = normalizeImageUrlValue;
 
 function getFirstOrderItem(order, detail) {
   return detail?.items?.[0] ?? order?.items?.[0] ?? null;
@@ -93,25 +90,7 @@ function getRepresentativeImage(representative) {
   );
 }
 
-export function formatDate(dateString) {
-  if (!dateString) {
-    return '-';
-  }
-
-  const date = new Date(dateString);
-
-  if (Number.isNaN(date.getTime())) {
-    return '-';
-  }
-
-  return new Intl.DateTimeFormat('ko-KR', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  })
-    .format(date)
-    .replace(/\s/g, '');
-}
+export const formatDate = formatCompactDate;
 
 export function formatShortDate(dateString) {
   if (!dateString) {
@@ -169,22 +148,7 @@ export function hasOrderDisplayMetadata(order, detail) {
   return Boolean(name && name !== '상품' && image);
 }
 
-export function isWithinPeriod(dateString, months) {
-  if (!months) {
-    return true;
-  }
-
-  const date = new Date(dateString);
-
-  if (Number.isNaN(date.getTime())) {
-    return false;
-  }
-
-  const boundary = new Date();
-  boundary.setMonth(boundary.getMonth() - months);
-
-  return date >= boundary;
-}
+export const isWithinPeriod = isWithinPeriodValue;
 
 export function matchesTab(status, tab) {
   if (tab === 'all') {

@@ -6,32 +6,6 @@ export const getHomeData = async () => {
   return response.data;
 };
 
-export const getBanners = async () => {
-  const response = await apiClient.get('/main');
-
-  return {
-    ...response.data,
-    data: response.data?.data?.banners ?? [],
-  };
-};
-
-export const getBestSellers = async () => {
-  const response = await apiClient.get('/products', {
-    params: {
-      sort: 'popular',
-      page: 1,
-      limit: 20,
-    },
-  });
-
-  const products = response.data?.data?.products ?? [];
-
-  return {
-    ...response.data,
-    data: products.filter((product) => product.isPopular === true).slice(0, 6),
-  };
-};
-
 const NEW_TRENDING_LIMIT = 30;
 const CATEGORY_PRODUCT_LIMIT = 6;
 

@@ -1,13 +1,10 @@
+import { getErrorMessage, unwrapRelation } from '@/api/supabaseUtils';
 import { supabase } from '@/lib/supabase';
 
-function getErrorMessage(error, fallbackMessage) {
-  return error?.message || fallbackMessage;
-}
-
 function normalizeRequest(row) {
-  const order = Array.isArray(row?.order) ? row.order[0] : row?.order;
+  const order = unwrapRelation(row?.order);
 
-  const orderItem = Array.isArray(row?.order_item) ? row.order_item[0] : row?.order_item;
+  const orderItem = unwrapRelation(row?.order_item);
 
   return {
     claimId: row.id,

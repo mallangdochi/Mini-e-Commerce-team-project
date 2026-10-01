@@ -1,25 +1,5 @@
+import { getCurrentUserId, getErrorMessage } from '@/api/supabaseUtils';
 import { supabase } from '@/lib/supabase';
-
-function getErrorMessage(error, fallbackMessage) {
-  return error?.message || fallbackMessage;
-}
-
-async function getCurrentUserId() {
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-
-  if (error) {
-    throw error;
-  }
-
-  if (!user) {
-    throw new Error('로그인이 필요합니다.');
-  }
-
-  return user.id;
-}
 
 function normalizeAddress(item) {
   return {

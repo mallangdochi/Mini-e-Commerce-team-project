@@ -30,3 +30,14 @@ body {
 #root {
   min-height: 100vh;
 }
+
+.site-layout {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+}
+
+.site-main {
+  min-width: 0;
+  flex: 1 1 auto;
+}

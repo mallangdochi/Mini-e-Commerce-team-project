@@ -1,26 +1,6 @@
+import { getCurrentUserId, getErrorMessage } from '@/api/supabaseUtils';
 import { supabase } from '@/lib/supabase';
 import { getProduct } from '@/api/products';
-
-function getErrorMessage(error, fallbackMessage) {
-  return error?.message || fallbackMessage;
-}
-
-async function getCurrentUserId() {
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-
-  if (error) {
-    throw error;
-  }
-
-  if (!user) {
-    throw new Error('로그인이 필요합니다.');
-  }
-
-  return user.id;
-}
 
 async function buildWishlistItem(row) {
   const productResponse = await getProduct(row.product_id);

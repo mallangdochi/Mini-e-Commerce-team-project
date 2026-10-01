@@ -4,6 +4,7 @@ import { changePassword, updateMe } from '@/api/authApi';
 import useAddresses from '@/hooks/useAddresses';
 import useAuthStore from '@/store/authStore';
 import '@/styles/mypage.css';
+import { formatPhoneNumber } from '@/utils/phone';
 
 const PASSWORD_MAX_LENGTH = 12;
 const PASSWORD_PATTERN = /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[.!@#$%^&*?])[a-zA-Z\d.!@#$%^&*?]{8,12}$/;
@@ -93,22 +94,6 @@ function maskDetailAddress(detailAddress) {
   if (value.length <= 2) return `${value.charAt(0)}*`;
 
   return `${value.slice(0, Math.max(1, value.length - 1))}*`;
-}
-
-function formatPhoneNumber(value) {
-  const numbers = String(value ?? '')
-    .replace(/[^\d]/g, '')
-    .slice(0, 11);
-
-  if (numbers.length <= 3) {
-    return numbers;
-  }
-
-  if (numbers.length <= 7) {
-    return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
-  }
-
-  return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
 }
 
 function createInitialProfileForm(user) {

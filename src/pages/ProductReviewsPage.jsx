@@ -7,16 +7,9 @@ import ErrorState from '@/components/common/ErrorState';
 import LoadingState from '@/components/common/LoadingState';
 import { getAccessToken } from '@/utils/storage';
 import '@/styles/product-reviews.css';
+import { normalizeImageUrl } from '@/utils/image';
 
 const REVIEW_PAGE_LIMIT = 10;
-
-function normalizeImageUrl(url) {
-  if (!url || typeof url !== 'string') {
-    return '';
-  }
-
-  return url.trim().replace(/^<|>$/g, '');
-}
 
 function formatDate(value) {
   if (!value) {

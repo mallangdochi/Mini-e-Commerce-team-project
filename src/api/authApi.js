@@ -1,12 +1,5 @@
+import { getCurrentUser, normalizePhone, normalizeText } from '@/api/supabaseUtils';
 import { supabase } from '@/lib/supabase';
-
-function normalizeText(value) {
-  return String(value ?? '').trim();
-}
-
-function normalizePhone(value) {
-  return String(value ?? '').replace(/[^\d]/g, '');
-}
 
 function getAuthErrorMessage(error, fallbackMessage) {
   const message = String(error?.message ?? '').toLowerCase();
@@ -71,20 +64,7 @@ function normalizeProfile(profile, authUser, summary = {}) {
 }
 
 async function getCurrentAuthUser() {
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-
-  if (error) {
-    throw error;
-  }
-
-  if (!user) {
-    throw new Error('로그인 정보가 없습니다.');
-  }
-
-  return user;
+  return getCurrentUser('로그인 정보가 없습니다.');
 }
 
 async function getUserSummary(userId) {

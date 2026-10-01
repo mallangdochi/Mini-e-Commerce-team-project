@@ -8,15 +8,15 @@ function Layout() {
   useCartSync();
 
   return (
-    <>
+    <div className="site-layout">
       <Header />
 
-      <main>
+      <main className="site-main">
         <Outlet />
       </main>
 
       <Footer />
-    </>
+    </div>
   );
 }
 
