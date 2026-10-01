@@ -1,6 +1,42 @@
+import { useEffect, useRef, useState } from 'react';
+
 import { ORDER_TABS, PERIOD_OPTIONS } from './orderHistoryUtils';
 
 function OrderToolbar({ selectedTab, periodMonths, onTabChange, onPeriodChange }) {
+  const [isPeriodOpen, setIsPeriodOpen] = useState(false);
+  const periodControlRef = useRef(null);
+
+  const selectedPeriod =
+    PERIOD_OPTIONS.find((option) => Number(option.value) === Number(periodMonths)) ??
+    PERIOD_OPTIONS[0];
+
+  useEffect(() => {
+    const handlePointerDown = (event) => {
+      if (!periodControlRef.current?.contains(event.target)) {
+        setIsPeriodOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setIsPeriodOpen(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
+  const handlePeriodSelect = (value) => {
+    onPeriodChange(Number(value));
+    setIsPeriodOpen(false);
+  };
+
   return (
     <div className="order-history-toolbar">
       <div className="order-history-tabs">
@@ -16,20 +52,47 @@ function OrderToolbar({ selectedTab, periodMonths, onTabChange, onPeriodChange }
         ))}
       </div>
 
-      <div className="order-history-period-control">
+      <div
+        className="order-history-period-control"
+        ref={periodControlRef}
+      >
         <span>조회 기간</span>
 
-        <select
-          value={periodMonths}
-          onChange={(event) => onPeriodChange(Number(event.target.value))}
-          aria-label="주문 조회 기간"
+        <button
+          type="button"
+          className={`order-history-period-trigger${isPeriodOpen ? ' is-open' : ''}`}
+          aria-haspopup="listbox"
+          aria-expanded={isPeriodOpen}
+          onClick={() => setIsPeriodOpen((prev) => !prev)}
         >
-          {PERIOD_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
+          <span>{selectedPeriod.label}</span>
+          <span className="order-history-period-chevron" aria-hidden="true" />
+        </button>
+
+        {isPeriodOpen && (
+          <div
+            className="order-history-period-menu"
+            role="listbox"
+            aria-label="주문 조회 기간"
+          >
+            {PERIOD_OPTIONS.map((option) => {
+              const isSelected = Number(option.value) === Number(periodMonths);
+
+              return (
+                <button
+                  type="button"
+                  key={option.value}
+                  role="option"
+                  aria-selected={isSelected}
+                  className={isSelected ? 'is-selected' : ''}
+                  onClick={() => handlePeriodSelect(option.value)}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
